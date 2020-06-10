@@ -1,6 +1,9 @@
 connect6021 light für Keyboard 6040
 ===================================
 
+![PlatformIO Bluepill Environment](https://github.com/deltaphi/c6021light/workflows/PlatformIO%20Bluepill%20Environment/badge.svg?branch=master&event=push)
+![Arduino Uno](https://github.com/deltaphi/c6021light/workflows/Arduino%20Uno/badge.svg?branch=master&event=push)
+
 Project to connect one or several Keyboard 6040s to CAN. This project replaces the 6021 in your system.
 
 ## Safety Notes
