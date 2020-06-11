@@ -3,15 +3,6 @@
 
 #include "hal/HalBase.h"
 
-/// Give the current RTC value in seconds.
-unsigned long seconds();
-
-/// Give the current RTC value in milliseconds.
-unsigned long millis();
-
-/// Give the current RTC value in microseconds.
-unsigned long micros();
-
 namespace hal {
 
 /*
@@ -40,7 +31,7 @@ class LibOpencm3Hal : public HalBase {
   void loop() { loopCan(); }
 
   void consumeI2cMessage() {
-    bytesRead = 0;
+    i2cBytesRead = 0;
     HalBase::consumeI2cMessage();
   }
 
@@ -67,8 +58,8 @@ class LibOpencm3Hal : public HalBase {
 
   void loopCan();
 
-  static volatile uint_fast8_t bytesRead;
-  static volatile uint_fast8_t bytesSent;
+  static volatile uint_fast8_t i2cBytesRead;
+  static volatile uint_fast8_t i2cBytesSent;
 
   static volatile MarklinI2C::Messages::AccessoryMsg i2cTxMsg;
 

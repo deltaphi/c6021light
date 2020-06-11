@@ -68,8 +68,8 @@ unsigned long millis() { return micros() / 1000; }
 
 namespace hal {
 
-volatile uint_fast8_t LibOpencm3Hal::bytesRead;
-volatile uint_fast8_t LibOpencm3Hal::bytesSent;
+volatile uint_fast8_t LibOpencm3Hal::i2cBytesRead;
+volatile uint_fast8_t LibOpencm3Hal::i2cBytesSent;
 volatile MarklinI2C::Messages::AccessoryMsg LibOpencm3Hal::i2cTxMsg;
 
 volatile bool LibOpencm3Hal::canAvailable;
@@ -143,7 +143,8 @@ void LibOpencm3Hal::beginI2c() {
   i2c_set_own_7bit_slave_address(I2C1, this->i2cLocalAddr);
 
   // Set I2C IRQ to support slave mode
-  bytesRead = 0;
+  i2cBytesRead = 0;
+  i2cBytesSent = 0;
   nvic_enable_irq(NVIC_I2C1_EV_IRQ);
   i2c_enable_interrupt(I2C1, I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN);
 
@@ -165,7 +166,7 @@ void LibOpencm3Hal::i2cEvInt(void) {
 
   if (sr1 & I2C_SR1_SB) {
     // Refrence Manual: EV5 (Master)
-    bytesSent = 1;
+    i2cBytesSent = 1;
     i2c_send_7bit_address(I2C1, i2cTxMsg.destination, I2C_WRITE);
   } else
       // Address matched (Slave)
@@ -177,7 +178,7 @@ void LibOpencm3Hal::i2cEvInt(void) {
 
     if (!(sr2 & I2C_SR2_MSL)) {
       // Reference Manual: EV1
-      bytesRead = 1;
+      i2cBytesRead = 1;
       if (!HalBase::i2cMessageReceived) {
         HalBase::i2cMsg.destination = HalBase::i2cLocalAddr;
       }
@@ -186,18 +187,18 @@ void LibOpencm3Hal::i2cEvInt(void) {
   // Receive buffer not empty
   else if (sr1 & I2C_SR1_RxNE) {
     // Reference Manual: EV2
-    switch (bytesRead) {
+    switch (i2cBytesRead) {
       case 1:
         if (!HalBase::i2cMessageReceived) {
           HalBase::i2cMsg.source = i2c_get_data(I2C1);
         }
-        ++bytesRead;
+        ++i2cBytesRead;
         break;
       case 2:
         if (!HalBase::i2cMessageReceived) {
           HalBase::i2cMsg.data = i2c_get_data(I2C1);
         }
-        ++bytesRead;
+        ++i2cBytesRead;
         break;
       default:
         // Ignore reading byte 0 or bytes past 2
@@ -208,7 +209,7 @@ void LibOpencm3Hal::i2cEvInt(void) {
   else if ((sr1 & I2C_SR1_TxE) && !(sr1 & I2C_SR1_BTF)) {
     // EV8, 8_1
     // send dummy data to master in MSB order
-    switch (bytesSent) {
+    switch (i2cBytesSent) {
       case 1:
         i2c_send_data(I2C1, i2cTxMsg.source);
         break;
@@ -220,14 +221,14 @@ void LibOpencm3Hal::i2cEvInt(void) {
         i2c_send_stop(I2C1);
         break;
     }
-    ++bytesSent;
+    ++i2cBytesSent;
   }
   // done by master by sending STOP
   // this event happens when slave is in Recv mode at the end of communication
   else if (sr1 & I2C_SR1_STOPF) {
     // Reference Manual: EV3
     i2c_peripheral_enable(I2C1);
-    if (bytesRead == 3) {
+    if (i2cBytesRead == 3) {
       HalBase::i2cMessageReceived = true;
     }
   }
@@ -260,7 +261,6 @@ void LibOpencm3Hal::canRxInt() {
   LibOpencm3Hal::canAvailable = true;
   // Disable Interrupt until packet is processed.
   can_disable_irq(CAN1, CAN_IER_FMPIE0);
-
 }
 
 void LibOpencm3Hal::beginCan() {
@@ -319,7 +319,7 @@ void LibOpencm3Hal::loopCan() {
 }
 
 void LibOpencm3Hal::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) {
-  bytesSent = 0;
+  i2cBytesSent = 0;
   i2cTxMsg.destination = msg.destination;
   i2cTxMsg.source = msg.source;
   i2cTxMsg.data = msg.data;

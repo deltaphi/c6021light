@@ -4,6 +4,15 @@
 #include "MarklinI2C/Messages/AccessoryMsg.h"
 #include "RR32Can/callback/TxCbk.h"
 
+/// Give the current RTC value in seconds.
+unsigned long seconds();
+
+/// Give the current RTC value in milliseconds.
+unsigned long millis();
+
+/// Give the current RTC value in microseconds.
+unsigned long micros();
+
 namespace hal {
 
 /*
