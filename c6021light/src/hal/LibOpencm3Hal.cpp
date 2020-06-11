@@ -15,6 +15,13 @@
 
 #include "RR32Can/RR32Can.h"
 
+/** Duration of an LSI-driven RTC tick in us.
+ *  Manually calibrated for LSI, may vary for different boards.
+ */
+constexpr const uint32_t kRTCTickDuration = 49;
+
+/// Prescaler value to achieve kRTCTickDuration when using LSI.
+constexpr const uint32_t kRTC_LSI_Prescaler = 1;  // ~49us resolution.
 
 // Forward declarations
 void setup();
@@ -55,15 +62,9 @@ unsigned long micros() {
   return rtcCounter * kRTCTickDuration;
 }
 
-unsigned long seconds() {
-  return micros() / 1000000;
-}
+unsigned long seconds() { return micros() / 1000000; }
 
-unsigned long millis() {
-  return micros() / 1000;
-}
-
-
+unsigned long millis() { return micros() / 1000; }
 
 namespace hal {
 
@@ -97,7 +98,7 @@ void LibOpencm3Hal::beginClock() {
 
 void LibOpencm3Hal::beginGpio() {
   gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO13);
-  gpio_set(GPIOC, GPIO13); // Turn the LED off.
+  gpio_set(GPIOC, GPIO13);  // Turn the LED off.
 }
 
 void LibOpencm3Hal::beginRtc() {
