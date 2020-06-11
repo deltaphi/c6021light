@@ -7,8 +7,13 @@
 
 void AccessoryCbk::begin(hal::HalBase& hal) { this->hal = &hal; }
 
-void AccessoryCbk::OnAccessoryPacket(RR32Can::TurnoutPacket& packet) {
-  MYPRINTF("Got an Accessory packet!");
+void AccessoryCbk::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool response) {
+  if (!response) {
+    MYPRINTF(" Ignoring Accessory request packet");
+    return;
+  }
+
+  MYPRINTF(" Got an Accessory packet!");
 
   if (hal == nullptr) {
     return;

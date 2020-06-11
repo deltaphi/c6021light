@@ -258,6 +258,9 @@ void LibOpencm3Hal::canRxInt() {
   LibOpencm3Hal::canRxMsg.id = packetId;  // RR32Can::Identifier::GetIdentifier(packetId);
 
   LibOpencm3Hal::canAvailable = true;
+  // Disable Interrupt until packet is processed.
+  can_disable_irq(CAN1, CAN_IER_FMPIE0);
+
 }
 
 void LibOpencm3Hal::beginCan() {
@@ -280,7 +283,7 @@ void LibOpencm3Hal::beginCan() {
   /* Reset CAN */
   can_reset(CAN1);
 
-  /* defaultt CAN setting 250 kBaud */
+  /* default CAN setting 250 kBaud */
 
   if (can_init(CAN1, false, true, false, false, false, false, CAN_BTR_SJW_1TQ, CAN_BTR_TS1_13TQ,
                CAN_BTR_TS2_2TQ, 9, false, false)) {
@@ -310,6 +313,8 @@ void LibOpencm3Hal::loopCan() {
     }
     RR32Can::RR32Can.HandlePacket(rr32id, data);
     canAvailable = false;
+    // Reenable interrupt as packet is now processed.
+    can_enable_irq(CAN1, CAN_IER_FMPIE0);
   }
 }
 

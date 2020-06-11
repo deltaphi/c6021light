@@ -14,7 +14,7 @@ class AccessoryCbk : public RR32Can::callback::AccessoryCbk {
   /**
    * \brief Called when an accessory packet was received.
    */
-  void OnAccessoryPacket(RR32Can::TurnoutPacket& packet) override;
+  void OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool response) override;
 
  private:
   hal::HalBase* hal = nullptr;
