@@ -41,9 +41,6 @@ class LibOpencm3Hal : public HalBase {
   void SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg) override;
 
   static void i2cEvInt(void);
-  static void canRxInt(void);
-
-  static volatile bool canAvailable;
 
  private:
   /// Transmit Packet on CAN
@@ -62,8 +59,6 @@ class LibOpencm3Hal : public HalBase {
   static volatile uint_fast8_t i2cBytesSent;
 
   static volatile MarklinI2C::Messages::AccessoryMsg i2cTxMsg;
-
-  static volatile CanMsg canRxMsg;
 };
 
 }  // namespace hal

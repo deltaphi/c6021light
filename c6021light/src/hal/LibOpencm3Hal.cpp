@@ -72,9 +72,6 @@ volatile uint_fast8_t LibOpencm3Hal::i2cBytesRead;
 volatile uint_fast8_t LibOpencm3Hal::i2cBytesSent;
 volatile MarklinI2C::Messages::AccessoryMsg LibOpencm3Hal::i2cTxMsg;
 
-volatile bool LibOpencm3Hal::canAvailable;
-volatile LibOpencm3Hal::CanMsg LibOpencm3Hal::canRxMsg;
-
 void LibOpencm3Hal::beginClock() {
   // Enable the overall clock.
   rcc_clock_setup_in_hse_8mhz_out_72mhz();
@@ -239,17 +236,7 @@ void LibOpencm3Hal::i2cEvInt(void) {
   }
 }
 
-extern "C" void usb_lp_can_rx0_isr(void) { LibOpencm3Hal::canRxInt(); }
-
-void LibOpencm3Hal::canRxInt() {
-  LibOpencm3Hal::canAvailable = true;
-  // Disable Interrupt until packet is processed.
-  can_disable_irq(CAN1, CAN_IER_FMPIE0);
-}
-
 void LibOpencm3Hal::beginCan() {
-  canAvailable = false;
-
   AFIO_MAPR |= AFIO_MAPR_CAN1_REMAP_PORTB;
 
   /* Configure CAN pin: RX (input pull-up) */
@@ -259,10 +246,6 @@ void LibOpencm3Hal::beginCan() {
   /* Configure CAN pin: TX */
   gpio_set_mode(GPIO_BANK_CAN1_PB_TX, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL,
                 GPIO_CAN1_PB_TX);
-
-  /* NVIC setup */
-  nvic_enable_irq(NVIC_USB_LP_CAN_RX0_IRQ);
-  nvic_set_priority(NVIC_USB_LP_CAN_RX0_IRQ, 1);
 
   /* Reset CAN */
   can_reset(CAN1);
@@ -282,13 +265,10 @@ void LibOpencm3Hal::beginCan() {
                                 0,       /* CAN ID mask */
                                 0,       /* FIFO assignment (here: FIFO0) */
                                 true);   /* Enable the filter. */
-
-  /* Enable CAN RX interrupt. */
-  can_enable_irq(CAN1, CAN_IER_FMPIE0);
 }
 
 void LibOpencm3Hal::loopCan() {
-  if (canAvailable) {
+  if (CAN_RF0R(CAN1) & CAN_RF0R_FMP0_MASK) {  // message available in FIFO 0
     uint32_t packetId;
 
     bool ext;
@@ -300,9 +280,6 @@ void LibOpencm3Hal::loopCan() {
 
     RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(packetId);
     RR32Can::RR32Can.HandlePacket(rr32id, data);
-    canAvailable = false;
-    // Reenable interrupt as packet is now processed.
-    can_enable_irq(CAN1, CAN_IER_FMPIE0);
   }
 }
 
