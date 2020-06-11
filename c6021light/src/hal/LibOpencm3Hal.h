@@ -3,6 +3,15 @@
 
 #include "hal/HalBase.h"
 
+/// Give the current RTC value in seconds.
+unsigned long seconds();
+
+/// Give the current RTC value in milliseconds.
+unsigned long millis();
+
+/// Give the current RTC value in microseconds.
+unsigned long micros();
+
 namespace hal {
 
 /*
@@ -20,6 +29,7 @@ class LibOpencm3Hal : public HalBase {
   void begin(uint8_t i2caddr) {
     HalBase::begin(i2caddr);
     beginClock();
+    beginRtc();
     beginSerial();
     beginI2c();
     beginCan();
@@ -48,6 +58,7 @@ class LibOpencm3Hal : public HalBase {
   void SendPacket(const RR32Can::Identifier& id, const RR32Can::Data& data) override;
 
   void beginClock();
+  void beginRtc();
   void beginSerial();
   void beginI2c();
   void beginCan();

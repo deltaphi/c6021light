@@ -5,6 +5,7 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/i2c.h>
 #include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/rtc.h>
 #include <libopencm3/stm32/usart.h>
 
 #include <stdio.h>
@@ -13,6 +14,9 @@
 #include <unistd.h>
 
 #include "RR32Can/RR32Can.h"
+
+constexpr const uint32_t kRTCTickDuration = 49; // in us. Manually calibrated for LSI, may vary for different boards.
+constexpr const uint32_t kRTC_LSI_Prescaler = 1; // ~49us resolution.
 
 extern "C" {
 /* _write code taken from example at
@@ -34,6 +38,21 @@ int _write(int file, char* ptr, int len) {
   return -1;
 }
 }
+
+unsigned long micros() {
+  uint32_t rtcCounter = rtc_get_counter_val();
+  return rtcCounter * kRTCTickDuration;
+}
+
+unsigned long seconds() {
+  return micros() / 1000000;
+}
+
+unsigned long millis() {
+  return micros() / 1000;
+}
+
+
 
 namespace hal {
 
@@ -63,6 +82,12 @@ void LibOpencm3Hal::beginClock() {
 
   // Enable the CAN clock
   rcc_periph_clock_enable(RCC_CAN1);
+}
+
+
+void LibOpencm3Hal::beginRtc() {
+  rtc_awake_from_off(LSI);
+  rtc_set_prescale_val(kRTC_LSI_Prescaler);
 }
 
 void LibOpencm3Hal::beginSerial() {
