@@ -15,8 +15,19 @@
 
 #include "RR32Can/RR32Can.h"
 
-constexpr const uint32_t kRTCTickDuration = 49; // in us. Manually calibrated for LSI, may vary for different boards.
-constexpr const uint32_t kRTC_LSI_Prescaler = 1; // ~49us resolution.
+
+// Forward declarations
+void setup();
+void loop();
+
+// Main function for non-arduino
+int main(void) {
+  setup();
+  while (1) {
+    loop();
+  }
+  return 0;
+}
 
 extern "C" {
 /* _write code taken from example at

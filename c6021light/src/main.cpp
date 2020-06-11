@@ -119,13 +119,3 @@ void loop() {
 
   // Process CAN: Done through callbacks.
 }
-
-#ifdef PLATFORMIO_FRAMEWORK_libopencm3
-int main(void) {
-  setup();
-  while (1) {
-    loop();
-  }
-  return 0;
-}
-#endif
