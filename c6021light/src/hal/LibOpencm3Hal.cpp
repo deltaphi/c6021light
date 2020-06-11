@@ -70,7 +70,7 @@ void LibOpencm3Hal::beginClock() {
   // Enable GPIO Pin Banks used for GPIO or alternate functions
   rcc_periph_clock_enable(RCC_GPIOA);
   rcc_periph_clock_enable(RCC_GPIOB);
-  // rcc_periph_clock_enable(RCC_GPIOC);
+  rcc_periph_clock_enable(RCC_GPIOC);
   // Enable Clock for alternate functions
   rcc_periph_clock_enable(RCC_AFIO);
 
@@ -84,6 +84,10 @@ void LibOpencm3Hal::beginClock() {
   rcc_periph_clock_enable(RCC_CAN1);
 }
 
+void LibOpencm3Hal::beginGpio() {
+  gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO13);
+  gpio_set(GPIOC, GPIO13); // Turn the LED off.
+}
 
 void LibOpencm3Hal::beginRtc() {
   rtc_awake_from_off(LSI);
