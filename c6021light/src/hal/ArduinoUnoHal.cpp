@@ -5,6 +5,8 @@
 
 namespace hal {
 
+ArduinoUnoHal::TimedI2CBuf ArduinoUnoHal::i2cRxBuf;
+
 /**
  * \brief Callback when a message is received.
  */
@@ -14,20 +16,21 @@ void ArduinoUnoHal::receiveEvent(int howMany) {
     Wire.flush();
   }
 
-  if (!ArduinoUnoHal::i2cMessageReceived) {
-    ArduinoUnoHal::i2cMsg.destination = ArduinoUnoHal::i2cLocalAddr;
-    ArduinoUnoHal::i2cMsg.source = Wire.read();
-    ArduinoUnoHal::i2cMsg.data = Wire.read();
+  if (!ArduinoUnoHal::i2cRxBuf.msgValid) {
+    ArduinoUnoHal::i2cRxBuf.msg.destination = ArduinoUnoHal::i2cLocalAddr;
+    ArduinoUnoHal::i2cRxBuf.msg.source = Wire.read();
+    ArduinoUnoHal::i2cRxBuf.msg.data = Wire.read();
     Serial.println(F("I2C Message received."));
-    ArduinoUnoHal::i2cMsg.print();
-    ArduinoUnoHal::i2cMessageReceived = true;
+    ArduinoUnoHal::i2cRxBuf.msg.print();
+    ArduinoUnoHal::i2cRxBuf.timestamp = micros();
+    ArduinoUnoHal::i2cRxBuf.msgValid = true;
   } else {
     Serial.println(F("I2C RX Buffer full, lost message."));
   }
 }
 
 void ArduinoUnoHal::beginI2c() {
-  i2cMessageReceived = false;
+  i2cRxBuf.msgValid = false;
   Wire.begin(i2cLocalAddr);
   Wire.onReceive(ArduinoUnoHal::receiveEvent);
 }
@@ -42,8 +45,6 @@ void ArduinoUnoHal::beginCan() {
     Serial.println(F(" success."));
   }
 }
-
-void ArduinoUnoHal::loopI2c() {}
 
 void ArduinoUnoHal::loopCan() {
   int packetSize = CAN.parsePacket();

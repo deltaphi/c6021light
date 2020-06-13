@@ -1,6 +1,8 @@
 #ifndef __HAL__LIBOPENCM3HAL_H__
 #define __HAL__LIBOPENCM3HAL_H__
 
+#include <atomic>
+
 #include "hal/HalBase.h"
 
 namespace hal {
@@ -16,6 +18,16 @@ class LibOpencm3Hal : public HalBase {
     RR32Can::Data data;
   } CanMsg;
 
+  struct I2CBuf {
+    uint_fast8_t bytesProcessed;
+    std::atomic_bool msgValid;
+    MarklinI2C::Messages::AccessoryMsg msg;
+  };
+
+  struct TimedI2CBuf : public I2CBuf {
+    unsigned long timestamp;  ///< Timestamp then message became valid in Microseconds
+  };
+
   ///
   void begin(uint8_t i2caddr) {
     HalBase::begin(i2caddr);
@@ -30,9 +42,12 @@ class LibOpencm3Hal : public HalBase {
   /// Receive Packet from CAN and forward to station.
   void loop() { loopCan(); }
 
+  bool i2cAvailable() const { return i2cRxBuf.msgValid.load(std::memory_order_acquire); }
+  const MarklinI2C::Messages::AccessoryMsg& getI2cMessage() const { return i2cRxBuf.msg; }
+
   void consumeI2cMessage() {
-    i2cBytesRead = 0;
-    HalBase::consumeI2cMessage();
+    i2cRxBuf.bytesProcessed = 0;
+    i2cRxBuf.msgValid.store(false, std::memory_order_release);
   }
 
   /**
@@ -55,10 +70,8 @@ class LibOpencm3Hal : public HalBase {
 
   void loopCan();
 
-  static volatile uint_fast8_t i2cBytesRead;
-  static volatile uint_fast8_t i2cBytesSent;
-
-  static volatile MarklinI2C::Messages::AccessoryMsg i2cTxMsg;
+  static TimedI2CBuf i2cRxBuf;
+  static I2CBuf i2cTxBuf;
 };
 
 }  // namespace hal

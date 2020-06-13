@@ -12,6 +12,16 @@ namespace hal {
  */
 class ArduinoUnoHal : public HalBase {
  public:
+  struct I2CBuf {
+    volatile bool msgValid;
+    MarklinI2C::Messages::AccessoryMsg
+        msg;  // Volatility not needed, as acess to msgValid should serve as a memory barrier.
+  };
+
+  struct TimedI2CBuf : public I2CBuf {
+    unsigned long timestamp;  ///< Timestamp then message became valid in Microseconds
+  };
+
   ///
   void begin(uint8_t i2caddr) {
     HalBase::begin(i2caddr);
@@ -21,14 +31,18 @@ class ArduinoUnoHal : public HalBase {
   }
 
   /// Receive Packet from CAN and forward to station.
-  void loop() {
-    loopI2c();
-    loopCan();
-  }
+  void loop() { loopCan(); }
 
-  virtual void SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg) override;
+  void SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg) override;
+
+  bool i2cAvailable() const { return i2cRxBuf.msgValid; }
+  const MarklinI2C::Messages::AccessoryMsg& getI2cMessage() const { return i2cRxBuf.msg; }
+  virtual void consumeI2cMessage() { i2cRxBuf.msgValid = false; }
 
  private:
+  /// The last message that was received over i2c.
+  static TimedI2CBuf i2cRxBuf;
+
   /// Transmit Packet on CAN
   void SendPacket(const RR32Can::Identifier& id, const RR32Can::Data& data) override;
 
@@ -36,7 +50,6 @@ class ArduinoUnoHal : public HalBase {
   void beginCan();
 
   void loopCan();
-  void loopI2c();
 
   static void receiveEvent(int howMany);
 };

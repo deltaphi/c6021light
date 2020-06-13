@@ -68,9 +68,8 @@ unsigned long millis() { return micros() / 1000; }
 
 namespace hal {
 
-volatile uint_fast8_t LibOpencm3Hal::i2cBytesRead;
-volatile uint_fast8_t LibOpencm3Hal::i2cBytesSent;
-volatile MarklinI2C::Messages::AccessoryMsg LibOpencm3Hal::i2cTxMsg;
+LibOpencm3Hal::TimedI2CBuf LibOpencm3Hal::i2cRxBuf;
+LibOpencm3Hal::I2CBuf LibOpencm3Hal::i2cTxBuf;
 
 void LibOpencm3Hal::beginClock() {
   // Enable the overall clock.
@@ -140,8 +139,10 @@ void LibOpencm3Hal::beginI2c() {
   i2c_set_own_7bit_slave_address(I2C1, this->i2cLocalAddr);
 
   // Set I2C IRQ to support slave mode
-  i2cBytesRead = 0;
-  i2cBytesSent = 0;
+  i2cTxBuf.bytesProcessed = 0;
+  i2cRxBuf.bytesProcessed = 0;
+  i2cTxBuf.msgValid.store(false, std::memory_order_release);
+  i2cRxBuf.msgValid.store(false, std::memory_order_release);
   nvic_enable_irq(NVIC_I2C1_EV_IRQ);
   i2c_enable_interrupt(I2C1, I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN);
 
@@ -163,8 +164,8 @@ void LibOpencm3Hal::i2cEvInt(void) {
 
   if (sr1 & I2C_SR1_SB) {
     // Refrence Manual: EV5 (Master)
-    i2cBytesSent = 1;
-    i2c_send_7bit_address(I2C1, i2cTxMsg.destination, I2C_WRITE);
+    i2cTxBuf.bytesProcessed = 1;
+    i2c_send_7bit_address(I2C1, i2cTxBuf.msg.destination, I2C_WRITE);
   } else
       // Address matched (Slave)
       if (sr1 & I2C_SR1_ADDR) {
@@ -175,27 +176,27 @@ void LibOpencm3Hal::i2cEvInt(void) {
 
     if (!(sr2 & I2C_SR2_MSL)) {
       // Reference Manual: EV1
-      i2cBytesRead = 1;
-      if (!HalBase::i2cMessageReceived) {
-        HalBase::i2cMsg.destination = HalBase::i2cLocalAddr;
+      if (!i2cRxBuf.msgValid.load(std::memory_order_acquire)) {
+        i2cRxBuf.bytesProcessed = 1;
+        i2cRxBuf.msg.destination = HalBase::i2cLocalAddr;
       }
     }
   }
   // Receive buffer not empty
   else if (sr1 & I2C_SR1_RxNE) {
     // Reference Manual: EV2
-    switch (i2cBytesRead) {
+    switch (i2cRxBuf.bytesProcessed) {
       case 1:
-        if (!HalBase::i2cMessageReceived) {
-          HalBase::i2cMsg.source = i2c_get_data(I2C1);
+        if (!i2cRxBuf.msgValid.load(std::memory_order_acquire)) {
+          i2cRxBuf.msg.source = i2c_get_data(I2C1);
+          ++i2cRxBuf.bytesProcessed;
         }
-        ++i2cBytesRead;
         break;
       case 2:
-        if (!HalBase::i2cMessageReceived) {
-          HalBase::i2cMsg.data = i2c_get_data(I2C1);
+        if (!i2cRxBuf.msgValid.load(std::memory_order_acquire)) {
+          i2cRxBuf.msg.data = i2c_get_data(I2C1);
+          ++i2cRxBuf.bytesProcessed;
         }
-        ++i2cBytesRead;
         break;
       default:
         // Ignore reading byte 0 or bytes past 2
@@ -206,27 +207,30 @@ void LibOpencm3Hal::i2cEvInt(void) {
   else if ((sr1 & I2C_SR1_TxE) && !(sr1 & I2C_SR1_BTF)) {
     // EV8, 8_1
     // send dummy data to master in MSB order
-    switch (i2cBytesSent) {
+    switch (i2cTxBuf.bytesProcessed) {
       case 1:
-        i2c_send_data(I2C1, i2cTxMsg.source);
+        i2c_send_data(I2C1, i2cTxBuf.msg.source);
+        ++i2cTxBuf.bytesProcessed;
         break;
       case 2:
-        i2c_send_data(I2C1, i2cTxMsg.data);
+        i2c_send_data(I2C1, i2cTxBuf.msg.data);
+        ++i2cTxBuf.bytesProcessed;
         break;
       default:
         // EV 8_2
+        i2cTxBuf.msgValid.store(false, std::memory_order_release);
         i2c_send_stop(I2C1);
         break;
     }
-    ++i2cBytesSent;
   }
   // done by master by sending STOP
   // this event happens when slave is in Recv mode at the end of communication
   else if (sr1 & I2C_SR1_STOPF) {
     // Reference Manual: EV3
     i2c_peripheral_enable(I2C1);
-    if (i2cBytesRead == 3) {
-      HalBase::i2cMessageReceived = true;
+    if (i2cRxBuf.bytesProcessed == 3) {
+      i2cRxBuf.timestamp = micros();
+      i2cRxBuf.msgValid.store(true, std::memory_order_release);
     }
   }
   // this event happens when slave is in transmit mode at the end of communication
@@ -284,10 +288,9 @@ void LibOpencm3Hal::loopCan() {
 }
 
 void LibOpencm3Hal::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) {
-  i2cBytesSent = 0;
-  i2cTxMsg.destination = msg.destination;
-  i2cTxMsg.source = msg.source;
-  i2cTxMsg.data = msg.data;
+  i2cTxBuf.bytesProcessed = 0;
+  i2cTxBuf.msg = msg;
+  i2cTxBuf.msgValid.store(true, std::memory_order_release);
   i2c_send_start(I2C1);
 }
 
