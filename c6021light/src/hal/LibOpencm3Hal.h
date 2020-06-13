@@ -27,10 +27,6 @@ class LibOpencm3Hal : public HalBase {
     volatile uint8_t msgBytes[kMsgBytesLength];
   };
 
-  struct TimedI2CBuf : public I2CBuf {
-    unsigned long timestamp;  ///< Timestamp then message became valid in Microseconds
-  };
-
   ///
   void begin(uint8_t i2caddr) {
     HalBase::begin(i2caddr);
@@ -47,11 +43,6 @@ class LibOpencm3Hal : public HalBase {
 
   bool i2cAvailable() const { return i2cRxBuf.msgValid.load(std::memory_order_acquire); }
   MarklinI2C::Messages::AccessoryMsg getI2cMessage() const;
-
-  void consumeI2cMessage() {
-    i2cRxBuf.bytesProcessed = 0;
-    i2cRxBuf.msgValid.store(false, std::memory_order_release);
-  }
 
   /**
    * \brief Send a given message over I2C.
@@ -73,7 +64,7 @@ class LibOpencm3Hal : public HalBase {
 
   void loopCan();
 
-  static TimedI2CBuf i2cRxBuf;
+  static I2CBuf i2cRxBuf;
   static I2CBuf i2cTxBuf;
 };
 

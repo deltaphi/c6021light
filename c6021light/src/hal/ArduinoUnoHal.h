@@ -20,10 +20,6 @@ class ArduinoUnoHal : public HalBase {
     volatile uint8_t msgBytes[kMsgBytesLength];
   };
 
-  struct TimedI2CBuf : public I2CBuf {
-    unsigned long timestamp;  ///< Timestamp then message became valid in Microseconds
-  };
-
   ///
   void begin(uint8_t i2caddr) {
     HalBase::begin(i2caddr);
@@ -39,11 +35,10 @@ class ArduinoUnoHal : public HalBase {
 
   bool i2cAvailable() const { return i2cRxBuf.msgValid; }
   MarklinI2C::Messages::AccessoryMsg getI2cMessage() const;
-  virtual void consumeI2cMessage() { i2cRxBuf.msgValid = false; }
 
  private:
   /// The last message that was received over i2c.
-  static TimedI2CBuf i2cRxBuf;
+  static I2CBuf i2cRxBuf;
 
   /// Transmit Packet on CAN
   void SendPacket(const RR32Can::Identifier& id, const RR32Can::Data& data) override;

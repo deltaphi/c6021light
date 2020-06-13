@@ -68,7 +68,7 @@ unsigned long millis() { return micros() / 1000; }
 
 namespace hal {
 
-LibOpencm3Hal::TimedI2CBuf LibOpencm3Hal::i2cRxBuf;
+LibOpencm3Hal::I2CBuf LibOpencm3Hal::i2cRxBuf;
 LibOpencm3Hal::I2CBuf LibOpencm3Hal::i2cTxBuf;
 
 void LibOpencm3Hal::beginClock() {
@@ -216,7 +216,6 @@ void LibOpencm3Hal::i2cEvInt(void) {
     // Reference Manual: EV3
     i2c_peripheral_enable(I2C1);
     if (i2cRxBuf.bytesProcessed == 3) {
-      i2cRxBuf.timestamp = micros();
       i2cRxBuf.msgValid.store(true, std::memory_order_release);
     }
   }
@@ -292,6 +291,8 @@ MarklinI2C::Messages::AccessoryMsg LibOpencm3Hal::getI2cMessage() const {
   msg.destination = i2cLocalAddr;
   msg.source = i2cRxBuf.msgBytes[0];
   msg.data = i2cRxBuf.msgBytes[1];
+  i2cRxBuf.bytesProcessed = 0;
+  i2cRxBuf.msgValid.store(false, std::memory_order_release);
   return msg;
 }
 

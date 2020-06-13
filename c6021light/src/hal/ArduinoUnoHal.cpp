@@ -5,7 +5,7 @@
 
 namespace hal {
 
-ArduinoUnoHal::TimedI2CBuf ArduinoUnoHal::i2cRxBuf;
+ArduinoUnoHal::I2CBuf ArduinoUnoHal::i2cRxBuf;
 
 /**
  * \brief Callback when a message is received.
@@ -21,7 +21,6 @@ void ArduinoUnoHal::receiveEvent(int howMany) {
       // Bytewise-copy because Wire cannot read to volatile memory.
       i2cRxBuf.msgBytes[i] = Wire.read();
     }
-    ArduinoUnoHal::i2cRxBuf.timestamp = micros();
     ArduinoUnoHal::i2cRxBuf.msgValid = true;
   } else {
     Serial.println(F("I2C RX Buffer full, lost message."));
@@ -112,6 +111,7 @@ MarklinI2C::Messages::AccessoryMsg ArduinoUnoHal::getI2cMessage() const {
   msg.destination = i2cLocalAddr;
   msg.source = i2cRxBuf.msgBytes[0];
   msg.data = i2cRxBuf.msgBytes[1];
+  i2cRxBuf.msgValid = false;
   return msg;
 }
 
