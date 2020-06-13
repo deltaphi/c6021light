@@ -39,3 +39,8 @@ void AccessoryCbk::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respon
 
   hal->SendI2CMessage(i2cMsg);
 }
+
+void AccessoryCbk::setSystemState(bool onOff) {
+  // When the system is stopped, turn on the LED.
+  hal->led(!onOff);
+}

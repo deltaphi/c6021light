@@ -49,6 +49,9 @@ class LibOpencm3Hal : public HalBase {
    */
   void SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg) override;
 
+  void led(bool on) override;
+  void toggleLed() override;
+
   static void i2cEvInt(void);
 
  private:

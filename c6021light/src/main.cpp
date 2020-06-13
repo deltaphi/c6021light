@@ -47,6 +47,7 @@ void setup() {
   RR32Can::Station::CallbackStruct callbacks;
   callbacks.tx = &halImpl;
   callbacks.accessory = &accessoryCbk;
+  callbacks.system = &accessoryCbk;
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
   MYPRINTF("Ready!\n");

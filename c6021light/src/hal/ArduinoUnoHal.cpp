@@ -115,4 +115,14 @@ MarklinI2C::Messages::AccessoryMsg ArduinoUnoHal::getI2cMessage() const {
   return msg;
 }
 
+void ArduinoUnoHal::led(bool on) {
+  if (on) {
+    digitalWrite(13, LOW);
+  } else {
+    digitalWrite(13, HIGH);
+  }
+}
+
+void ArduinoUnoHal::toggleLed() { digitalWrite(13, !digitalRead(13)); }
+
 }  // namespace hal

@@ -36,6 +36,9 @@ class ArduinoUnoHal : public HalBase {
   bool i2cAvailable() const { return i2cRxBuf.msgValid; }
   MarklinI2C::Messages::AccessoryMsg getI2cMessage() const;
 
+  void led(bool on) override;
+  void toggleLed() override;
+
  private:
   /// The last message that was received over i2c.
   static I2CBuf i2cRxBuf;

@@ -296,4 +296,14 @@ MarklinI2C::Messages::AccessoryMsg LibOpencm3Hal::getI2cMessage() const {
   return msg;
 }
 
+void LibOpencm3Hal::led(bool on) {
+  if (on) {
+    gpio_clear(GPIOC, GPIO13);
+  } else {
+    gpio_set(GPIOC, GPIO13);
+  }
+}
+
+void LibOpencm3Hal::toggleLed() { gpio_toggle(GPIOC, GPIO13); }
+
 }  // namespace hal

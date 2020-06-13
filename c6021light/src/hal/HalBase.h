@@ -34,6 +34,9 @@ class HalBase : public RR32Can::callback::TxCbk {
    */
   virtual void SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg) = 0;
 
+  virtual void led(bool on) = 0;
+  virtual void toggleLed() = 0;
+
  protected:
   static uint8_t i2cLocalAddr;
 };
