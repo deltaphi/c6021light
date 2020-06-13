@@ -165,7 +165,7 @@ void LibOpencm3Hal::i2cEvInt(void) {
   if (sr1 & I2C_SR1_SB) {
     // Refrence Manual: EV5 (Master)
     i2cTxBuf.bytesProcessed = 1;
-    i2c_send_7bit_address(I2C1, i2cTxBuf.msg.destination, I2C_WRITE);
+    i2c_send_7bit_address(I2C1, i2cTxBuf.msgBytes[0], I2C_WRITE);
   } else
       // Address matched (Slave)
       if (sr1 & I2C_SR1_ADDR) {
@@ -178,42 +178,29 @@ void LibOpencm3Hal::i2cEvInt(void) {
       // Reference Manual: EV1
       if (!i2cRxBuf.msgValid.load(std::memory_order_acquire)) {
         i2cRxBuf.bytesProcessed = 1;
-        i2cRxBuf.msg.destination = HalBase::i2cLocalAddr;
       }
     }
   }
   // Receive buffer not empty
   else if (sr1 & I2C_SR1_RxNE) {
     // Reference Manual: EV2
-    switch (i2cRxBuf.bytesProcessed) {
-      case 1:
-        if (!i2cRxBuf.msgValid.load(std::memory_order_acquire)) {
-          i2cRxBuf.msg.source = i2c_get_data(I2C1);
-          ++i2cRxBuf.bytesProcessed;
-        }
-        break;
-      case 2:
-        if (!i2cRxBuf.msgValid.load(std::memory_order_acquire)) {
-          i2cRxBuf.msg.data = i2c_get_data(I2C1);
-          ++i2cRxBuf.bytesProcessed;
-        }
-        break;
-      default:
-        // Ignore reading byte 0 or bytes past 2
-        break;
+    if (!i2cRxBuf.msgValid.load(std::memory_order_acquire)) {
+      if (i2cRxBuf.bytesProcessed < 3) {
+        i2cRxBuf.msgBytes[i2cRxBuf.bytesProcessed - 1] = i2c_get_data(I2C1);
+        ++i2cRxBuf.bytesProcessed;
+      }
     }
   }
   // Transmit buffer empty & Data byte transfer not finished
   else if ((sr1 & I2C_SR1_TxE) && !(sr1 & I2C_SR1_BTF)) {
     // EV8, 8_1
-    // send dummy data to master in MSB order
     switch (i2cTxBuf.bytesProcessed) {
       case 1:
-        i2c_send_data(I2C1, i2cTxBuf.msg.source);
+        i2c_send_data(I2C1, i2cLocalAddr << 1);
         ++i2cTxBuf.bytesProcessed;
         break;
       case 2:
-        i2c_send_data(I2C1, i2cTxBuf.msg.data);
+        i2c_send_data(I2C1, i2cTxBuf.msgBytes[1]);
         ++i2cTxBuf.bytesProcessed;
         break;
       default:
@@ -289,7 +276,8 @@ void LibOpencm3Hal::loopCan() {
 
 void LibOpencm3Hal::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) {
   i2cTxBuf.bytesProcessed = 0;
-  i2cTxBuf.msg = msg;
+  i2cTxBuf.msgBytes[0] = msg.destination;
+  i2cTxBuf.msgBytes[1] = msg.data;
   i2cTxBuf.msgValid.store(true, std::memory_order_release);
   i2c_send_start(I2C1);
 }
@@ -297,6 +285,14 @@ void LibOpencm3Hal::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg
 void LibOpencm3Hal::SendPacket(RR32Can::Identifier const& id, RR32Can::Data const& data) {
   uint32_t packetId = id.makeIdentifier();
   can_transmit(CAN1, packetId, true, false, data.dlc, const_cast<uint8_t*>(data.data));
+}
+
+MarklinI2C::Messages::AccessoryMsg LibOpencm3Hal::getI2cMessage() const {
+  MarklinI2C::Messages::AccessoryMsg msg;
+  msg.destination = i2cLocalAddr;
+  msg.source = i2cRxBuf.msgBytes[0];
+  msg.data = i2cRxBuf.msgBytes[1];
+  return msg;
 }
 
 }  // namespace hal

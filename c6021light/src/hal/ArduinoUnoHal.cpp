@@ -17,11 +17,10 @@ void ArduinoUnoHal::receiveEvent(int howMany) {
   }
 
   if (!ArduinoUnoHal::i2cRxBuf.msgValid) {
-    ArduinoUnoHal::i2cRxBuf.msg.destination = ArduinoUnoHal::i2cLocalAddr;
-    ArduinoUnoHal::i2cRxBuf.msg.source = Wire.read();
-    ArduinoUnoHal::i2cRxBuf.msg.data = Wire.read();
-    Serial.println(F("I2C Message received."));
-    ArduinoUnoHal::i2cRxBuf.msg.print();
+    for (uint8_t i = 0; i < howMany && i < kMsgBytesLength; ++i) {
+      // Bytewise-copy because Wire cannot read to volatile memory.
+      i2cRxBuf.msgBytes[i] = Wire.read();
+    }
     ArduinoUnoHal::i2cRxBuf.timestamp = micros();
     ArduinoUnoHal::i2cRxBuf.msgValid = true;
   } else {
@@ -106,6 +105,14 @@ void ArduinoUnoHal::SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg
   Wire.write(msg.data);
   Wire.endTransmission();
   Serial.println(F("I2C message sent."));
+}
+
+MarklinI2C::Messages::AccessoryMsg ArduinoUnoHal::getI2cMessage() const {
+  MarklinI2C::Messages::AccessoryMsg msg;
+  msg.destination = i2cLocalAddr;
+  msg.source = i2cRxBuf.msgBytes[0];
+  msg.data = i2cRxBuf.msgBytes[1];
+  return msg;
 }
 
 }  // namespace hal

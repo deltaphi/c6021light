@@ -12,6 +12,9 @@ namespace hal {
  */
 class LibOpencm3Hal : public HalBase {
  public:
+  static constexpr const uint_fast8_t kMsgBytesLength =
+      MarklinI2C::Messages::AccessoryMsg::kAccesoryMessageBytes - 1;
+
   typedef struct {
     // RR32Can::Identifier id;
     uint32_t id;
@@ -21,7 +24,7 @@ class LibOpencm3Hal : public HalBase {
   struct I2CBuf {
     uint_fast8_t bytesProcessed;
     std::atomic_bool msgValid;
-    MarklinI2C::Messages::AccessoryMsg msg;
+    volatile uint8_t msgBytes[kMsgBytesLength];
   };
 
   struct TimedI2CBuf : public I2CBuf {
@@ -43,7 +46,7 @@ class LibOpencm3Hal : public HalBase {
   void loop() { loopCan(); }
 
   bool i2cAvailable() const { return i2cRxBuf.msgValid.load(std::memory_order_acquire); }
-  const MarklinI2C::Messages::AccessoryMsg& getI2cMessage() const { return i2cRxBuf.msg; }
+  MarklinI2C::Messages::AccessoryMsg getI2cMessage() const;
 
   void consumeI2cMessage() {
     i2cRxBuf.bytesProcessed = 0;

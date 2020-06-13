@@ -12,10 +12,12 @@ namespace hal {
  */
 class ArduinoUnoHal : public HalBase {
  public:
+  static constexpr const uint8_t kMsgBytesLength =
+      MarklinI2C::Messages::AccessoryMsg::kAccesoryMessageBytes - 1;
+
   struct I2CBuf {
     volatile bool msgValid;
-    MarklinI2C::Messages::AccessoryMsg
-        msg;  // Volatility not needed, as acess to msgValid should serve as a memory barrier.
+    volatile uint8_t msgBytes[kMsgBytesLength];
   };
 
   struct TimedI2CBuf : public I2CBuf {
@@ -36,7 +38,7 @@ class ArduinoUnoHal : public HalBase {
   void SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg) override;
 
   bool i2cAvailable() const { return i2cRxBuf.msgValid; }
-  const MarklinI2C::Messages::AccessoryMsg& getI2cMessage() const { return i2cRxBuf.msg; }
+  MarklinI2C::Messages::AccessoryMsg getI2cMessage() const;
   virtual void consumeI2cMessage() { i2cRxBuf.msgValid = false; }
 
  private:
