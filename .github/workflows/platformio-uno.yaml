@@ -1,6 +1,9 @@
 name: Arduino Uno
 
-on: [push]
+on:
+  push:
+    branches:
+      - "*"
 
 jobs:
   build:
