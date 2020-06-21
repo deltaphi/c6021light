@@ -24,7 +24,7 @@ jobs:
       run: platformio run -d ${{ github.workspace }}/c6021light
     - name: Gather the Release artifacts
       shell: bash  
-      run: ${{ github.workspace }}/c6021light/.github/copy-release-files.sh
+      run: ${{ github.workspace }}/.github/copy-release-files.sh
     - name: Upload the artifacts
       uses: skx/github-action-publish-binaries@master
       env:

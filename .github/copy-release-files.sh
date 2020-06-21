@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OUTPUT_GLOB=".pio/build/**/firmware.*"
+OUTPUT_GLOB="c6021light/.pio/build/**/firmware.*"
 
 DESTINATION_DIR=".github/releasefiles"
 
