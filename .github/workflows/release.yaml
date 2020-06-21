@@ -1,0 +1,33 @@
+name: Release Workflow
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  generate:
+    name: Create release-artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+
+    - name: Set up Python
+      uses: actions/setup-python@v1
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install platformio
+    - name: Run PlatformIO for Bluepill
+      run: platformio run -d ${{ github.workspace }}/c6021light
+    - name: Gather the Release artifacts
+      shell: bash  
+      run: ${{ github.workspace }}/c6021light/.github/copy-release-files.sh
+    - name: Upload the artifacts
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: 'c6021light/.github/releasefiles/*'
