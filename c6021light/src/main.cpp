@@ -32,6 +32,8 @@ uint8_t lastPowerOnDirection;
 
 constexpr const uint8_t myAddr = MarklinI2C::kCentralAddr;
 
+constexpr const RR32Can::RailProtocol kAccessoryRailProtocol = RR32Can::RailProtocol::MM2;
+
 // ******** Code ********
 
 void setup() {
@@ -77,8 +79,8 @@ void loop() {
       lastPowerOnDirection = request.getDirection();
       lastPowerOnTurnoutAddr = request.getTurnoutAddr();
       RR32Can::RR32Can.SendAccessoryPacket(
-          lastPowerOnTurnoutAddr, static_cast<RR32Can::TurnoutDirection>(request.getDirection()),
-          request.getPower());
+          lastPowerOnTurnoutAddr, kAccessoryRailProtocol,
+          static_cast<RR32Can::TurnoutDirection>(request.getDirection()), request.getPower());
     } else {
       // On I2C, for a Power OFF message, the two lowest bits (decoder output channel) are always 0,
       // regardless of the actual turnout address to be switched off. For safety, translate this to
@@ -89,8 +91,8 @@ void loop() {
       uint8_t i2cAddr = request.getTurnoutAddr();
       if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddr)) {
         RR32Can::RR32Can.SendAccessoryPacket(
-            lastPowerOnTurnoutAddr, static_cast<RR32Can::TurnoutDirection>(lastPowerOnDirection),
-            request.getPower());
+            lastPowerOnTurnoutAddr, kAccessoryRailProtocol,
+            static_cast<RR32Can::TurnoutDirection>(lastPowerOnDirection), request.getPower());
       }
     }
   }
