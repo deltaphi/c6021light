@@ -13,6 +13,9 @@ using Hal_t = hal::ArduinoUnoHal;
 using Hal_t = hal::LibOpencm3Hal;
 #endif
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #include "RR32Can/StlAdapter.h"
 #include "hal/PrintfAb.h"
 
@@ -67,7 +70,11 @@ bool sameDecoder(uint8_t left, uint8_t right) {
 /**
  * \brief When a message was received, create and send a response message.
  */
+#if defined(PLATFORMIO_FRAMEWORK_libopencm3)
+void loop(void *args __attribute((unused))) {
+#else
 void loop() {
+#endif
   halImpl.loop();
 
   // Process I2C

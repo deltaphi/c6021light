@@ -8,6 +8,9 @@
 #include <libopencm3/stm32/rtc.h>
 #include <libopencm3/stm32/usart.h>
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #include <stdio.h>
 
 #include <errno.h>
@@ -25,13 +28,17 @@ constexpr const uint32_t kRTC_LSI_Prescaler = 1;  // ~49us resolution.
 
 // Forward declarations
 void setup();
-void loop();
+void loop(void* args __attribute((unused)));
 
 // Main function for non-arduino
 int main(void) {
   setup();
+
+  xTaskCreate(loop, "Loop", 100, NULL, configMAX_PRIORITIES - 1, NULL);
+  vTaskStartScheduler();
+
   while (1) {
-    loop();
+    ;
   }
   return 0;
 }
@@ -56,15 +63,6 @@ int _write(int file, char* ptr, int len) {
   return -1;
 }
 }
-
-unsigned long micros() {
-  uint32_t rtcCounter = rtc_get_counter_val();
-  return rtcCounter * kRTCTickDuration;
-}
-
-unsigned long seconds() { return micros() / 1000000; }
-
-unsigned long millis() { return micros() / 1000; }
 
 namespace hal {
 
