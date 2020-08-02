@@ -13,6 +13,10 @@ using Hal_t = hal::ArduinoUnoHal;
 using Hal_t = hal::LibOpencm3Hal;
 #endif
 
+extern "C" {
+#include "microrl.h"
+}
+
 #include "RR32Can/StlAdapter.h"
 #include "hal/PrintfAb.h"
 
@@ -34,7 +38,13 @@ constexpr const uint8_t myAddr = MarklinI2C::kCentralAddr;
 
 constexpr const RR32Can::RailProtocol kAccessoryRailProtocol = RR32Can::RailProtocol::MM2;
 
+microrl_t microrl;
+
 // ******** Code ********
+
+void microrl_print_cbk(const char* s) {
+  printf(s);
+}
 
 void setup() {
   // Setup Serial
@@ -51,6 +61,9 @@ void setup() {
   callbacks.accessory = &accessoryCbk;
   callbacks.system = &accessoryCbk;
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
+
+  microrl_init(&microrl, microrl_print_cbk);
+  //microrl_set_execute_callback(&microrl, serial_execute);
 
   MYPRINTF("Ready!\n");
 }
