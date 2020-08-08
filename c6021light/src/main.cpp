@@ -44,6 +44,7 @@ microrl_t microrl;
 
 void microrl_print_cbk(const char* s) {
   printf(s);
+  fflush(stdout);
 }
 
 void setup() {
