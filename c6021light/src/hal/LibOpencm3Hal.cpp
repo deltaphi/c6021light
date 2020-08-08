@@ -98,7 +98,7 @@ void LibOpencm3Hal::beginGpio() {
 }
 
 void LibOpencm3Hal::beginRtc() {
-  rtc_awake_from_off(LSI);
+  rtc_awake_from_off(RCC_LSI);
   rtc_set_prescale_val(kRTC_LSI_Prescaler);
 }
 
@@ -251,7 +251,7 @@ void LibOpencm3Hal::beginCan() {
   }
 
   /* CAN filter 0 init. */
-  can_filter_id_mask_32bit_init(CAN1, 0, /* Filter ID */
+  can_filter_id_mask_32bit_init(CAN1,    /* Filter ID */
                                 0,       /* CAN ID */
                                 0,       /* CAN ID mask */
                                 0,       /* FIFO assignment (here: FIFO0) */
@@ -264,10 +264,11 @@ void LibOpencm3Hal::loopCan() {
 
     bool ext;
     bool rtr;
-    uint32_t fmi;
+    uint8_t fmi;
     RR32Can::Data data;
+    uint16_t timestamp;
 
-    can_receive(CAN1, 0, true, &packetId, &ext, &rtr, &fmi, &data.dlc, data.data);
+    can_receive(CAN1, 0, true, &packetId, &ext, &rtr, &fmi, &data.dlc, data.data, &timestamp);
 
     RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(packetId);
     RR32Can::RR32Can.HandlePacket(rr32id, data);
