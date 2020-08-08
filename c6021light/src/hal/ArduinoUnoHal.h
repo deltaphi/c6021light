@@ -21,15 +21,18 @@ class ArduinoUnoHal : public HalBase {
   };
 
   ///
-  void begin(uint8_t i2caddr) {
-    HalBase::begin(i2caddr);
+  void begin(uint8_t i2caddr, microrl_t* microrl) {
+    HalBase::begin(i2caddr, microrl);
     Serial.begin(115200);
     beginI2c();
     beginCan();
   }
 
   /// Receive Packet from CAN and forward to station.
-  void loop() { loopCan(); }
+  void loop() {
+    loopCan();
+    loopSerial();
+  }
 
   void SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg) override;
 
@@ -50,6 +53,7 @@ class ArduinoUnoHal : public HalBase {
   void beginCan();
 
   void loopCan();
+  void loopSerial();
 
   static void receiveEvent(int howMany);
 };

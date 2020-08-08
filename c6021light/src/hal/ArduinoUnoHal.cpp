@@ -125,4 +125,15 @@ void ArduinoUnoHal::led(bool on) {
 
 void ArduinoUnoHal::toggleLed() { digitalWrite(13, !digitalRead(13)); }
 
+void ArduinoUnoHal::loopSerial() {
+  static constexpr const uint8_t bufSize = 10;
+  if (Serial.available() > 0) {
+    char buf[bufSize];
+    size_t bytesRead = Serial.readBytes(buf, bufSize);
+    for (uint8_t i = 0; i < bytesRead; ++i) {
+      microrl_insert_char(this->microrl, buf[i]);
+    }
+  }
+}
+
 }  // namespace hal

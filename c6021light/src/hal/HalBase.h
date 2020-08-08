@@ -4,6 +4,10 @@
 #include "MarklinI2C/Messages/AccessoryMsg.h"
 #include "RR32Can/callback/TxCbk.h"
 
+extern "C" {
+#include "microrl.h"
+}
+
 /*
  * Time functions. These match the Arduino functions, so for ARduino this is simply a duplicate
  * forward declaration.
@@ -25,7 +29,10 @@ namespace hal {
  */
 class HalBase : public RR32Can::callback::TxCbk {
  public:
-  void begin(uint8_t i2caddr) { i2cLocalAddr = i2caddr; }
+  void begin(uint8_t i2caddr, microrl_t* microrl) {
+    i2cLocalAddr = i2caddr;
+    this->microrl = microrl;
+  }
 
   MarklinI2C::Messages::AccessoryMsg prepareI2cMessage();
 
@@ -39,6 +46,7 @@ class HalBase : public RR32Can::callback::TxCbk {
 
  protected:
   static uint8_t i2cLocalAddr;
+  microrl_t* microrl;
 };
 
 }  // namespace hal

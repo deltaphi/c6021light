@@ -107,6 +107,7 @@ void LibOpencm3Hal::beginSerial() {
 
   // Enable the USART TX Pin in the GPIO controller
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
+  gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO_USART1_RX);
 
   // Set Serial speed
   usart_set_baudrate(USART1, 115200);
@@ -116,7 +117,7 @@ void LibOpencm3Hal::beginSerial() {
   usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
 
   // Enable Serial TX
-  usart_set_mode(USART1, USART_MODE_TX);
+  usart_set_mode(USART1, USART_MODE_TX_RX);
   usart_enable(USART1);
 }
 
@@ -305,5 +306,13 @@ void LibOpencm3Hal::led(bool on) {
 }
 
 void LibOpencm3Hal::toggleLed() { gpio_toggle(GPIOC, GPIO13); }
+
+void LibOpencm3Hal::loopSerial() {
+  // Check if a byte has been received.
+  if ((USART_SR(USART1) & USART_SR_RXNE) != 0) {
+    uint16_t character = usart_recv(USART1);
+    microrl_insert_char(this->microrl, character);
+  }
+}
 
 }  // namespace hal

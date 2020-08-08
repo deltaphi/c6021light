@@ -28,8 +28,8 @@ class LibOpencm3Hal : public HalBase {
   };
 
   ///
-  void begin(uint8_t i2caddr) {
-    HalBase::begin(i2caddr);
+  void begin(uint8_t i2caddr, microrl_t* microrl) {
+    HalBase::begin(i2caddr, microrl);
     beginClock();
     beginGpio();
     beginRtc();
@@ -39,7 +39,10 @@ class LibOpencm3Hal : public HalBase {
   }
 
   /// Receive Packet from CAN and forward to station.
-  void loop() { loopCan(); }
+  void loop() {
+    loopCan();
+    loopSerial();
+  }
 
   bool i2cAvailable() const { return i2cRxBuf.msgValid.load(std::memory_order_acquire); }
   MarklinI2C::Messages::AccessoryMsg getI2cMessage() const;
@@ -66,6 +69,7 @@ class LibOpencm3Hal : public HalBase {
   void beginCan();
 
   void loopCan();
+  void loopSerial();
 
   static I2CBuf i2cRxBuf;
   static I2CBuf i2cTxBuf;
