@@ -34,19 +34,78 @@ uint8_t lastPowerOnDirection;
 
 constexpr const uint8_t myAddr = MarklinI2C::kCentralAddr;
 
-constexpr const RR32Can::RailProtocol kAccessoryRailProtocol = RR32Can::RailProtocol::MM2;
+RR32Can::RailProtocol accessoryRailProtocol = RR32Can::RailProtocol::MM2;
 
 ConsoleManager console;
 // ******** Code ********
 
+constexpr const char* MM2Name = "MM2";
+constexpr const char* DCCName = "DCC";
+constexpr const char* SX1Name = "SX1";
+
+int run_app_set_turnout_protocol(int argc, const char* const* argv) {
+  static constexpr const char* text{": Set Turnout protocol to "};
+  if (argc < 2) {
+    printf("%s: Too few arguments (1 expected).\n", argv[0]);
+    return -2;
+  } else if (argc > 2) {
+    printf("%s: Too many arguments (1 expected).\n", argv[0]);
+    return -2;
+  }
+
+  if (strncasecmp(argv[1], MM2Name, strlen(MM2Name)) == 0) {
+    accessoryRailProtocol = RR32Can::RailProtocol::MM2;
+    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
+  } else if (strncasecmp(argv[1], DCCName, strlen(DCCName)) == 0) {
+    accessoryRailProtocol = RR32Can::RailProtocol::DCC;
+    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
+  } else if (strncasecmp(argv[1], SX1Name, strlen(SX1Name)) == 0) {
+    accessoryRailProtocol = RR32Can::RailProtocol::SX1;
+    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
+  } else {
+    printf("%s: Unknown rail protocol '%s'.\n", argv[0], argv[1]);
+    return -3;
+  }
+
+  return 0;
+}
+
+int run_app_get_turnout_protocol(int argc, const char* const* argv) {
+  if (argc > 1) {
+    printf("%s: Too many arguments (0 expected).\n", argv[0]);
+    return -2;
+  }
+
+  const char* turnoutProtocol = nullptr;
+
+  switch (accessoryRailProtocol) {
+    case RR32Can::RailProtocol::MM1:
+    case RR32Can::RailProtocol::MM2:
+    case RR32Can::RailProtocol::MFX:
+      turnoutProtocol = MM2Name;
+      break;
+    case RR32Can::RailProtocol::DCC:
+      turnoutProtocol = DCCName;
+      break;
+    case RR32Can::RailProtocol::SX1:
+    case RR32Can::RailProtocol::SX2:
+      turnoutProtocol = SX1Name;
+      break;
+  }
+
+  printf("%s: The current turnout protocol is %s.\n", argv[0], turnoutProtocol);
+
+  return 0;
+}
+
 void setup() {
-  // Setup Serial
-  MYPRINTF("Connect6021Light Initializing...\n");
+  // Setup I2C & CAN
+  halImpl.begin(myAddr, &console);
 
   console.begin();
 
-  // Setup I2C & CAN
-  halImpl.begin(myAddr, &console);
+  // Setup Serial
+  MYPRINTF("Connect6021Light Initializing...\n");
 
   // Tie callbacks together
   accessoryCbk.begin(halImpl);
@@ -84,7 +143,7 @@ void loop() {
       lastPowerOnDirection = request.getDirection();
       lastPowerOnTurnoutAddr = request.getTurnoutAddr();
       RR32Can::RR32Can.SendAccessoryPacket(
-          lastPowerOnTurnoutAddr, kAccessoryRailProtocol,
+          lastPowerOnTurnoutAddr, accessoryRailProtocol,
           static_cast<RR32Can::TurnoutDirection>(request.getDirection()), request.getPower());
     } else {
       // On I2C, for a Power OFF message, the two lowest bits (decoder output channel) are always 0,
@@ -96,7 +155,7 @@ void loop() {
       uint8_t i2cAddr = request.getTurnoutAddr();
       if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddr)) {
         RR32Can::RR32Can.SendAccessoryPacket(
-            lastPowerOnTurnoutAddr, kAccessoryRailProtocol,
+            lastPowerOnTurnoutAddr, accessoryRailProtocol,
             static_cast<RR32Can::TurnoutDirection>(lastPowerOnDirection), request.getPower());
       }
     }
