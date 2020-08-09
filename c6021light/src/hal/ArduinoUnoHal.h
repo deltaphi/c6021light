@@ -21,8 +21,8 @@ class ArduinoUnoHal : public HalBase {
   };
 
   ///
-  void begin(uint8_t i2caddr, microrl_t* microrl) {
-    HalBase::begin(i2caddr, microrl);
+  void begin(uint8_t i2caddr, ConsoleManager* console) {
+    HalBase::begin(i2caddr, console);
     Serial.begin(115200);
     beginI2c();
     beginCan();

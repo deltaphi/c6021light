@@ -311,7 +311,7 @@ void LibOpencm3Hal::loopSerial() {
   // Check if a byte has been received.
   if ((USART_SR(USART1) & USART_SR_RXNE) != 0) {
     uint16_t character = usart_recv(USART1);
-    microrl_insert_char(this->microrl, character);
+    microrl_insert_char(this->console->getMicroRl(), character);
   }
 }
 

@@ -131,7 +131,7 @@ void ArduinoUnoHal::loopSerial() {
     char buf[bufSize];
     size_t bytesRead = Serial.readBytes(buf, bufSize);
     for (uint8_t i = 0; i < bytesRead; ++i) {
-      microrl_insert_char(this->microrl, buf[i]);
+      microrl_insert_char(this->console->getMicroRl(), buf[i]);
     }
   }
 }

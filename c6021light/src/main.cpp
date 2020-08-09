@@ -13,9 +13,7 @@ using Hal_t = hal::ArduinoUnoHal;
 using Hal_t = hal::LibOpencm3Hal;
 #endif
 
-extern "C" {
-#include "microrl.h"
-}
+#include "ConsoleManager.h"
 
 #include "RR32Can/StlAdapter.h"
 #include "hal/PrintfAb.h"
@@ -38,28 +36,17 @@ constexpr const uint8_t myAddr = MarklinI2C::kCentralAddr;
 
 constexpr const RR32Can::RailProtocol kAccessoryRailProtocol = RR32Can::RailProtocol::MM2;
 
-microrl_t microrl;
-
+ConsoleManager console;
 // ******** Code ********
-
-void microrl_print_cbk(const char* s) {
-  printf(s);
-  fflush(stdout);
-}
-
-int microrl_execute_callback(int argc, const char* const* argv) {
-  printf("microrl_execute: %i args\n", argc);
-  return 0;
-}
 
 void setup() {
   // Setup Serial
-  MYPRINTF("Connect6021Light Initializing...");
+  MYPRINTF("Connect6021Light Initializing...\n");
 
-  microrl_init(&microrl, microrl_print_cbk);
+  console.begin();
 
   // Setup I2C & CAN
-  halImpl.begin(myAddr, &microrl);
+  halImpl.begin(myAddr, &console);
 
   // Tie callbacks together
   accessoryCbk.begin(halImpl);
@@ -69,8 +56,6 @@ void setup() {
   callbacks.accessory = &accessoryCbk;
   callbacks.system = &accessoryCbk;
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
-
-  microrl_set_execute_callback(&microrl, microrl_execute_callback);
 
   MYPRINTF("Ready!\n");
 }
