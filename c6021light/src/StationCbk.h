@@ -23,7 +23,7 @@ class AccessoryCbk : public RR32Can::callback::AccessoryCbk, public RR32Can::cal
   void setSystemState(bool onOff) override;
 
  private:
-  hal::HalBase* hal = nullptr;
+  hal::HalBase* hal_ = nullptr;
 };
 
 #endif  // __STATIONCBK_H__

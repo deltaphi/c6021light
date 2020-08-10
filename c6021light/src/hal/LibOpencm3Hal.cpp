@@ -251,11 +251,11 @@ void LibOpencm3Hal::beginCan() {
   }
 
   /* CAN filter 0 init. */
-  can_filter_id_mask_32bit_init(0,    /* Filter ID */
-                                0,       /* CAN ID */
-                                0,       /* CAN ID mask */
-                                0,       /* FIFO assignment (here: FIFO0) */
-                                true);   /* Enable the filter. */
+  can_filter_id_mask_32bit_init(0,     /* Filter ID */
+                                0,     /* CAN ID */
+                                0,     /* CAN ID mask */
+                                0,     /* FIFO assignment (here: FIFO0) */
+                                true); /* Enable the filter. */
 }
 
 void LibOpencm3Hal::loopCan() {
@@ -312,7 +312,7 @@ void LibOpencm3Hal::loopSerial() {
   // Check if a byte has been received.
   if ((USART_SR(USART1) & USART_SR_RXNE) != 0) {
     uint16_t character = usart_recv(USART1);
-    microrl_insert_char(this->console->getMicroRl(), character);
+    microrl_insert_char(this->console_->getMicroRl(), character);
   }
 }
 

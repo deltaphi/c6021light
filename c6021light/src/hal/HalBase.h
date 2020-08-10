@@ -29,7 +29,7 @@ class HalBase : public RR32Can::callback::TxCbk {
  public:
   void begin(uint8_t i2caddr, ConsoleManager* console) {
     i2cLocalAddr = i2caddr;
-    this->console = console;
+    this->console_ = console;
   }
 
   MarklinI2C::Messages::AccessoryMsg prepareI2cMessage();
@@ -44,7 +44,7 @@ class HalBase : public RR32Can::callback::TxCbk {
 
  protected:
   static uint8_t i2cLocalAddr;
-  ConsoleManager* console;
+  ConsoleManager* console_;
 };
 
 }  // namespace hal

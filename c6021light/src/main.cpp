@@ -108,7 +108,7 @@ void setup() {
 
   // Setup Serial
   MYPRINTF("Connect6021Light Initializing...");
-  
+
   // Tie callbacks together
   accessoryCbk.begin(halImpl);
 

@@ -37,7 +37,7 @@ static int microrl_execute_callback(int argc, const char* const* argv) {
   return 0;
 }
 
-int run_app_help(int argc, const char* const* argv) {
+int run_app_help(int, const char* const*) {
   printf("Choose one of the following:\n");
   printf("  %s [MM2|DCC] - Set Turnout Protocol.\n", app_set_turnout_protocol);
   printf("  %s - Get current Turnout Protocol.\n", app_get_turnout_protocol);
