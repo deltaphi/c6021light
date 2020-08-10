@@ -53,14 +53,15 @@ int microrl_execute_callback(int argc, const char* const* argv) {
 }
 
 void setup() {
-  // Setup Serial
-  MYPRINTF("Connect6021Light Initializing...");
 
   microrl_init(&microrl, microrl_print_cbk);
 
   // Setup I2C & CAN
   halImpl.begin(myAddr, &microrl);
 
+  // Setup Serial
+  MYPRINTF("Connect6021Light Initializing...");
+  
   // Tie callbacks together
   accessoryCbk.begin(halImpl);
 
