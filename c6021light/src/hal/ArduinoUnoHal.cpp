@@ -99,18 +99,18 @@ void ArduinoUnoHal::SendPacket(const RR32Can::Identifier& id, const RR32Can::Dat
 }
 
 void ArduinoUnoHal::SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg) {
-  Wire.beginTransmission(msg.destination);
-  Wire.write(msg.source);
-  Wire.write(msg.data);
+  Wire.beginTransmission(msg.destination_);
+  Wire.write(msg.source_);
+  Wire.write(msg.data_);
   Wire.endTransmission();
   Serial.println(F("I2C message sent."));
 }
 
 MarklinI2C::Messages::AccessoryMsg ArduinoUnoHal::getI2cMessage() const {
   MarklinI2C::Messages::AccessoryMsg msg;
-  msg.destination = i2cLocalAddr;
-  msg.source = i2cRxBuf.msgBytes[0];
-  msg.data = i2cRxBuf.msgBytes[1];
+  msg.destination_ = i2cLocalAddr;
+  msg.source_ = i2cRxBuf.msgBytes[0];
+  msg.data_ = i2cRxBuf.msgBytes[1];
   i2cRxBuf.msgValid = false;
   return msg;
 }

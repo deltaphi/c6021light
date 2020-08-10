@@ -56,11 +56,11 @@ void AccessoryMsg::print() const {
 #ifdef ARDUINO
   // Actual output currently available on Arduino only.
   Serial.print('[');
-  Serial.print(destination, BIN);
+  Serial.print(destination_, BIN);
   Serial.print(' ');
-  Serial.print(source, BIN);
+  Serial.print(source_, BIN);
   Serial.print(' ');
-  Serial.print(data, BIN);
+  Serial.print(data_, BIN);
   Serial.print(']');
 
   // Sender
