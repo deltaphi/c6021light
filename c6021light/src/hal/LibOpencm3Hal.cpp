@@ -251,7 +251,7 @@ void LibOpencm3Hal::beginCan() {
   }
 
   /* CAN filter 0 init. */
-  can_filter_id_mask_32bit_init(CAN1,    /* Filter ID */
+  can_filter_id_mask_32bit_init(0,    /* Filter ID */
                                 0,       /* CAN ID */
                                 0,       /* CAN ID mask */
                                 0,       /* FIFO assignment (here: FIFO0) */
