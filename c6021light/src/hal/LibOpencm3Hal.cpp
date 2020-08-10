@@ -277,8 +277,8 @@ void LibOpencm3Hal::loopCan() {
 
 void LibOpencm3Hal::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) {
   i2cTxBuf.bytesProcessed = 0;
-  i2cTxBuf.msgBytes[0] = msg.destination;
-  i2cTxBuf.msgBytes[1] = msg.data;
+  i2cTxBuf.msgBytes[0] = msg.destination_;
+  i2cTxBuf.msgBytes[1] = msg.data_;
   i2cTxBuf.msgValid.store(true, std::memory_order_release);
   i2c_send_start(I2C1);
 }
@@ -290,9 +290,9 @@ void LibOpencm3Hal::SendPacket(RR32Can::Identifier const& id, RR32Can::Data cons
 
 MarklinI2C::Messages::AccessoryMsg LibOpencm3Hal::getI2cMessage() const {
   MarklinI2C::Messages::AccessoryMsg msg;
-  msg.destination = i2cLocalAddr;
-  msg.source = i2cRxBuf.msgBytes[0];
-  msg.data = i2cRxBuf.msgBytes[1];
+  msg.destination_ = i2cLocalAddr;
+  msg.source_ = i2cRxBuf.msgBytes[0];
+  msg.data_ = i2cRxBuf.msgBytes[1];
   i2cRxBuf.bytesProcessed = 0;
   i2cRxBuf.msgValid.store(false, std::memory_order_release);
   return msg;
