@@ -14,6 +14,8 @@ extern "C" {
 
 using Hal_t = hal::LibOpencm3Hal;
 
+#include "DataModel.h"
+
 #include "ConsoleManager.h"
 
 #include "RR32Can/StlAdapter.h"
@@ -32,9 +34,7 @@ AccessoryCbk accessoryCbk;
 uint8_t lastPowerOnTurnoutAddr;
 uint8_t lastPowerOnDirection;
 
-constexpr const uint8_t myAddr = MarklinI2C::kCentralAddr;
-
-RR32Can::RailProtocol accessoryRailProtocol = RR32Can::RailProtocol::MM2;
+DataModel dataModel;
 
 ConsoleManager console;
 // ******** Code ********
@@ -54,13 +54,13 @@ int run_app_set_turnout_protocol(int argc, const char* const* argv) {
   }
 
   if (strncasecmp(argv[1], MM2Name, strlen(MM2Name)) == 0) {
-    accessoryRailProtocol = RR32Can::RailProtocol::MM2;
+    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::MM2;
     printf("%s%s'%s'.\n", argv[0], text, argv[1]);
   } else if (strncasecmp(argv[1], DCCName, strlen(DCCName)) == 0) {
-    accessoryRailProtocol = RR32Can::RailProtocol::DCC;
+    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::DCC;
     printf("%s%s'%s'.\n", argv[0], text, argv[1]);
   } else if (strncasecmp(argv[1], SX1Name, strlen(SX1Name)) == 0) {
-    accessoryRailProtocol = RR32Can::RailProtocol::SX1;
+    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::SX1;
     printf("%s%s'%s'.\n", argv[0], text, argv[1]);
   } else {
     printf("%s: Unknown rail protocol '%s'.\n", argv[0], argv[1]);
@@ -78,7 +78,7 @@ int run_app_get_turnout_protocol(int argc, const char* const* argv) {
 
   const char* turnoutProtocol = nullptr;
 
-  switch (accessoryRailProtocol) {
+  switch (dataModel.accessoryRailProtocol) {
     case RR32Can::RailProtocol::MM1:
     case RR32Can::RailProtocol::MM2:
     case RR32Can::RailProtocol::MFX:
@@ -98,16 +98,33 @@ int run_app_get_turnout_protocol(int argc, const char* const* argv) {
   return 0;
 }
 
+int run_app_save(int argc, const char* const* argv) {
+  if (argc > 1) {
+    printf("%s: Too many arguments (0 expected).\n", argv[0]);
+    return -2;
+  }
+
+  halImpl.SaveConfig(dataModel);
+  printf("%s: Configuration saved to flash.\n", argv[0]);
+
+  return 0;
+}
+
 void setup() {
   // Setup I2C & CAN
-  halImpl.begin(myAddr, &console);
+  halImpl.begin(dataModel.myAddr, &console);
 
   console.begin();
 
   // Setup Serial
-  printf("Connect6021Light Initializing...");
+  printf("Connect6021Light Initializing...\n");
+
+  // Load Configuration
+  printf("Reading Configuration.\n");
+  dataModel = halImpl.LoadConfig();
 
   // Tie callbacks together
+  printf("Setting up callbacks.\n");
   accessoryCbk.begin(halImpl);
 
   RR32Can::Station::CallbackStruct callbacks;
@@ -143,7 +160,7 @@ void loop() {
       lastPowerOnDirection = request.getDirection();
       lastPowerOnTurnoutAddr = request.getTurnoutAddr();
       RR32Can::RR32Can.SendAccessoryPacket(
-          lastPowerOnTurnoutAddr, accessoryRailProtocol,
+          lastPowerOnTurnoutAddr, dataModel.accessoryRailProtocol,
           static_cast<RR32Can::TurnoutDirection>(request.getDirection()), request.getPower());
     } else {
       // On I2C, for a Power OFF message, the two lowest bits (decoder output channel) are always 0,
@@ -155,7 +172,7 @@ void loop() {
       uint8_t i2cAddr = request.getTurnoutAddr();
       if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddr)) {
         RR32Can::RR32Can.SendAccessoryPacket(
-            lastPowerOnTurnoutAddr, accessoryRailProtocol,
+            lastPowerOnTurnoutAddr, dataModel.accessoryRailProtocol,
             static_cast<RR32Can::TurnoutDirection>(lastPowerOnDirection), request.getPower());
       }
     }

@@ -23,7 +23,8 @@
 #endif
 
 #include <stdbool.h>
-#include "gpio.h"
+#include <libopencm3/stm32/flash.h>
+
 
 //################################################################################################################
 bool      ee_init(void);

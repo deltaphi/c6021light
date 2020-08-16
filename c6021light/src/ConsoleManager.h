@@ -8,6 +8,7 @@ extern "C" {
 // Forward delaration for implementation elsewhere.
 int run_app_set_turnout_protocol(int argc, const char* const* argv);
 int run_app_get_turnout_protocol(int argc, const char* const* argv);
+int run_app_save(int argc, const char* const* argv);
 
 /*
  * \brief Class ConsoleManager

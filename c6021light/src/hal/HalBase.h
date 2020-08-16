@@ -6,6 +6,8 @@
 
 #include "ConsoleManager.h"
 
+#include "DataModel.h"
+
 namespace hal {
 
 /*
@@ -27,6 +29,9 @@ class HalBase : public RR32Can::callback::TxCbk {
 
   virtual void led(bool on) = 0;
   virtual void toggleLed() = 0;
+
+  virtual void SaveConfig(const DataModel& dataModel);
+  virtual DataModel LoadConfig();
 
  protected:
   static uint8_t i2cLocalAddr;

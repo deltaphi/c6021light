@@ -35,6 +35,7 @@ class LibOpencm3Hal : public HalBase {
     beginSerial();
     beginI2c();
     beginCan();
+    beginEE();
   }
 
   /// Receive Packet from CAN and forward to station.
@@ -56,6 +57,9 @@ class LibOpencm3Hal : public HalBase {
 
   static void i2cEvInt(void);
 
+  void SaveConfig(const DataModel& dataModel) override;
+  DataModel LoadConfig() override;
+
  private:
   /// Transmit Packet on CAN
   void SendPacket(const RR32Can::Identifier& id, const RR32Can::Data& data) override;
@@ -65,6 +69,7 @@ class LibOpencm3Hal : public HalBase {
   void beginSerial();
   void beginI2c();
   void beginCan();
+  void beginEE();
 
   void loopCan();
   void loopSerial();

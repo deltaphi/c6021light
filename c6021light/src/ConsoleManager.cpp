@@ -8,6 +8,7 @@ extern "C" {
 static constexpr const char* app_set_turnout_protocol{"set-protocol"};
 static constexpr const char* app_get_turnout_protocol{"get-protocol"};
 static constexpr const char* app_help{"help"};
+static constexpr const char* app_save{"save"};
 
 #define ISAPP(inp, name) (strncasecmp(inp, name, strlen(name)) == 0)
 
@@ -30,6 +31,8 @@ static int microrl_execute_callback(int argc, const char* const* argv) {
     return run_app_set_turnout_protocol(argc, argv);
   } else if (ISAPP(argv[0], app_get_turnout_protocol)) {
     return run_app_get_turnout_protocol(argc, argv);
+  } else if (ISAPP(argv[0], app_save)) {
+    return run_app_save(argc, argv);
   }
 
   printf("microrl_execute: %i args\n", argc);
