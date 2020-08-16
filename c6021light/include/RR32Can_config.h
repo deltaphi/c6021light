@@ -1,11 +1,7 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#ifdef ARDUINO
-#include <Arduino.h>
-#else
 #include <cstdint>
-#endif
 
 #include "RR32Can/Constants.h"
 

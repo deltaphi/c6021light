@@ -1,10 +1,9 @@
 #include "ConsoleManager.h"
 
 extern "C" {
+#include <stdio.h>
 #include <string.h>
 }
-
-#include "hal/PrintfAb.h"
 
 static constexpr const char* app_set_turnout_protocol{"set-protocol"};
 static constexpr const char* app_get_turnout_protocol{"get-protocol"};

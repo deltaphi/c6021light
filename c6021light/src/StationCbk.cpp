@@ -1,6 +1,8 @@
 #include "StationCbk.h"
 
-#include "hal/PrintfAb.h"
+extern "C" {
+#include <stdio.h>
+}
 
 #include "MarklinI2C/Messages/AccessoryMsg.h"
 #include "RR32Can/Constants.h"
@@ -9,11 +11,11 @@ void AccessoryCbk::begin(hal::HalBase& hal) { this->hal_ = &hal; }
 
 void AccessoryCbk::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool response) {
   if (!response) {
-    MYPRINTF(" Ignoring Accessory request packet");
+    printf(" Ignoring Accessory request packet");
     return;
   }
 
-  MYPRINTF(" Got an Accessory packet!");
+  printf(" Got an Accessory packet!");
 
   if (hal_ == nullptr) {
     return;

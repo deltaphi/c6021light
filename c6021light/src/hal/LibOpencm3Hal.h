@@ -32,7 +32,6 @@ class LibOpencm3Hal : public HalBase {
     HalBase::begin(i2caddr, console);
     beginClock();
     beginGpio();
-    beginRtc();
     beginSerial();
     beginI2c();
     beginCan();
@@ -63,7 +62,6 @@ class LibOpencm3Hal : public HalBase {
 
   void beginClock();
   void beginGpio();
-  void beginRtc();
   void beginSerial();
   void beginI2c();
   void beginCan();

@@ -5,18 +5,18 @@
 // Note that this sketch is not robust against other messages. Recieving engine control messages
 // Will likely require a reboot of the uC.
 
-#ifdef ARDUINO
-#include <hal/ArduinoUnoHal.h>
-using Hal_t = hal::ArduinoUnoHal;
-#elif defined(PLATFORMIO_FRAMEWORK_libopencm3)
+extern "C" {
+#include <stdio.h>
+#include <string.h>
+}
+
 #include <hal/LibOpencm3Hal.h>
+
 using Hal_t = hal::LibOpencm3Hal;
-#endif
 
 #include "ConsoleManager.h"
 
 #include "RR32Can/StlAdapter.h"
-#include "hal/PrintfAb.h"
 
 #include "StationCbk.h"
 
@@ -104,10 +104,8 @@ void setup() {
 
   console.begin();
 
-  MYPRINTF("Connect6021Light Initializing...");
-
   // Setup Serial
-  MYPRINTF("Connect6021Light Initializing...");
+  printf("Connect6021Light Initializing...");
 
   // Tie callbacks together
   accessoryCbk.begin(halImpl);
@@ -118,7 +116,7 @@ void setup() {
   callbacks.system = &accessoryCbk;
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
-  MYPRINTF("Ready!\n");
+  printf("Ready!\n");
 }
 
 /**

@@ -6,20 +6,6 @@
 
 #include "ConsoleManager.h"
 
-/*
- * Time functions. These match the Arduino functions, so for ARduino this is simply a duplicate
- * forward declaration.
- */
-
-/// Give the current RTC value in seconds.
-unsigned long seconds();
-
-/// Give the current RTC value in milliseconds.
-unsigned long millis();
-
-/// Give the current RTC value in microseconds.
-unsigned long micros();
-
 namespace hal {
 
 /*
