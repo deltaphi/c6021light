@@ -114,8 +114,6 @@ void setup() {
   // Setup I2C & CAN
   halImpl.begin(dataModel.myAddr, &console);
 
-  console.begin();
-
   // Setup Serial
   printf("Connect6021Light Initializing...\n");
 
@@ -134,6 +132,7 @@ void setup() {
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
   printf("Ready!\n");
+  console.begin();
 }
 
 /**
