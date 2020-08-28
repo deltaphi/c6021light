@@ -39,10 +39,6 @@ DataModel dataModel;
 ConsoleManager console;
 // ******** Code ********
 
-constexpr const char* MM2Name = "MM2";
-constexpr const char* DCCName = "DCC";
-constexpr const char* SX1Name = "SX1";
-
 int run_app_set_turnout_protocol(int argc, const char* const* argv) {
   static constexpr const char* text{": Set Turnout protocol to "};
   if (argc < 2) {
