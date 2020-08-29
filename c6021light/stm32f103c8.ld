@@ -3,7 +3,8 @@ ENTRY(reset_handler)
 MEMORY
 {
  ram (rwx) : ORIGIN = 0x20000000, LENGTH = 20K
- rom (rx) : ORIGIN = 0x08000000, LENGTH = 64K
+ rom (rx) : ORIGIN = 0x08000000, LENGTH = 63K
+ ee (rw) : ORIGIN = ORIGIN(rom) + LENGTH(rom), LENGTH = 1K
 }
 SECTIONS
 {
