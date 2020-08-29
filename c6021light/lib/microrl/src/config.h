@@ -71,7 +71,8 @@ Try to build with and without, and compare total code size for tune library.
 
 /*
 Enable 'interrupt signal' callback, if user press Ctrl+C */
-#define _USE_CTLR_C
+//#define _USE_CTLR_C
+// Disabled, as there is nothing to to on this.
 
 /*
 Print prompt at 'microrl_init', if enable, prompt will print at startup, 
