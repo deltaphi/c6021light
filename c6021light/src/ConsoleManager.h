@@ -10,6 +10,10 @@ int run_app_set_turnout_protocol(int argc, const char* const* argv);
 int run_app_get_turnout_protocol(int argc, const char* const* argv);
 int run_app_save(int argc, const char* const* argv);
 
+constexpr const char* MM2Name = "MM2";
+constexpr const char* DCCName = "DCC";
+constexpr const char* SX1Name = "SX1";
+
 /*
  * \brief Class ConsoleManager
  */

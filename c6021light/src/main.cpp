@@ -51,10 +51,6 @@ void microrl_print_cbk(const char* s) {
   printf(s);
 }
 
-constexpr const char* MM2Name = "MM2";
-constexpr const char* DCCName = "DCC";
-constexpr const char* SX1Name = "SX1";
-
 int run_app_set_turnout_protocol(int argc, const char* const* argv) {
   static constexpr const char* text{": Set Turnout protocol to "};
   if (argc < 2) {
@@ -126,8 +122,6 @@ void setup() {
   // Setup I2C & CAN
   halImpl.begin(dataModel.myAddr, &console);
 
-  console.begin();
-
   // Setup Serial
   printf("Connect6021Light Initializing...\n");
 
@@ -146,6 +140,7 @@ void setup() {
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
   printf("Ready!\n");
+  console.begin();
 }
 
 /**
