@@ -19,3 +19,7 @@ Test Steps:
 10. Set Turnouts 1-4 to Red on the Keyboard. The indicator lights must light up.
 11. Test 6: Turn Turnout 1 to Green on the Keyboard. The test is passed if exactly the indicator light for Turnout 1 changes.
 
+12. Switch at least one Turnout to Red. The indicator light on the Keyboard must light up.
+13. Put the MS2 in STOP mode.
+14. Test 7: Attempt to switch a RED turnout to GREEN and a GREEN turnout to RED from the Keyboard. Test is passed if the indicator on the Keyboard and in the MS2 do not change.
+15. Test 8: Attempt to switch a RED turnout to GREEN and a GREEN turnout to RED from the MS2. Test is passed if the indicator on the Keyboard and in the MS2 do not change.
