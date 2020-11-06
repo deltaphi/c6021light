@@ -28,9 +28,9 @@ class AccessoryMsg {
   AccessoryMsg& operator=(AccessoryMsg&&) = default;
 
   AccessoryMsg(uint8_t destination, uint8_t source, uint8_t data)
-      : destination(destination), source(source), data(data){};
+      : destination_(destination), source_(source), data_(data){};
 
-  uint8_t getSender() const { return (source & 0b00011110) >> 1; }
+  uint8_t getSender() const { return (source_ & 0b00011110) >> 1; }
 
   /// Obtian the de-masked decoder output address.
   uint8_t getDecoderOutput() const;
@@ -43,18 +43,18 @@ class AccessoryMsg {
    */
   uint8_t getTurnoutAddr() const;
 
-  uint8_t getDirection() const { return data & kDataDirMask; }
-  uint8_t getPower() const { return (data & kDataPowerMask) >> 3; }
+  uint8_t getDirection() const { return data_ & kDataDirMask; }
+  uint8_t getPower() const { return (data_ & kDataPowerMask) >> 3; }
 
   void setDirection(uint8_t direction) {
     direction &= kDataDirMask;  // Mask bit from direction that we don't want to see
-    this->data |= direction;
+    this->data_ |= direction;
   }
 
   void setPower(uint8_t power) {
     power <<= 3;
     power &= kDataPowerMask;
-    this->data |= power;
+    this->data_ |= power;
   }
 
   void setTurnoutAddr(uint8_t addr);
@@ -67,9 +67,9 @@ class AccessoryMsg {
    */
   AccessoryMsg makeResponse() const;
 
-  uint8_t destination = 0;
-  uint8_t source = 0;
-  uint8_t data = 0;
+  uint8_t destination_ = 0;
+  uint8_t source_ = 0;
+  uint8_t data_ = 0;
 };
 
 }  // namespace Messages

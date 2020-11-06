@@ -4,10 +4,9 @@
 #include "MarklinI2C/Messages/AccessoryMsg.h"
 #include "RR32Can/callback/TxCbk.h"
 
-/*
- * Time functions. These match the Arduino functions, so for ARduino this is simply a duplicate
- * forward declaration.
- */
+#include "ConsoleManager.h"
+
+#include "DataModel.h"
 
 namespace hal {
 
@@ -16,7 +15,10 @@ namespace hal {
  */
 class HalBase : public RR32Can::callback::TxCbk {
  public:
-  void begin(uint8_t i2caddr) { i2cLocalAddr = i2caddr; }
+  void begin(uint8_t i2caddr, ConsoleManager* console) {
+    i2cLocalAddr = i2caddr;
+    this->console_ = console;
+  }
 
   MarklinI2C::Messages::AccessoryMsg prepareI2cMessage();
 
@@ -28,8 +30,12 @@ class HalBase : public RR32Can::callback::TxCbk {
   virtual void led(bool on) = 0;
   virtual void toggleLed() = 0;
 
+  virtual void SaveConfig(const DataModel& dataModel);
+  virtual DataModel LoadConfig();
+
  protected:
   static uint8_t i2cLocalAddr;
+  ConsoleManager* console_;
 };
 
 }  // namespace hal

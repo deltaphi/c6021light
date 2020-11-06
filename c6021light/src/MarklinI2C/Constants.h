@@ -1,11 +1,7 @@
 #ifndef __MARKLINI2C__CONSTANTS_H__
 #define __MARKLINI2C__CONSTANTS_H__
 
-#ifdef ARDUINO
-#include <Arduino.h>
-#else
 #include <cstdint>
-#endif
 
 namespace MarklinI2C {
 

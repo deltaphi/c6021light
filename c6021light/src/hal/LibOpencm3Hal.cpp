@@ -18,13 +18,8 @@
 
 #include "RR32Can/RR32Can.h"
 
-/** Duration of an LSI-driven RTC tick in us.
- *  Manually calibrated for LSI, may vary for different boards.
- */
-constexpr const uint32_t kRTCTickDuration = 49;
-
-/// Prescaler value to achieve kRTCTickDuration when using LSI.
-constexpr const uint32_t kRTC_LSI_Prescaler = 1;  // ~49us resolution.
+#include "ee.h"
+#include "eeConfig.h"
 
 // Forward declarations
 void setup();
@@ -95,16 +90,12 @@ void LibOpencm3Hal::beginGpio() {
   gpio_set(GPIOC, GPIO13);  // Turn the LED off.
 }
 
-void LibOpencm3Hal::beginRtc() {
-  rtc_awake_from_off(LSI);
-  rtc_set_prescale_val(kRTC_LSI_Prescaler);
-}
-
 void LibOpencm3Hal::beginSerial() {
   usart_disable(USART1);
 
   // Enable the USART TX Pin in the GPIO controller
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO_USART1_TX);
+  gpio_set_mode(GPIOA, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO_USART1_RX);
 
   // Set Serial speed
   usart_set_baudrate(USART1, 115200);
@@ -114,7 +105,7 @@ void LibOpencm3Hal::beginSerial() {
   usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
 
   // Enable Serial TX
-  usart_set_mode(USART1, USART_MODE_TX);
+  usart_set_mode(USART1, USART_MODE_TX_RX);
   usart_enable(USART1);
 }
 
@@ -248,11 +239,11 @@ void LibOpencm3Hal::beginCan() {
   }
 
   /* CAN filter 0 init. */
-  can_filter_id_mask_32bit_init(CAN1, 0, /* Filter ID */
-                                0,       /* CAN ID */
-                                0,       /* CAN ID mask */
-                                0,       /* FIFO assignment (here: FIFO0) */
-                                true);   /* Enable the filter. */
+  can_filter_id_mask_32bit_init(0,     /* Filter ID */
+                                0,     /* CAN ID */
+                                0,     /* CAN ID mask */
+                                0,     /* FIFO assignment (here: FIFO0) */
+                                true); /* Enable the filter. */
 }
 
 void LibOpencm3Hal::loopCan() {
@@ -261,10 +252,11 @@ void LibOpencm3Hal::loopCan() {
 
     bool ext;
     bool rtr;
-    uint32_t fmi;
+    uint8_t fmi;
     RR32Can::Data data;
+    uint16_t timestamp;
 
-    can_receive(CAN1, 0, true, &packetId, &ext, &rtr, &fmi, &data.dlc, data.data);
+    can_receive(CAN1, 0, true, &packetId, &ext, &rtr, &fmi, &data.dlc, data.data, &timestamp);
 
     RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(packetId);
     RR32Can::RR32Can.HandlePacket(rr32id, data);
@@ -273,8 +265,8 @@ void LibOpencm3Hal::loopCan() {
 
 void LibOpencm3Hal::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) {
   i2cTxBuf.bytesProcessed = 0;
-  i2cTxBuf.msgBytes[0] = msg.destination;
-  i2cTxBuf.msgBytes[1] = msg.data;
+  i2cTxBuf.msgBytes[0] = msg.destination_;
+  i2cTxBuf.msgBytes[1] = msg.data_;
   i2cTxBuf.msgValid.store(true, std::memory_order_release);
   i2c_send_start(I2C1);
 }
@@ -286,9 +278,9 @@ void LibOpencm3Hal::SendPacket(RR32Can::Identifier const& id, RR32Can::Data cons
 
 MarklinI2C::Messages::AccessoryMsg LibOpencm3Hal::getI2cMessage() const {
   MarklinI2C::Messages::AccessoryMsg msg;
-  msg.destination = i2cLocalAddr;
-  msg.source = i2cRxBuf.msgBytes[0];
-  msg.data = i2cRxBuf.msgBytes[1];
+  msg.destination_ = i2cLocalAddr;
+  msg.source_ = i2cRxBuf.msgBytes[0];
+  msg.data_ = i2cRxBuf.msgBytes[1];
   i2cRxBuf.bytesProcessed = 0;
   i2cRxBuf.msgValid.store(false, std::memory_order_release);
   return msg;
@@ -303,5 +295,59 @@ void LibOpencm3Hal::led(bool on) {
 }
 
 void LibOpencm3Hal::toggleLed() { gpio_toggle(GPIOC, GPIO13); }
+
+void LibOpencm3Hal::loopSerial() {
+  // Check if a byte has been received.
+  if ((USART_SR(USART1) & USART_SR_RXNE) != 0) {
+    uint16_t character = usart_recv(USART1);
+    microrl_insert_char(this->console_->getMicroRl(), character);
+  }
+}
+
+void LibOpencm3Hal::beginEE() { ee_init(); }
+
+DataModel LibOpencm3Hal::LoadConfig() {
+  DataModel model;
+  ee_read(DataAddresses::accessoryRailProtocol, sizeof(DataModel::accessoryRailProtocol),
+          reinterpret_cast<uint8_t*>(&model.accessoryRailProtocol));
+  return model;
+}
+
+void LibOpencm3Hal::SaveConfig(const DataModel& model) {
+  ee_writeToRam(DataAddresses::accessoryRailProtocol, sizeof(DataModel::accessoryRailProtocol),
+                reinterpret_cast<uint8_t*>(&const_cast<DataModel&>(model).accessoryRailProtocol));
+  ee_commit();
+}
+
+extern "C" uint8_t HAL_FLASHEx_Erase(FLASH_EraseInitTypeDef* addr, uint32_t* error) {
+  if (addr->NbPages == 1) {
+    flash_erase_page(addr->PageAddress);
+    *error = flash_get_status_flags();
+    if (*error != FLASH_SR_EOP) {
+      return HAL_NOK;
+    } else {
+      *error = 0xFFFFFFFF;  // Expected value by caller of OK case.
+      return HAL_OK;
+    }
+  } else {
+    printf("HAL_FLASHEx_Erase: requested erase not supported.\n");
+    return HAL_NOK;
+  }
+}
+
+extern "C" uint8_t HAL_FLASH_Program(uint8_t flashProgramType, uint32_t addr, uint64_t data) {
+  if (flashProgramType == FLASH_TYPEPROGRAM_HALFWORD) {
+    flash_program_half_word(addr, data);
+    uint32_t flashStatus = flash_get_status_flags();
+    if (flashStatus != FLASH_SR_EOP) {
+      return HAL_NOK;
+    } else {
+      return HAL_OK;
+    }
+  } else {
+    printf("HAL_FLASH_Program: flashProgramType not supported.\n");
+    return HAL_NOK;
+  }
+}
 
 }  // namespace hal

@@ -22,4 +22,4 @@ jobs:
         python -m pip install --upgrade pip
         pip install platformio
     - name: Run PlatformIO for Bluepill
-      run: platformio run -d ${{ github.workspace }}/c6021light -e bluepill
+      run: platformio run -d ${{ github.workspace }}/c6021light

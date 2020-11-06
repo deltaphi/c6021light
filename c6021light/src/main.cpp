@@ -5,13 +5,17 @@
 // Note that this sketch is not robust against other messages. Recieving engine control messages
 // Will likely require a reboot of the uC.
 
-#ifdef ARDUINO
-#include <hal/ArduinoUnoHal.h>
-using Hal_t = hal::ArduinoUnoHal;
-#elif defined(PLATFORMIO_FRAMEWORK_libopencm3)
+extern "C" {
+#include <stdio.h>
+#include <string.h>
+}
+
 #include <hal/LibOpencm3Hal.h>
+
 using Hal_t = hal::LibOpencm3Hal;
-#endif
+
+#include "DataModel.h"
+#include "ConsoleManager.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -21,7 +25,6 @@ extern "C" {
 }
 
 #include "RR32Can/StlAdapter.h"
-#include "hal/PrintfAb.h"
 
 #include "StationCbk.h"
 
@@ -37,10 +40,9 @@ AccessoryCbk accessoryCbk;
 uint8_t lastPowerOnTurnoutAddr;
 uint8_t lastPowerOnDirection;
 
-constexpr const uint8_t myAddr = MarklinI2C::kCentralAddr;
+DataModel dataModel;
 
-constexpr const RR32Can::RailProtocol kAccessoryRailProtocol = RR32Can::RailProtocol::MM2;
-
+ConsoleManager console;
 microrl_t microrl;
 
 // ******** Code ********
@@ -49,14 +51,92 @@ void microrl_print_cbk(const char* s) {
   printf(s);
 }
 
-void setup() {
-  // Setup Serial
-  MYPRINTF("Connect6021Light Initializing...");
+constexpr const char* MM2Name = "MM2";
+constexpr const char* DCCName = "DCC";
+constexpr const char* SX1Name = "SX1";
 
+int run_app_set_turnout_protocol(int argc, const char* const* argv) {
+  static constexpr const char* text{": Set Turnout protocol to "};
+  if (argc < 2) {
+    printf("%s: Too few arguments (1 expected).\n", argv[0]);
+    return -2;
+  } else if (argc > 2) {
+    printf("%s: Too many arguments (1 expected).\n", argv[0]);
+    return -2;
+  }
+
+  if (strncasecmp(argv[1], MM2Name, strlen(MM2Name)) == 0) {
+    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::MM2;
+    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
+  } else if (strncasecmp(argv[1], DCCName, strlen(DCCName)) == 0) {
+    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::DCC;
+    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
+  } else if (strncasecmp(argv[1], SX1Name, strlen(SX1Name)) == 0) {
+    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::SX1;
+    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
+  } else {
+    printf("%s: Unknown rail protocol '%s'.\n", argv[0], argv[1]);
+    return -3;
+  }
+
+  return 0;
+}
+
+int run_app_get_turnout_protocol(int argc, const char* const* argv) {
+  if (argc > 1) {
+    printf("%s: Too many arguments (0 expected).\n", argv[0]);
+    return -2;
+  }
+
+  const char* turnoutProtocol = nullptr;
+
+  switch (dataModel.accessoryRailProtocol) {
+    case RR32Can::RailProtocol::MM1:
+    case RR32Can::RailProtocol::MM2:
+    case RR32Can::RailProtocol::MFX:
+      turnoutProtocol = MM2Name;
+      break;
+    case RR32Can::RailProtocol::DCC:
+      turnoutProtocol = DCCName;
+      break;
+    case RR32Can::RailProtocol::SX1:
+    case RR32Can::RailProtocol::SX2:
+      turnoutProtocol = SX1Name;
+      break;
+  }
+
+  printf("%s: The current turnout protocol is %s.\n", argv[0], turnoutProtocol);
+
+  return 0;
+}
+
+int run_app_save(int argc, const char* const* argv) {
+  if (argc > 1) {
+    printf("%s: Too many arguments (0 expected).\n", argv[0]);
+    return -2;
+  }
+
+  halImpl.SaveConfig(dataModel);
+  printf("%s: Configuration saved to flash.\n", argv[0]);
+
+  return 0;
+}
+
+void setup() {
   // Setup I2C & CAN
-  halImpl.begin(myAddr);
+  halImpl.begin(dataModel.myAddr, &console);
+
+  console.begin();
+
+  // Setup Serial
+  printf("Connect6021Light Initializing...\n");
+
+  // Load Configuration
+  printf("Reading Configuration.\n");
+  dataModel = halImpl.LoadConfig();
 
   // Tie callbacks together
+  printf("Setting up callbacks.\n");
   accessoryCbk.begin(halImpl);
 
   RR32Can::Station::CallbackStruct callbacks;
@@ -65,10 +145,7 @@ void setup() {
   callbacks.system = &accessoryCbk;
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
-  microrl_init(&microrl, microrl_print_cbk);
-  //microrl_set_execute_callback(&microrl, serial_execute);
-
-  MYPRINTF("Ready!\n");
+  printf("Ready!\n");
 }
 
 /**
@@ -83,11 +160,7 @@ bool sameDecoder(uint8_t left, uint8_t right) {
 /**
  * \brief When a message was received, create and send a response message.
  */
-#if defined(PLATFORMIO_FRAMEWORK_libopencm3)
-void loop(void *args __attribute((unused))) {
-#else
-void loop() {
-#endif
+void loop(void* args __attribute((unused))) {
   halImpl.loop();
 
   // Process I2C
@@ -99,7 +172,7 @@ void loop() {
       lastPowerOnDirection = request.getDirection();
       lastPowerOnTurnoutAddr = request.getTurnoutAddr();
       RR32Can::RR32Can.SendAccessoryPacket(
-          lastPowerOnTurnoutAddr, kAccessoryRailProtocol,
+          lastPowerOnTurnoutAddr, dataModel.accessoryRailProtocol,
           static_cast<RR32Can::TurnoutDirection>(request.getDirection()), request.getPower());
     } else {
       // On I2C, for a Power OFF message, the two lowest bits (decoder output channel) are always 0,
@@ -111,7 +184,7 @@ void loop() {
       uint8_t i2cAddr = request.getTurnoutAddr();
       if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddr)) {
         RR32Can::RR32Can.SendAccessoryPacket(
-            lastPowerOnTurnoutAddr, kAccessoryRailProtocol,
+            lastPowerOnTurnoutAddr, dataModel.accessoryRailProtocol,
             static_cast<RR32Can::TurnoutDirection>(lastPowerOnDirection), request.getPower());
       }
     }

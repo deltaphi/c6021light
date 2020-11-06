@@ -1,21 +1,23 @@
 #include "StationCbk.h"
 
-#include "hal/PrintfAb.h"
+extern "C" {
+#include <stdio.h>
+}
 
 #include "MarklinI2C/Messages/AccessoryMsg.h"
 #include "RR32Can/Constants.h"
 
-void AccessoryCbk::begin(hal::HalBase& hal) { this->hal = &hal; }
+void AccessoryCbk::begin(hal::HalBase& hal) { this->hal_ = &hal; }
 
 void AccessoryCbk::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool response) {
   if (!response) {
-    MYPRINTF(" Ignoring Accessory request packet");
+    printf(" Ignoring Accessory request packet");
     return;
   }
 
-  MYPRINTF(" Got an Accessory packet!");
+  printf(" Got an Accessory packet!");
 
-  if (hal == nullptr) {
+  if (hal_ == nullptr) {
     return;
   }
 
@@ -31,16 +33,16 @@ void AccessoryCbk::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respon
   }
 
   // Convert to i2c confirmation packet
-  MarklinI2C::Messages::AccessoryMsg i2cMsg = hal->prepareI2cMessage();
+  MarklinI2C::Messages::AccessoryMsg i2cMsg = hal_->prepareI2cMessage();
 
   i2cMsg.setTurnoutAddr(turnoutAddr);
   i2cMsg.setPower(packet.power);
   i2cMsg.setDirection(packet.position);
 
-  hal->SendI2CMessage(i2cMsg);
+  hal_->SendI2CMessage(i2cMsg);
 }
 
 void AccessoryCbk::setSystemState(bool onOff) {
   // When the system is stopped, turn on the LED.
-  hal->led(!onOff);
+  hal_->led(!onOff);
 }
