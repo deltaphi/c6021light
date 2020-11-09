@@ -1,6 +1,6 @@
 #/bin/bash
 
-set -x
+# set -x
 
 FREERTOS_DL_URL="https://github.com/FreeRTOS/FreeRTOS/releases/download/V10.4.1/FreeRTOSv10.4.1.zip"
 
@@ -26,7 +26,7 @@ function unpack {
 
     FREERTOS_FOLDER_NAME=`basename "$ZIPFILE" .zip`
 
-    FILE_LIST="$FREERTOS_FOLDER_NAME/FreeRTOS/Source/* $FREERTOS_FOLDER_NAME/FreeRTOS/Source/include/* $FREERTOS_FOLDER_NAME/FreeRTOS/Source/portable/GCC/ARM_CM3/* $FREERTOS_FOLDER_NAME/FreeRTOS/Source/portable/MemMang/heap_4.c"
+    FILE_LIST="$FREERTOS_FOLDER_NAME/FreeRTOS/License/* $FREERTOS_FOLDER_NAME/FreeRTOS/Source/* $FREERTOS_FOLDER_NAME/FreeRTOS/Source/include/* $FREERTOS_FOLDER_NAME/FreeRTOS/Source/portable/GCC/ARM_CM3/* $FREERTOS_FOLDER_NAME/FreeRTOS/Source/portable/MemMang/heap_4.c"
  
     unzip -j "$ZIPFILE" $FILE_LIST -d "$TARGET"
 }
