@@ -88,7 +88,8 @@ static char** microrl_complete_callback(int argc, const char* const* argv) {
 
 int run_app_help(int, const char* const*) {
   printf("Choose one of the following:\n");
-  printf("  %s [%s|%s|%s] - Set Turnout Protocol.\n", app_set_turnout_protocol, MM2Name, DCCName, SX1Name);
+  printf("  %s [%s|%s|%s] - Set Turnout Protocol.\n", app_set_turnout_protocol, MM2Name, DCCName,
+         SX1Name);
   printf("  %s - Get current Turnout Protocol.\n", app_get_turnout_protocol);
   printf("  %s - Save configuration across reset.\n", app_save);
   printf("  %s - Display this help message.\n", app_help);

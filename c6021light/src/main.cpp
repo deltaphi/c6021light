@@ -14,8 +14,8 @@ extern "C" {
 
 using Hal_t = hal::LibOpencm3Hal;
 
-#include "DataModel.h"
 #include "ConsoleManager.h"
+#include "DataModel.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -47,23 +47,16 @@ microrl_t microrl;
 
 // ******** Code ********
 extern "C" {
-extern void vApplicationStackOverflowHook(
-	xTaskHandle pxTask,
-	portCHAR *pcTaskName);
+extern void vApplicationStackOverflowHook(xTaskHandle pxTask, portCHAR* pcTaskName);
 
-void
-vApplicationStackOverflowHook(
-  xTaskHandle pxTask __attribute((unused)),
-  portCHAR *pcTaskName __attribute((unused))
-) {
-	for(;;);	// Loop forever here..
+void vApplicationStackOverflowHook(xTaskHandle pxTask __attribute((unused)),
+                                   portCHAR* pcTaskName __attribute((unused))) {
+  for (;;)
+    ;  // Loop forever here..
+}
 }
 
-}
-
-void microrl_print_cbk(const char* s) {
-  printf(s);
-}
+void microrl_print_cbk(const char* s) { printf(s); }
 
 int run_app_set_turnout_protocol(int argc, const char* const* argv) {
   static constexpr const char* text{": Set Turnout protocol to "};
@@ -170,7 +163,7 @@ bool sameDecoder(uint8_t left, uint8_t right) {
  * \brief When a message was received, create and send a response message.
  */
 void loop(void* args __attribute((unused))) {
-  while(1) {
+  while (1) {
     halImpl.loop();
 
     // Process I2C
@@ -185,9 +178,9 @@ void loop(void* args __attribute((unused))) {
             lastPowerOnTurnoutAddr, dataModel.accessoryRailProtocol,
             static_cast<RR32Can::TurnoutDirection>(request.getDirection()), request.getPower());
       } else {
-        // On I2C, for a Power OFF message, the two lowest bits (decoder output channel) are always 0,
-        // regardless of the actual turnout address to be switched off. For safety, translate this to
-        // tuning off all addresses of the respective decoder.
+        // On I2C, for a Power OFF message, the two lowest bits (decoder output channel) are always
+        // 0, regardless of the actual turnout address to be switched off. For safety, translate
+        // this to tuning off all addresses of the respective decoder.
         //
         // Note that we store the last direction where power was applied.
         // The CAN side interprets a "Power Off" as "Flip the switch" anyways.
