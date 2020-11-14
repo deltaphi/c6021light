@@ -7,6 +7,8 @@
 #include "DataModel.h"
 #include "hal/LibOpencm3Hal.h"
 
+#include "FreeRTOSConfig.h"
+
 extern "C" {
 void routingTaskMain(void* args);
 }
@@ -16,6 +18,8 @@ namespace RoutingTask {
 
 class RoutingTask : public RR32Can::callback::AccessoryCbk {
  public:
+  static constexpr const uint32_t kStackSize = configMINIMAL_STACK_SIZE;
+
   void begin(DataModel& dataModel, hal::LibOpencm3Hal& halImpl) {
     this->dataModel_ = &dataModel;
     this->halImpl_ = &halImpl;

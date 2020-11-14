@@ -50,6 +50,16 @@ void vApplicationStackOverflowHook(xTaskHandle pxTask __attribute((unused)),
   for (;;)
     ;  // Loop forever here..
 }
+
+void vApplicationGetIdleTaskMemory(StaticTask_t** ppxIdleTaskTCBBuffer,
+                                   StackType_t** ppxIdleTaskStackBuffer,
+                                   uint32_t* pulIdleTaskStackSize) {
+  static StackType_t idleTaskStack[configMINIMAL_STACK_SIZE];
+  static StaticTask_t idleTaskTcb;
+  *ppxIdleTaskTCBBuffer = &idleTaskTcb;
+  *ppxIdleTaskStackBuffer = idleTaskStack;
+  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
 }
 
 void microrl_print_cbk(const char* s) { printf(s); }
@@ -151,7 +161,12 @@ void setup() {
 int main(void) {
   setup();
 
-  xTaskCreate(routingTaskMain, "RoutingTask", 100, &routingTask, configMAX_PRIORITIES - 1, NULL);
+  static StackType_t routingTaskStack[tasks::RoutingTask::RoutingTask::kStackSize];
+  static StaticTask_t routingTaskTcb;
+
+  xTaskCreateStatic(routingTaskMain, "RoutingTask", tasks::RoutingTask::RoutingTask::kStackSize,
+                    &routingTask, configMAX_PRIORITIES - 1, routingTaskStack, &routingTaskTcb);
+
   vTaskStartScheduler();
 
   while (1) {

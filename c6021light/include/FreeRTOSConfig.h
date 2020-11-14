@@ -5,6 +5,9 @@
 #define xPortPendSVHandler pend_sv_handler
 #define xPortSysTickHandler sys_tick_handler
 
+#define configSUPPORT_STATIC_ALLOCATION 1
+#define configSUPPORT_DYNAMIC_ALLOCATION 0
+
 #define configUSE_PREEMPTION      1
 #define configUSE_TICKLESS_IDLE      0
 #define configCPU_CLOCK_HZ        ( ( unsigned long ) 72000000 )
@@ -32,7 +35,7 @@
 #define INCLUDE_vTaskCleanUpResources   0
 #define INCLUDE_vTaskSuspend            0
 #define INCLUDE_vTaskDelayUntil         0
-#define INCLUDE_vTaskDelay              1
+#define INCLUDE_vTaskDelay              0
 
 /* Define to trap errors during development. */
 #define configASSERT( x ) if( ( x ) == 0 ) { taskDISABLE_INTERRUPTS(); for( ;; ); }
