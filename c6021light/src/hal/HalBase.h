@@ -15,26 +15,17 @@ namespace hal {
  */
 class HalBase : public RR32Can::callback::TxCbk {
  public:
-  void begin(uint8_t i2caddr, ConsoleManager* console) {
-    i2cLocalAddr = i2caddr;
+  void begin(uint8_t i2caddr __attribute((unused)), ConsoleManager* console) {
     this->console_ = console;
   }
-
-  MarklinI2C::Messages::AccessoryMsg prepareI2cMessage();
-
-  /**
-   * \brief Send a given message over I2C.
-   */
-  virtual void SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg) = 0;
 
   virtual void led(bool on) = 0;
   virtual void toggleLed() = 0;
 
-  virtual void SaveConfig(const DataModel& dataModel);
-  virtual DataModel LoadConfig();
+  virtual void SaveConfig(const DataModel& dataModel) = 0;
+  virtual DataModel LoadConfig() = 0;
 
  protected:
-  static uint8_t i2cLocalAddr;
   ConsoleManager* console_;
 };
 

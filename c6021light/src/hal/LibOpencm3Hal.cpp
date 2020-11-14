@@ -3,7 +3,6 @@
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/can.h>
 #include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/i2c.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/rtc.h>
 #include <libopencm3/stm32/usart.h>
@@ -20,23 +19,6 @@
 
 #include "ee.h"
 #include "eeConfig.h"
-
-// Forward declarations
-void setup();
-void loop(void* args __attribute((unused)));
-
-// Main function for non-arduino
-int main(void) {
-  setup();
-
-  xTaskCreate(loop, "Loop", 100, NULL, configMAX_PRIORITIES - 1, NULL);
-  vTaskStartScheduler();
-
-  while (1) {
-    ;
-  }
-  return 0;
-}
 
 extern "C" {
 /* _write code taken from example at
@@ -60,9 +42,6 @@ int _write(int file, char* ptr, int len) {
 }
 
 namespace hal {
-
-LibOpencm3Hal::I2CBuf LibOpencm3Hal::i2cRxBuf;
-LibOpencm3Hal::I2CBuf LibOpencm3Hal::i2cTxBuf;
 
 void LibOpencm3Hal::beginClock() {
   // Enable the overall clock.
@@ -107,112 +86,6 @@ void LibOpencm3Hal::beginSerial() {
   // Enable Serial TX
   usart_set_mode(USART1, USART_MODE_TX_RX);
   usart_enable(USART1);
-}
-
-void LibOpencm3Hal::beginI2c() {
-  i2c_peripheral_disable(I2C1);
-  i2c_reset(I2C1);
-
-  gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_OPENDRAIN,
-                GPIO_I2C1_SCL | GPIO_I2C1_SDA);
-  gpio_set(GPIOB, GPIO_I2C1_SCL | GPIO_I2C1_SDA);
-
-  // Basic I2C configuration
-  // i2c_set_speed(I2C1, i2c_speed_sm_100k, I2C_CR2_FREQ_36MHZ);
-  i2c_set_standard_mode(I2C1);
-  i2c_set_clock_frequency(I2C1, I2C_CR2_FREQ_36MHZ);
-  i2c_set_trise(I2C1, 36);
-  i2c_set_dutycycle(I2C1, I2C_CCR_DUTY_DIV2);
-  i2c_set_ccr(I2C1, 180);
-
-  i2c_set_own_7bit_slave_address(I2C1, this->i2cLocalAddr);
-
-  // Set I2C IRQ to support slave mode
-  i2cTxBuf.bytesProcessed = 0;
-  i2cRxBuf.bytesProcessed = 0;
-  i2cTxBuf.msgValid.store(false, std::memory_order_release);
-  i2cRxBuf.msgValid.store(false, std::memory_order_release);
-  nvic_enable_irq(NVIC_I2C1_EV_IRQ);
-  i2c_enable_interrupt(I2C1, I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN);
-
-  i2c_peripheral_enable(I2C1);
-  i2c_enable_ack(I2C1);
-}
-
-// i2c1 event ISR
-// Code based on
-// https://amitesh-singh.github.io/stm32/2018/01/07/making-i2c-slave-using-stm32f103.html
-extern "C" void i2c1_ev_isr(void) { LibOpencm3Hal::i2cEvInt(); }
-
-void LibOpencm3Hal::i2cEvInt(void) {
-  // ISR appears to be called once per I2C byte received
-
-  uint32_t sr1, sr2;
-
-  sr1 = I2C_SR1(I2C1);
-
-  if (sr1 & I2C_SR1_SB) {
-    // Refrence Manual: EV5 (Master)
-    i2cTxBuf.bytesProcessed = 1;
-    i2c_send_7bit_address(I2C1, i2cTxBuf.msgBytes[0], I2C_WRITE);
-  } else
-      // Address matched (Slave)
-      if (sr1 & I2C_SR1_ADDR) {
-    // Refrence Manual: EV6 (Master)/EV1 (Slave)
-
-    // Clear the ADDR sequence by reading SR2.
-    sr2 = I2C_SR2(I2C1);
-
-    if (!(sr2 & I2C_SR2_MSL)) {
-      // Reference Manual: EV1
-      if (!i2cRxBuf.msgValid.load(std::memory_order_acquire)) {
-        i2cRxBuf.bytesProcessed = 1;
-      }
-    }
-  }
-  // Receive buffer not empty
-  else if (sr1 & I2C_SR1_RxNE) {
-    // Reference Manual: EV2
-    if (!i2cRxBuf.msgValid.load(std::memory_order_acquire)) {
-      if (i2cRxBuf.bytesProcessed < 3) {
-        i2cRxBuf.msgBytes[i2cRxBuf.bytesProcessed - 1] = i2c_get_data(I2C1);
-        ++i2cRxBuf.bytesProcessed;
-      }
-    }
-  }
-  // Transmit buffer empty & Data byte transfer not finished
-  else if ((sr1 & I2C_SR1_TxE) && !(sr1 & I2C_SR1_BTF)) {
-    // EV8, 8_1
-    switch (i2cTxBuf.bytesProcessed) {
-      case 1:
-        i2c_send_data(I2C1, i2cLocalAddr << 1);
-        ++i2cTxBuf.bytesProcessed;
-        break;
-      case 2:
-        i2c_send_data(I2C1, i2cTxBuf.msgBytes[1]);
-        ++i2cTxBuf.bytesProcessed;
-        break;
-      default:
-        // EV 8_2
-        i2cTxBuf.msgValid.store(false, std::memory_order_release);
-        i2c_send_stop(I2C1);
-        break;
-    }
-  }
-  // done by master by sending STOP
-  // this event happens when slave is in Recv mode at the end of communication
-  else if (sr1 & I2C_SR1_STOPF) {
-    // Reference Manual: EV3
-    i2c_peripheral_enable(I2C1);
-    if (i2cRxBuf.bytesProcessed == 3) {
-      i2cRxBuf.msgValid.store(true, std::memory_order_release);
-    }
-  }
-  // this event happens when slave is in transmit mode at the end of communication
-  else if (sr1 & I2C_SR1_AF) {
-    //(void) I2C_SR1(I2C1);
-    I2C_SR1(I2C1) &= ~(I2C_SR1_AF);
-  }
 }
 
 void LibOpencm3Hal::beginCan() {
@@ -263,27 +136,9 @@ void LibOpencm3Hal::loopCan() {
   }
 }
 
-void LibOpencm3Hal::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) {
-  i2cTxBuf.bytesProcessed = 0;
-  i2cTxBuf.msgBytes[0] = msg.destination_;
-  i2cTxBuf.msgBytes[1] = msg.data_;
-  i2cTxBuf.msgValid.store(true, std::memory_order_release);
-  i2c_send_start(I2C1);
-}
-
 void LibOpencm3Hal::SendPacket(RR32Can::Identifier const& id, RR32Can::Data const& data) {
   uint32_t packetId = id.makeIdentifier();
   can_transmit(CAN1, packetId, true, false, data.dlc, const_cast<uint8_t*>(data.data));
-}
-
-MarklinI2C::Messages::AccessoryMsg LibOpencm3Hal::getI2cMessage() const {
-  MarklinI2C::Messages::AccessoryMsg msg;
-  msg.destination_ = i2cLocalAddr;
-  msg.source_ = i2cRxBuf.msgBytes[0];
-  msg.data_ = i2cRxBuf.msgBytes[1];
-  i2cRxBuf.bytesProcessed = 0;
-  i2cRxBuf.msgValid.store(false, std::memory_order_release);
-  return msg;
 }
 
 void LibOpencm3Hal::led(bool on) {

@@ -5,6 +5,8 @@
 
 #include "hal/HalBase.h"
 
+#include "hal/stm32I2C.h"
+
 namespace hal {
 
 /*
@@ -33,7 +35,7 @@ class LibOpencm3Hal : public HalBase {
     beginClock();
     beginGpio();
     beginSerial();
-    beginI2c();
+    beginI2C(i2caddr);
     beginCan();
     beginEE();
   }
@@ -43,14 +45,6 @@ class LibOpencm3Hal : public HalBase {
     loopCan();
     loopSerial();
   }
-
-  bool i2cAvailable() const { return i2cRxBuf.msgValid.load(std::memory_order_acquire); }
-  MarklinI2C::Messages::AccessoryMsg getI2cMessage() const;
-
-  /**
-   * \brief Send a given message over I2C.
-   */
-  void SendI2CMessage(const MarklinI2C::Messages::AccessoryMsg& msg) override;
 
   void led(bool on) override;
   void toggleLed() override;
@@ -67,15 +61,11 @@ class LibOpencm3Hal : public HalBase {
   void beginClock();
   void beginGpio();
   void beginSerial();
-  void beginI2c();
   void beginCan();
   void beginEE();
 
   void loopCan();
   void loopSerial();
-
-  static I2CBuf i2cRxBuf;
-  static I2CBuf i2cTxBuf;
 };
 
 }  // namespace hal

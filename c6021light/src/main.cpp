@@ -28,7 +28,7 @@ extern "C" {
 
 #include "StationCbk.h"
 
-#include "MarklinI2C/Messages/AccessoryMsg.h"
+#include "tasks/RoutingTask/RoutingTask.h"
 
 #include "RR32Can/RR32Can.h"
 #include "RR32Can_config.h"
@@ -37,18 +37,14 @@ extern "C" {
 Hal_t halImpl;
 AccessoryCbk accessoryCbk;
 
-uint8_t lastPowerOnTurnoutAddr;
-uint8_t lastPowerOnDirection;
-
 DataModel dataModel;
+tasks::RoutingTask::RoutingTask routingTask;
 
 ConsoleManager console;
 microrl_t microrl;
 
 // ******** Code ********
 extern "C" {
-extern void vApplicationStackOverflowHook(xTaskHandle pxTask, portCHAR* pcTaskName);
-
 void vApplicationStackOverflowHook(xTaskHandle pxTask __attribute((unused)),
                                    portCHAR* pcTaskName __attribute((unused))) {
   for (;;)
@@ -135,6 +131,7 @@ void setup() {
   // Load Configuration
   printf("Reading Configuration.\n");
   dataModel = halImpl.LoadConfig();
+  routingTask.begin(dataModel, halImpl);
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");
@@ -142,7 +139,7 @@ void setup() {
 
   RR32Can::Station::CallbackStruct callbacks;
   callbacks.tx = &halImpl;
-  callbacks.accessory = &accessoryCbk;
+  callbacks.accessory = &routingTask;
   callbacks.system = &accessoryCbk;
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
@@ -150,48 +147,15 @@ void setup() {
   console.begin();
 }
 
-/**
- * \brief Two addresses are on the same decoder, if they match apart from
- * the lowest two bits.
- */
-bool sameDecoder(uint8_t left, uint8_t right) {
-  constexpr const uint8_t mask = 0xFC;
-  return (left & mask) == (right & mask);
-}
+// Main function for non-arduino
+int main(void) {
+  setup();
 
-/**
- * \brief When a message was received, create and send a response message.
- */
-void loop(void* args __attribute((unused))) {
+  xTaskCreate(routingTaskMain, "RoutingTask", 100, &routingTask, configMAX_PRIORITIES - 1, NULL);
+  vTaskStartScheduler();
+
   while (1) {
-    halImpl.loop();
-
-    // Process I2C
-    if (halImpl.i2cAvailable()) {
-      MarklinI2C::Messages::AccessoryMsg request = halImpl.getI2cMessage();
-
-      // If this is a power ON packet: Send directly to CAN
-      if (request.getPower()) {
-        lastPowerOnDirection = request.getDirection();
-        lastPowerOnTurnoutAddr = request.getTurnoutAddr();
-        RR32Can::RR32Can.SendAccessoryPacket(
-            lastPowerOnTurnoutAddr, dataModel.accessoryRailProtocol,
-            static_cast<RR32Can::TurnoutDirection>(request.getDirection()), request.getPower());
-      } else {
-        // On I2C, for a Power OFF message, the two lowest bits (decoder output channel) are always
-        // 0, regardless of the actual turnout address to be switched off. For safety, translate
-        // this to tuning off all addresses of the respective decoder.
-        //
-        // Note that we store the last direction where power was applied.
-        // The CAN side interprets a "Power Off" as "Flip the switch" anyways.
-        uint8_t i2cAddr = request.getTurnoutAddr();
-        if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddr)) {
-          RR32Can::RR32Can.SendAccessoryPacket(
-              lastPowerOnTurnoutAddr, dataModel.accessoryRailProtocol,
-              static_cast<RR32Can::TurnoutDirection>(lastPowerOnDirection), request.getPower());
-        }
-      }
-    }
-    // Process CAN: Done through callbacks.
+    ;
   }
+  return 0;
 }

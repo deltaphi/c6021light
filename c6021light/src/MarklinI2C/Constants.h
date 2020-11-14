@@ -4,6 +4,7 @@
 #include <cstdint>
 
 namespace MarklinI2C {
+constexpr const uint8_t kMessageMaxBytes = 4;
 
 constexpr const uint8_t kCentralAddr = 0x7F;
 
