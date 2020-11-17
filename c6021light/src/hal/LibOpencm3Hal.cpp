@@ -108,7 +108,7 @@ void LibOpencm3Hal::beginCan() {
 
   /* default CAN setting 250 kBaud */
   nvic_enable_irq(NVIC_USB_LP_CAN_RX0_IRQ);
-  nvic_set_priority(NVIC_USB_LP_CAN_RX0_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY+64);
+  nvic_set_priority(NVIC_USB_LP_CAN_RX0_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
   can_enable_irq(CAN1, CAN_IER_FMPIE0);
 
   if (can_init(CAN1, false, true, false, false, false, false, CAN_BTR_SJW_1TQ, CAN_BTR_TS1_13TQ,

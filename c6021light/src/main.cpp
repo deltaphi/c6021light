@@ -186,7 +186,8 @@ int main(void) {
 
   if (hal::LibOpencm3Hal::canrxq == NULL) {
     __asm("bkpt 3");
-    for (;;);
+    for (;;)
+      ;
   }
 
   xTaskCreateStatic(routingTaskMain, "RoutingTask", tasks::RoutingTask::RoutingTask::kStackSize,
