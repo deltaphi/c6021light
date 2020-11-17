@@ -61,6 +61,11 @@ void hard_fault_handler(void) {
 
   uint32_t hfsr = *(uint32_t*)0xE000ED2C;
   __asm("bkpt 1");
+  (void)cfsr;
+  (void)ufsr;
+  (void)bfsr;
+  (void)mmfsr;
+  (void)hfsr;
 }
 
 void vApplicationGetIdleTaskMemory(StaticTask_t** ppxIdleTaskTCBBuffer,
