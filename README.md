@@ -144,3 +144,43 @@ When a button is pressed, a "Power ON" message is sent. When a button is release
 message is sent. However, due to the Decoder-Based addressing scheme, the "Power Off" message is
 not addressed towards a specific turnout but towards the decoder Address, i.e., all 8 outputs are
 considered to be unpowered.
+
+
+# Overall Communication Pattern
+
+connect 6021 light connects the following bus systems:
+
+* CAN
+* I2C
+* LocoNet
+* XPressNet
+
+In the future:
+* MM2-Sniffer
+* IR Receiver
+* Serial Commands
+
+There should be a central routing task that iterates over all ingress ports and if data is available, forwards the data over the respective egress ports.
+
+Ingress and Egress may be polling-based (e.g., CAN) or interrupt-based (e.g., I2C, LocoNet). Also, input may be driven by concurrent tasks (Serial?).
+Polling-based operation complicates scheduling, as the routing task can never go to sleep. It would be helpful if 
+
+As for Datastructures: Is there an ingress queue/egress queue per bus, or is there a central queue that also notes down the ingress bus?
+
+
+Overall Tasks:
+* RoutingTask (needs: RR32Can, DataModel, HAL for CAN, HAL for I2C)
+* Console Task
+
+ISRs:
+
+* I2C ISR (Send/Receive, Ingress/Egress Buffer. Egress can not be an OS queue.)
+* LocoNet ISR (Send/Receive)
+
+
+## Task/ISR Design
+
+I2C ISR:
+* TX Buffer, RX Buffer
+* Bytes are read into RX Buffer. When buffer is full, place message into message queue (Copy!). Notify routing task when Message is complete (copy!). -> Note: As long as the RX part does not overrun, the Queue is not necessary. Code change may involve changing the synchronization primitives.
+* Routing Task places TX message into queue (copy!). When TX Buffer is free, it copies (copy!) a message from the queue to the TX Buffer and starts the ISR. -> Note: As long as the TX part does not overrun, the Queue is not necessary. Code change is only adding the queue operation into the routing task.
