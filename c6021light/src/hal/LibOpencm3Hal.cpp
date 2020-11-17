@@ -20,6 +20,8 @@
 #include "ee.h"
 #include "eeConfig.h"
 
+#include "FreeRTOS.h"
+
 extern "C" {
 /* _write code taken from example at
  * https://github.com/libopencm3/libopencm3-examples/blob/master/examples/stm32/l1/stm32l-discovery/button-irq-printf-lowpower/main.c
@@ -42,6 +44,8 @@ int _write(int file, char* ptr, int len) {
 }
 
 namespace hal {
+
+xQueueHandle LibOpencm3Hal::canrxq;
 
 void LibOpencm3Hal::beginClock() {
   // Enable the overall clock.
@@ -103,6 +107,9 @@ void LibOpencm3Hal::beginCan() {
   can_reset(CAN1);
 
   /* default CAN setting 250 kBaud */
+  nvic_enable_irq(NVIC_USB_LP_CAN_RX0_IRQ);
+  nvic_set_priority(NVIC_USB_LP_CAN_RX0_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY+64);
+  can_enable_irq(CAN1, CAN_IER_FMPIE0);
 
   if (can_init(CAN1, false, true, false, false, false, false, CAN_BTR_SJW_1TQ, CAN_BTR_TS1_13TQ,
                CAN_BTR_TS2_2TQ, 9, false, false)) {
@@ -119,20 +126,41 @@ void LibOpencm3Hal::beginCan() {
                                 true); /* Enable the filter. */
 }
 
-void LibOpencm3Hal::loopCan() {
-  if (CAN_RF0R(CAN1) & CAN_RF0R_FMP0_MASK) {  // message available in FIFO 0
-    uint32_t packetId;
+extern "C" {
+void usb_lp_can_rx0_isr(void) {
+  BaseType_t anyTaskWoken = pdFALSE;
+  for (uint32_t messageCount = CAN_RF0R(CAN1) & 3; messageCount > 0; --messageCount) {
+    LibOpencm3Hal::CanMsg canMsg;
 
     bool ext;
     bool rtr;
     uint8_t fmi;
-    RR32Can::Data data;
     uint16_t timestamp;
 
-    can_receive(CAN1, 0, true, &packetId, &ext, &rtr, &fmi, &data.dlc, data.data, &timestamp);
+    can_receive(CAN1, 0, true, &canMsg.id, &ext, &rtr, &fmi, &canMsg.data.dlc, canMsg.data.data,
+                &timestamp);
+    BaseType_t taskWoken;
+    if (xQueueSendToBackFromISR(LibOpencm3Hal::canrxq, &canMsg, &taskWoken) != pdTRUE) {
+      // TODO: Handle Queue full by notifying the user.
+      __asm("bkpt 4");
+    } else {
+      if (taskWoken == pdTRUE) {
+        anyTaskWoken = pdTRUE;
+      }
+      break;
+    }
+  }
+  if (anyTaskWoken == pdTRUE) {
+    taskYIELD();
+  }
+}
+}
 
-    RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(packetId);
-    RR32Can::RR32Can.HandlePacket(rr32id, data);
+void LibOpencm3Hal::loopCan() {
+  CanMsg canMsg;
+  while (xQueueReceive(canrxq, &canMsg, 0) == pdTRUE) {
+    RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(canMsg.id);
+    RR32Can::RR32Can.HandlePacket(rr32id, canMsg.data);
   }
 }
 

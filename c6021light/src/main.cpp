@@ -18,6 +18,7 @@ using Hal_t = hal::LibOpencm3Hal;
 #include "DataModel.h"
 
 #include "FreeRTOS.h"
+#include "queue.h"
 #include "task.h"
 
 extern "C" {
@@ -47,8 +48,19 @@ microrl_t microrl;
 extern "C" {
 void vApplicationStackOverflowHook(xTaskHandle pxTask __attribute((unused)),
                                    portCHAR* pcTaskName __attribute((unused))) {
-  for (;;)
-    ;  // Loop forever here..
+  for (;;) {
+    __asm("bkpt 2");  // Loop forever here..
+  }
+}
+
+void hard_fault_handler(void) {
+  uint32_t cfsr = *(uint32_t*)0xE000ED28;
+  uint16_t ufsr = *(uint16_t*)0xE000ED2A;
+  uint8_t bfsr = *(uint8_t*)0xE000ED29;
+  uint8_t mmfsr = *(uint8_t*)0xE000ED28;
+
+  uint32_t hfsr = *(uint32_t*)0xE000ED2C;
+  __asm("bkpt 1");
 }
 
 void vApplicationGetIdleTaskMemory(StaticTask_t** ppxIdleTaskTCBBuffer,
@@ -163,6 +175,19 @@ int main(void) {
 
   static StackType_t routingTaskStack[tasks::RoutingTask::RoutingTask::kStackSize];
   static StaticTask_t routingTaskTcb;
+
+  constexpr static const uint8_t canqueuesize = 10;
+
+  static StaticQueue_t staticCanrxq;
+  static uint8_t canrxqBuffer[canqueuesize * sizeof(hal::LibOpencm3Hal::CanMsg)];
+
+  hal::LibOpencm3Hal::canrxq = xQueueCreateStatic(canqueuesize, sizeof(hal::LibOpencm3Hal::CanMsg),
+                                                  canrxqBuffer, &staticCanrxq);
+
+  if (hal::LibOpencm3Hal::canrxq == NULL) {
+    __asm("bkpt 3");
+    for (;;);
+  }
 
   xTaskCreateStatic(routingTaskMain, "RoutingTask", tasks::RoutingTask::RoutingTask::kStackSize,
                     &routingTask, configMAX_PRIORITIES - 1, routingTaskStack, &routingTaskTcb);

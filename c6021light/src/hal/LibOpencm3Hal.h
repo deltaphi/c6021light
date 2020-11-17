@@ -5,7 +5,9 @@
 
 #include "hal/HalBase.h"
 
+#include "FreeRTOS.h"
 #include "hal/stm32I2C.h"
+#include "queue.h"
 
 namespace hal {
 
@@ -53,6 +55,8 @@ class LibOpencm3Hal : public HalBase {
 
   void SaveConfig(const DataModel& dataModel) override;
   DataModel LoadConfig() override;
+
+  static xQueueHandle canrxq;
 
  private:
   /// Transmit Packet on CAN
