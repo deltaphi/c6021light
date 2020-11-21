@@ -63,9 +63,8 @@ extern "C" void i2c1_ev_isr(void) {
     // Refrence Manual: EV5 (Master)
     i2cTxBuf.bytesProcessed = 1;
     i2c_send_7bit_address(I2C1, i2cTxBuf.msgBytes[0], I2C_WRITE);
-  } else
-      // Address matched (Slave)
-      if (sr1 & I2C_SR1_ADDR) {
+  } else if (sr1 & I2C_SR1_ADDR) {
+    // Address matched (Slave)
     // Refrence Manual: EV6 (Master)/EV1 (Slave)
 
     // Clear the ADDR sequence by reading SR2.
