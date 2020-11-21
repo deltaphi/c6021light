@@ -7,6 +7,8 @@
 #include "RR32Can/RR32Can.h"
 #include "hal/stm32I2C.h"
 
+#include "FreeRTOS.h"
+
 namespace tasks {
 namespace RoutingTask {
 
@@ -19,13 +21,14 @@ bool sameDecoder(uint8_t left, uint8_t right) {
   return (left & mask) == (right & mask);
 }
 
-MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage() {
+
+MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage(hal::I2CBuf & buffer) {
   MarklinI2C::Messages::AccessoryMsg msg;
   msg.destination_ = dataModel_->myAddr;
-  msg.source_ = hal::i2cRxBuf.msgBytes[0];
-  msg.data_ = hal::i2cRxBuf.msgBytes[1];
-  hal::i2cRxBuf.bytesProcessed = 0;
-  hal::i2cRxBuf.msgValid.store(false, std::memory_order_release);
+  msg.source_ = buffer.msgBytes[0];
+  msg.data_ = buffer.msgBytes[1];
+  buffer.bytesProcessed = 0;
+  buffer.msgValid.store(false, std::memory_order_release);
   return msg;
 }
 
@@ -80,9 +83,11 @@ void RoutingTask::main() {
     halImpl_->loop();
 
     // Process I2C
-    if (hal::i2cRxMsgAvailable()) {
-      MarklinI2C::Messages::AccessoryMsg request = getI2CMessage();
+    hal::I2CBuf requestMsg;
 
+    if (xQueueReceive(hal::i2cRxQueue, &requestMsg, 0) == pdPASS) {    
+      MarklinI2C::Messages::AccessoryMsg request = getI2CMessage(requestMsg);
+      request.print();
       // If this is a power ON packet: Send directly to CAN
       if (request.getPower()) {
         lastPowerOnDirection = request.getDirection();

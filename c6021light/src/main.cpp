@@ -34,6 +34,8 @@ extern "C" {
 #include "RR32Can/RR32Can.h"
 #include "RR32Can_config.h"
 
+#include "hal/stm32I2C.h"
+
 // ******** Variables and Constans********
 Hal_t halImpl;
 AccessoryCbk accessoryCbk;
@@ -174,20 +176,27 @@ void setup() {
   console.begin();
 }
 
-// Main function for non-arduino
-int main(void) {
-  setup();
-
-  static StackType_t routingTaskStack[tasks::RoutingTask::RoutingTask::kStackSize];
-  static StaticTask_t routingTaskTcb;
-
+void setupOsResources() {
   constexpr static const uint8_t canqueuesize = 10;
 
   static StaticQueue_t staticCanrxq;
   static uint8_t canrxqBuffer[canqueuesize * sizeof(hal::LibOpencm3Hal::CanMsg)];
 
+  constexpr static const uint8_t i2cqueuesize = canqueuesize;
+
+  static StaticQueue_t staticI2CRxq;
+  static StaticQueue_t staticI2CTxq;
+  static uint8_t i2crxqBuffer[i2cqueuesize * sizeof(hal::I2CBuf)];
+  static uint8_t i2ctxqBuffer[i2cqueuesize * sizeof(hal::I2CBuf)];
+
   hal::LibOpencm3Hal::canrxq = xQueueCreateStatic(canqueuesize, sizeof(hal::LibOpencm3Hal::CanMsg),
                                                   canrxqBuffer, &staticCanrxq);
+
+  hal::i2cRxQueue = xQueueCreateStatic(i2cqueuesize, sizeof(hal::I2CBuf),
+                                       i2crxqBuffer, &staticI2CRxq);
+
+  hal::i2cTxQueue = xQueueCreateStatic(i2cqueuesize, sizeof(hal::I2CBuf),
+                                       i2ctxqBuffer, &staticI2CTxq);
 
   if (hal::LibOpencm3Hal::canrxq == NULL) {
     __asm("bkpt 3");
@@ -195,8 +204,34 @@ int main(void) {
       ;
   }
 
+  if (hal::i2cRxQueue == NULL) {
+    __asm("bkpt 3");
+    for (;;)
+      ;
+  }
+  if (hal::i2cTxQueue == NULL) {
+    __asm("bkpt 3");
+    for (;;)
+      ;
+  }
+}
+
+void startOsTasks() {
+  static StackType_t routingTaskStack[tasks::RoutingTask::RoutingTask::kStackSize];
+  static StaticTask_t routingTaskTcb;
+  
   xTaskCreateStatic(routingTaskMain, "RoutingTask", tasks::RoutingTask::RoutingTask::kStackSize,
                     &routingTask, configMAX_PRIORITIES - 1, routingTaskStack, &routingTaskTcb);
+}
+
+// Main function for non-arduino
+int main(void) {
+
+  setupOsResources();
+
+  setup();
+
+  startOsTasks();
 
   vTaskStartScheduler();
 

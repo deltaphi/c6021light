@@ -140,7 +140,7 @@ void usb_lp_can_rx0_isr(void) {
     can_receive(CAN1, 0, true, &canMsg.id, &ext, &rtr, &fmi, &canMsg.data.dlc, canMsg.data.data,
                 &timestamp);
     BaseType_t taskWoken;
-    if (xQueueSendToBackFromISR(LibOpencm3Hal::canrxq, &canMsg, &taskWoken) != pdTRUE) {
+    if (xQueueSendFromISR(LibOpencm3Hal::canrxq, &canMsg, &taskWoken) != pdTRUE) {
       // TODO: Handle Queue full by notifying the user.
       __asm("bkpt 4");
     } else {

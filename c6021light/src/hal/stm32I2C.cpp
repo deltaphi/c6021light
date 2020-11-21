@@ -11,6 +11,9 @@ static uint8_t slaveAddress;
 I2CBuf i2cRxBuf;
 I2CBuf i2cTxBuf;
 
+xQueueHandle i2cRxQueue;
+xQueueHandle i2cTxQueue;
+
 void beginI2C(uint8_t newSlaveAddress) {
   i2c_peripheral_disable(I2C1);
   i2c_reset(I2C1);
@@ -33,10 +36,9 @@ void beginI2C(uint8_t newSlaveAddress) {
 
   // Set I2C IRQ to support slave mode
   i2cTxBuf.bytesProcessed = 0;
-  i2cRxBuf.bytesProcessed = 0;
   i2cTxBuf.msgValid.store(false, std::memory_order_release);
-  i2cRxBuf.msgValid.store(false, std::memory_order_release);
   nvic_enable_irq(NVIC_I2C1_EV_IRQ);
+  nvic_set_priority(NVIC_I2C1_EV_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
   i2c_enable_interrupt(I2C1, I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN);
 
   i2c_peripheral_enable(I2C1);
@@ -72,9 +74,7 @@ extern "C" void i2c1_ev_isr(void) {
 
     if (!(sr2 & I2C_SR2_MSL)) {
       // Reference Manual: EV1
-      if (!i2cRxBuf.msgValid.load(std::memory_order_acquire)) {
-        i2cRxBuf.bytesProcessed = 1;
-      }
+      i2cRxBuf.bytesProcessed = 1;
     }
   }
   // Receive buffer not empty
@@ -112,7 +112,15 @@ extern "C" void i2c1_ev_isr(void) {
     // Reference Manual: EV3
     i2c_peripheral_enable(I2C1);
     if (i2cRxBuf.bytesProcessed == 3) {
-      i2cRxBuf.msgValid.store(true, std::memory_order_release);
+      BaseType_t taskWoken;
+      if (xQueueSendFromISR(i2cRxQueue, &i2cRxBuf, &taskWoken) != pdTRUE) {
+        // TODO: Queue full. Handle somehow.
+        __asm("bkpt 4");
+      }
+      i2cRxBuf.bytesProcessed = 0;
+      if (taskWoken == pdTRUE) {
+        taskYIELD();
+      }
     }
   }
   // this event happens when slave is in transmit mode at the end of communication

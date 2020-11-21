@@ -38,7 +38,7 @@ class RoutingTask : public RR32Can::callback::AccessoryCbk {
   void OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool response) override;
 
  private:
-  MarklinI2C::Messages::AccessoryMsg getI2CMessage();
+  MarklinI2C::Messages::AccessoryMsg getI2CMessage(hal::I2CBuf & buffer);
 
   uint8_t lastPowerOnTurnoutAddr;
   uint8_t lastPowerOnDirection;
