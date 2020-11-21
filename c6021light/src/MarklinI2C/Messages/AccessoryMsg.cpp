@@ -100,6 +100,35 @@ void AccessoryMsg::print() const {
   }
 
   Serial.println();
+#else
+  const char* directionString;
+  const char* powerString;
+
+  switch (getDirection()) {
+    case kDataDirRed:
+      directionString = "RED  ";
+      break;
+    case kDataDirGreen:
+      directionString = "GREEN";
+      break;
+    default:
+      directionString = "WTF  ";
+      break;
+  }
+
+  switch (getPower()) {
+    case 0:
+      powerString = "OFF";
+      break;
+    case 1:
+      powerString = "ON ";
+      break;
+    default:
+      powerString = "WTF";
+      break;
+  }
+
+  printf("[0x%x 0x%x 0x%x] - Keyboard: %i, Decoder: %i, (Turnout: %i, Direction: %s, Power: %s)\n", destination_, source_, data_, getSender(), getDecoderOutput(), getTurnoutAddr(), directionString, powerString);
 #endif
 }
 
