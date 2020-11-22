@@ -219,14 +219,13 @@ void setupOsResources() {
 void startOsTasks() {
   static StackType_t routingTaskStack[tasks::RoutingTask::RoutingTask::kStackSize];
   static StaticTask_t routingTaskTcb;
-  
+
   xTaskCreateStatic(routingTaskMain, "RoutingTask", tasks::RoutingTask::RoutingTask::kStackSize,
                     &routingTask, configMAX_PRIORITIES - 1, routingTaskStack, &routingTaskTcb);
 }
 
 // Main function for non-arduino
 int main(void) {
-
   setupOsResources();
 
   setup();

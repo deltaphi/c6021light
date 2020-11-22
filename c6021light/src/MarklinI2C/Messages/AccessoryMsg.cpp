@@ -128,7 +128,9 @@ void AccessoryMsg::print() const {
       break;
   }
 
-  printf("[0x%x 0x%x 0x%x] - Keyboard: %i, Decoder: %i, (Turnout: %i, Direction: %s, Power: %s)\n", destination_, source_, data_, getSender(), getDecoderOutput(), getTurnoutAddr(), directionString, powerString);
+  printf("[0x%x 0x%x 0x%x] - Keyboard: %i, Decoder: %i, (Turnout: %i, Direction: %s, Power: %s)\n",
+         destination_, source_, data_, getSender(), getDecoderOutput(), getTurnoutAddr(),
+         directionString, powerString);
 #endif
 }
 

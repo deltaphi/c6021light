@@ -21,8 +21,7 @@ bool sameDecoder(uint8_t left, uint8_t right) {
   return (left & mask) == (right & mask);
 }
 
-
-MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage(hal::I2CBuf & buffer) {
+MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage(hal::I2CBuf& buffer) {
   MarklinI2C::Messages::AccessoryMsg msg;
   msg.destination_ = dataModel_->myAddr;
   msg.source_ = buffer.msgBytes[0];
@@ -85,7 +84,7 @@ void RoutingTask::main() {
     // Process I2C
     hal::I2CBuf requestMsg;
 
-    if (xQueueReceive(hal::i2cRxQueue, &requestMsg, 0) == pdPASS) {    
+    if (xQueueReceive(hal::i2cRxQueue, &requestMsg, 0) == pdPASS) {
       MarklinI2C::Messages::AccessoryMsg request = getI2CMessage(requestMsg);
       request.print();
       // If this is a power ON packet: Send directly to CAN
