@@ -36,10 +36,11 @@ MarklinI2C::Messages::AccessoryMsg RoutingTask::prepareI2cMessage() {
 }
 
 void RoutingTask::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) {
-  hal::i2cTxBuf.bytesProcessed = 0;
-  hal::i2cTxBuf.msgBytes[0] = msg.destination_;
-  hal::i2cTxBuf.msgBytes[1] = msg.data_;
-  hal::i2cTxBuf.msgValid.store(true, std::memory_order_release);
+  hal::I2CBuf buf;
+  buf.msgBytes[0] = msg.destination_;
+  buf.msgBytes[1] = msg.data_;
+
+  hal::i2cTxQueue.Send(buf, 0);  // TODO: Check the result.
   hal::triggerI2cTx();
 }
 

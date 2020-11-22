@@ -26,10 +26,7 @@ using I2CQueueType = freertossupport::OsQueue<hal::I2CBuf>;
 extern I2CQueueType i2cRxQueue;
 extern I2CQueueType i2cTxQueue;
 
-extern I2CTxBuf i2cTxBuf;
-
 void beginI2C(uint8_t slaveAddress);
-inline bool i2cTxMsgAvailable() { return i2cTxBuf.msgValid.load(std::memory_order_acquire); }
 
 void triggerI2cTx();
 

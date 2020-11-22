@@ -14,14 +14,22 @@ class OsQueue {
  public:
   using QueueElement = E;
 
-  struct SendResult {
+  struct BaseResult {
     BaseType_t errorCode;
+  };
+
+  using SendResult = BaseResult;
+
+  struct SendResultISR : public SendResult {
     BaseType_t higherPriorityTaskWoken;
   };
 
-  struct ReceiveResult {
-    BaseType_t errorCode;
+  struct ReceiveResult : public BaseResult {
     QueueElement element;
+  };
+
+  struct ReceiveResultISR : public ReceiveResult {
+    BaseType_t higherPriorityTaskWoken;
   };
 
   OsQueue() : handle_(NULL){};
@@ -32,17 +40,17 @@ class OsQueue {
 
   // QueueHandle_t getHandle() const { return handle_; }
 
-  SendResult SendFromISR(const QueueElement& element) {
+  SendResultISR SendFromISR(const QueueElement& element) {
     configASSERT(handle_ != NULL);
-    SendResult result;
+    SendResultISR result;
     result.errorCode = xQueueSendFromISR(handle_, &element, &result.higherPriorityTaskWoken);
     return result;
   }
 
-  SendResult Send(const QueueElement& element) {
+  SendResult Send(const QueueElement& element, TickType_t ticksToWait) {
     configASSERT(handle_ != NULL);
     SendResult result;
-    result.errorCode = xQueueSend(handle_, &element, result.higherPriorityTaskWoken);
+    result.errorCode = xQueueSend(handle_, &element, ticksToWait);
     return result;
   }
 
@@ -50,6 +58,14 @@ class OsQueue {
     configASSERT(handle_ != NULL);
     ReceiveResult result;
     result.errorCode = xQueueReceive(handle_, &result.element, ticksToWait);
+    return result;
+  }
+
+  ReceiveResultISR ReceiveFromISR() {
+    configASSERT(handle_ != NULL);
+    ReceiveResultISR result;
+    result.errorCode =
+        xQueueReceiveFromISR(handle_, &result.element, &result.higherPriorityTaskWoken);
     return result;
   }
 

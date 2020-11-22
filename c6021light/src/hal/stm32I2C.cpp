@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "hal/stm32I2C.h"
 
 #include <libopencm3/cm3/nvic.h>
@@ -13,6 +15,8 @@ I2CTxBuf i2cTxBuf;
 
 I2CQueueType i2cRxQueue;
 I2CQueueType i2cTxQueue;
+
+inline bool i2cTxMsgAvailable() { return i2cTxBuf.msgValid.load(std::memory_order_acquire); }
 
 void beginI2C(uint8_t newSlaveAddress) {
   i2c_peripheral_disable(I2C1);
@@ -45,9 +49,28 @@ void beginI2C(uint8_t newSlaveAddress) {
   i2c_enable_ack(I2C1);
 }
 
-void triggerI2cTx() {
-  if (i2cTxMsgAvailable()) {
+void doTriggerTx(const I2CQueueType::ReceiveResult& receiveResult) {
+  if (receiveResult.errorCode == pdPASS) {
+    memcpy(i2cTxBuf.msgBytes, receiveResult.element.msgBytes, sizeof(I2CBuf::msgBytes));
+    i2cTxBuf.bytesProcessed = 0;
+    i2cTxBuf.msgValid.store(true, std::memory_order_release);
     i2c_send_start(I2C1);
+  }
+}
+
+void triggerI2cTx() {
+  // If the buffer is free and there is something in the queue
+  if (!i2cTxMsgAvailable()) {
+    I2CQueueType::ReceiveResult receiveResult = i2cTxQueue.Receive(0);
+    doTriggerTx(receiveResult);
+  }
+}
+
+void continueI2cTx() {
+  // If the buffer is free and there is something in the queue
+  if (!i2cTxMsgAvailable()) {
+    I2CQueueType::ReceiveResult receiveResult = i2cTxQueue.ReceiveFromISR();
+    doTriggerTx(receiveResult);
   }
 }
 
@@ -112,7 +135,7 @@ extern "C" void i2c1_ev_isr(void) {
     // Reference Manual: EV3
     i2c_peripheral_enable(I2C1);
     if (i2cRxBuf.bytesProcessed == 3) {
-      I2CQueueType::SendResult sendResult = i2cRxQueue.SendFromISR(i2cRxBuf);
+      I2CQueueType::SendResultISR sendResult = i2cRxQueue.SendFromISR(i2cRxBuf);
       if (sendResult.errorCode != pdTRUE) {
         // TODO: Queue full. Handle somehow.
         __asm("bkpt 4");
