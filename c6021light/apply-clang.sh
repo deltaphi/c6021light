@@ -9,3 +9,9 @@ do
     echo "Formatting $filename"
     "$CLANG_BINARY" -i "$filename"
 done
+
+for filename in `find lib/freertossupport -iname "*.cpp" -o -iname "*.h"`
+do
+    echo "Formatting $filename"
+    "$CLANG_BINARY" -i "$filename"
+done

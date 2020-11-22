@@ -45,7 +45,7 @@ int _write(int file, char* ptr, int len) {
 
 namespace hal {
 
-xQueueHandle LibOpencm3Hal::canrxq;
+freertossupport::OsQueue<LibOpencm3Hal::CanMsg> LibOpencm3Hal::canrxq;
 
 void LibOpencm3Hal::beginClock() {
   // Enable the overall clock.
@@ -139,12 +139,12 @@ void usb_lp_can_rx0_isr(void) {
 
     can_receive(CAN1, 0, true, &canMsg.id, &ext, &rtr, &fmi, &canMsg.data.dlc, canMsg.data.data,
                 &timestamp);
-    BaseType_t taskWoken;
-    if (xQueueSendFromISR(LibOpencm3Hal::canrxq, &canMsg, &taskWoken) != pdTRUE) {
+    LibOpencm3Hal::CanQueueType::SendResult sendResult = LibOpencm3Hal::canrxq.SendFromISR(canMsg);
+    if (sendResult.errorCode != pdTRUE) {
       // TODO: Handle Queue full by notifying the user.
       __asm("bkpt 4");
     } else {
-      if (taskWoken == pdTRUE) {
+      if (sendResult.higherPriorityTaskWoken == pdTRUE) {
         anyTaskWoken = pdTRUE;
       }
       break;
@@ -157,10 +157,11 @@ void usb_lp_can_rx0_isr(void) {
 }
 
 void LibOpencm3Hal::loopCan() {
-  CanMsg canMsg;
-  while (xQueueReceive(canrxq, &canMsg, 0) == pdTRUE) {
-    RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(canMsg.id);
-    RR32Can::RR32Can.HandlePacket(rr32id, canMsg.data);
+  constexpr const TickType_t ticksToWait = 0;
+  for (CanQueueType::ReceiveResult receiveResult = canrxq.Receive(ticksToWait);
+       receiveResult.errorCode == pdTRUE; receiveResult = canrxq.Receive(ticksToWait)) {
+    RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(receiveResult.element.id);
+    RR32Can::RR32Can.HandlePacket(rr32id, receiveResult.element.data);
   }
 }
 

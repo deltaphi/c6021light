@@ -36,6 +36,8 @@ extern "C" {
 
 #include "hal/stm32I2C.h"
 
+#include "OsQueue.h"
+
 // ******** Variables and Constans********
 Hal_t halImpl;
 AccessoryCbk accessoryCbk;
@@ -179,8 +181,8 @@ void setup() {
 void setupOsResources() {
   constexpr static const uint8_t canqueuesize = 10;
 
-  static StaticQueue_t staticCanrxq;
-  static uint8_t canrxqBuffer[canqueuesize * sizeof(hal::LibOpencm3Hal::CanMsg)];
+  static freertossupport::StaticOsQueue<hal::LibOpencm3Hal::CanMsg, canqueuesize> canrxqbuffer;
+  hal::LibOpencm3Hal::canrxq = canrxqbuffer;
 
   constexpr static const uint8_t i2cqueuesize = canqueuesize;
 
@@ -189,20 +191,11 @@ void setupOsResources() {
   static uint8_t i2crxqBuffer[i2cqueuesize * sizeof(hal::I2CBuf)];
   static uint8_t i2ctxqBuffer[i2cqueuesize * sizeof(hal::I2CBuf)];
 
-  hal::LibOpencm3Hal::canrxq = xQueueCreateStatic(canqueuesize, sizeof(hal::LibOpencm3Hal::CanMsg),
-                                                  canrxqBuffer, &staticCanrxq);
+  hal::i2cRxQueue =
+      xQueueCreateStatic(i2cqueuesize, sizeof(hal::I2CBuf), i2crxqBuffer, &staticI2CRxq);
 
-  hal::i2cRxQueue = xQueueCreateStatic(i2cqueuesize, sizeof(hal::I2CBuf),
-                                       i2crxqBuffer, &staticI2CRxq);
-
-  hal::i2cTxQueue = xQueueCreateStatic(i2cqueuesize, sizeof(hal::I2CBuf),
-                                       i2ctxqBuffer, &staticI2CTxq);
-
-  if (hal::LibOpencm3Hal::canrxq == NULL) {
-    __asm("bkpt 3");
-    for (;;)
-      ;
-  }
+  hal::i2cTxQueue =
+      xQueueCreateStatic(i2cqueuesize, sizeof(hal::I2CBuf), i2ctxqBuffer, &staticI2CTxq);
 
   if (hal::i2cRxQueue == NULL) {
     __asm("bkpt 3");

@@ -9,6 +9,8 @@
 #include "hal/stm32I2C.h"
 #include "queue.h"
 
+#include "OsQueue.h"
+
 namespace hal {
 
 /*
@@ -47,7 +49,9 @@ class LibOpencm3Hal : public HalBase {
   void SaveConfig(const DataModel& dataModel) override;
   DataModel LoadConfig() override;
 
-  static xQueueHandle canrxq;
+  using CanQueueType = freertossupport::OsQueue<LibOpencm3Hal::CanMsg>;
+
+  static CanQueueType canrxq;
 
  private:
   /// Transmit Packet on CAN
