@@ -76,7 +76,7 @@ void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respons
 /**
  * \brief When a message was received, create and send a response message.
  */
-void RoutingTask::main() {
+void RoutingTask::TaskMain() {
   while (1) {
     halImpl_->loop();
 
@@ -112,5 +112,3 @@ void RoutingTask::main() {
 
 }  // namespace RoutingTask
 }  // namespace tasks
-
-void routingTaskMain(void* args) { static_cast<tasks::RoutingTask::RoutingTask*>(args)->main(); }

@@ -17,9 +17,6 @@ using Hal_t = hal::LibOpencm3Hal;
 #include "ConsoleManager.h"
 #include "DataModel.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-
 extern "C" {
 #include "microrl.h"
 }
@@ -36,6 +33,7 @@ extern "C" {
 #include "hal/stm32I2C.h"
 
 #include "OsQueue.h"
+#include "OsTask.h"
 
 // ******** Variables and Constans********
 Hal_t halImpl;
@@ -195,11 +193,9 @@ void setupOsResources() {
 }
 
 void startOsTasks() {
-  static StackType_t routingTaskStack[tasks::RoutingTask::RoutingTask::kStackSize];
-  static StaticTask_t routingTaskTcb;
-
-  xTaskCreateStatic(routingTaskMain, "RoutingTask", tasks::RoutingTask::RoutingTask::kStackSize,
-                    &routingTask, configMAX_PRIORITIES - 1, routingTaskStack, &routingTaskTcb);
+  static freertossupport::StaticOsTask<tasks::RoutingTask::RoutingTask, tasks::RoutingTask::RoutingTask::kStackSize> routingTaskBuffer;
+  
+  routingTaskBuffer.Create(routingTask, "RoutingTask", configMAX_PRIORITIES - 1);
 }
 
 // Main function for non-arduino

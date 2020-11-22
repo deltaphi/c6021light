@@ -9,10 +9,6 @@
 
 #include "FreeRTOSConfig.h"
 
-extern "C" {
-void routingTaskMain(void* args);
-}
-
 namespace tasks {
 namespace RoutingTask {
 
@@ -28,7 +24,7 @@ class RoutingTask : public RR32Can::callback::AccessoryCbk {
   MarklinI2C::Messages::AccessoryMsg prepareI2cMessage();
   void SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg);
 
-  void main();
+  void TaskMain();
 
   // Callback functions for RR32CanLibrary
 
