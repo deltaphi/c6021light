@@ -18,7 +18,6 @@ using Hal_t = hal::LibOpencm3Hal;
 #include "DataModel.h"
 
 #include "FreeRTOS.h"
-#include "queue.h"
 #include "task.h"
 
 extern "C" {
@@ -181,32 +180,18 @@ void setup() {
 void setupOsResources() {
   constexpr static const uint8_t canqueuesize = 10;
 
-  static freertossupport::StaticOsQueue<hal::LibOpencm3Hal::CanMsg, canqueuesize> canrxqbuffer;
+  static freertossupport::StaticOsQueue<hal::LibOpencm3Hal::CanQueueType::QueueElement,
+                                        canqueuesize>
+      canrxqbuffer;
   hal::LibOpencm3Hal::canrxq = canrxqbuffer;
 
   constexpr static const uint8_t i2cqueuesize = canqueuesize;
 
-  static StaticQueue_t staticI2CRxq;
-  static StaticQueue_t staticI2CTxq;
-  static uint8_t i2crxqBuffer[i2cqueuesize * sizeof(hal::I2CBuf)];
-  static uint8_t i2ctxqBuffer[i2cqueuesize * sizeof(hal::I2CBuf)];
+  static freertossupport::StaticOsQueue<hal::I2CQueueType::QueueElement, i2cqueuesize> i2crxqBuffer;
+  hal::i2cRxQueue = i2crxqBuffer;
 
-  hal::i2cRxQueue =
-      xQueueCreateStatic(i2cqueuesize, sizeof(hal::I2CBuf), i2crxqBuffer, &staticI2CRxq);
-
-  hal::i2cTxQueue =
-      xQueueCreateStatic(i2cqueuesize, sizeof(hal::I2CBuf), i2ctxqBuffer, &staticI2CTxq);
-
-  if (hal::i2cRxQueue == NULL) {
-    __asm("bkpt 3");
-    for (;;)
-      ;
-  }
-  if (hal::i2cTxQueue == NULL) {
-    __asm("bkpt 3");
-    for (;;)
-      ;
-  }
+  static freertossupport::StaticOsQueue<hal::I2CQueueType::QueueElement, i2cqueuesize> i2ctxqBuffer;
+  hal::i2cTxQueue = i2ctxqBuffer;
 }
 
 void startOsTasks() {

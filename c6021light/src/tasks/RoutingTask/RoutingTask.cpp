@@ -7,7 +7,7 @@
 #include "RR32Can/RR32Can.h"
 #include "hal/stm32I2C.h"
 
-#include "FreeRTOS.h"
+#include "OsQueue.h"
 
 namespace tasks {
 namespace RoutingTask {
@@ -26,8 +26,6 @@ MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage(hal::I2CBuf& buffe
   msg.destination_ = dataModel_->myAddr;
   msg.source_ = buffer.msgBytes[0];
   msg.data_ = buffer.msgBytes[1];
-  buffer.bytesProcessed = 0;
-  buffer.msgValid.store(false, std::memory_order_release);
   return msg;
 }
 
@@ -82,10 +80,9 @@ void RoutingTask::main() {
     halImpl_->loop();
 
     // Process I2C
-    hal::I2CBuf requestMsg;
-
-    if (xQueueReceive(hal::i2cRxQueue, &requestMsg, 0) == pdPASS) {
-      MarklinI2C::Messages::AccessoryMsg request = getI2CMessage(requestMsg);
+    hal::I2CQueueType::ReceiveResult receiveResult = hal::i2cRxQueue.Receive(0);
+    if (receiveResult.errorCode == pdPASS) {
+      MarklinI2C::Messages::AccessoryMsg request = getI2CMessage(receiveResult.element);
       request.print();
       // If this is a power ON packet: Send directly to CAN
       if (request.getPower()) {

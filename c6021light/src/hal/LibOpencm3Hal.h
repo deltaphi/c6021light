@@ -4,10 +4,7 @@
 #include <atomic>
 
 #include "hal/HalBase.h"
-
-#include "FreeRTOS.h"
 #include "hal/stm32I2C.h"
-#include "queue.h"
 
 #include "OsQueue.h"
 
@@ -43,8 +40,6 @@ class LibOpencm3Hal : public HalBase {
 
   void led(bool on) override;
   void toggleLed() override;
-
-  static void i2cEvInt(void);
 
   void SaveConfig(const DataModel& dataModel) override;
   DataModel LoadConfig() override;

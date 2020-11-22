@@ -8,11 +8,11 @@ namespace hal {
 
 static uint8_t slaveAddress;
 
-I2CBuf i2cRxBuf;
-I2CBuf i2cTxBuf;
+I2CTxBuf i2cRxBuf;
+I2CTxBuf i2cTxBuf;
 
-xQueueHandle i2cRxQueue;
-xQueueHandle i2cTxQueue;
+I2CQueueType i2cRxQueue;
+I2CQueueType i2cTxQueue;
 
 void beginI2C(uint8_t newSlaveAddress) {
   i2c_peripheral_disable(I2C1);
@@ -112,13 +112,13 @@ extern "C" void i2c1_ev_isr(void) {
     // Reference Manual: EV3
     i2c_peripheral_enable(I2C1);
     if (i2cRxBuf.bytesProcessed == 3) {
-      BaseType_t taskWoken;
-      if (xQueueSendFromISR(i2cRxQueue, &i2cRxBuf, &taskWoken) != pdTRUE) {
+      I2CQueueType::SendResult sendResult = i2cRxQueue.SendFromISR(i2cRxBuf);
+      if (sendResult.errorCode != pdTRUE) {
         // TODO: Queue full. Handle somehow.
         __asm("bkpt 4");
       }
       i2cRxBuf.bytesProcessed = 0;
-      if (taskWoken == pdTRUE) {
+      if (sendResult.higherPriorityTaskWoken == pdTRUE) {
         taskYIELD();
       }
     }
