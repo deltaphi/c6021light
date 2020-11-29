@@ -26,7 +26,7 @@ using I2CQueueType = freertossupport::OsQueue<hal::I2CBuf>;
 extern I2CQueueType i2cRxQueue;
 extern I2CQueueType i2cTxQueue;
 
-void beginI2C(uint8_t slaveAddress);
+void beginI2C(uint8_t slaveAddress, xTaskHandle routingTaskHandle);
 
 void triggerI2cTx();
 

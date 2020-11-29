@@ -11,6 +11,8 @@ namespace freertossupport {
  */
 class OsTask {
  public:
+  TaskHandle_t getHandle() { return handle_; }
+
  protected:
   TaskHandle_t handle_;
 };
@@ -19,9 +21,9 @@ template <typename TaskClass, uint32_t StackSize>
 class StaticOsTask : public OsTask {
  public:
   void Create(TaskClass& taskImpl, const char* taskName, UBaseType_t priority) {
-    handle_ = xTaskCreateStatic((void (*) (void*))  &TaskClass::TaskMain, taskName, StackSize, &taskImpl, priority,
-                                stack_, &tcb_);
-                                configASSERT(handle_ != NULL);
+    handle_ = xTaskCreateStatic((void (*)(void*)) & TaskClass::TaskMain, taskName, StackSize,
+                                &taskImpl, priority, stack_, &tcb_);
+    configASSERT(handle_ != NULL);
   }
 
  private:

@@ -46,6 +46,7 @@ int _write(int file, char* ptr, int len) {
 namespace hal {
 
 freertossupport::OsQueue<LibOpencm3Hal::CanMsg> LibOpencm3Hal::canrxq;
+TaskHandle_t LibOpencm3Hal::taskToNotify;
 
 void LibOpencm3Hal::beginClock() {
   // Enable the overall clock.
@@ -151,7 +152,11 @@ void usb_lp_can_rx0_isr(void) {
       break;
     }
   }
-  if (anyTaskWoken == pdTRUE) {
+  BaseType_t taskWoken;
+  BaseType_t notifyResult =
+      xTaskNotifyFromISR(LibOpencm3Hal::taskToNotify, 1, eSetValueWithoutOverwrite, &taskWoken);
+
+  if (anyTaskWoken == pdTRUE || taskWoken == pdTRUE) {
     taskYIELD();
   }
 }

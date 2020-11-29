@@ -78,7 +78,8 @@ void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respons
  */
 void RoutingTask::TaskMain() {
   while (1) {
-    halImpl_->loop();
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);  // Wait until someone sends us a notification.
+    halImpl_->loopCan();
 
     // Process I2C
     hal::I2CQueueType::ReceiveResult receiveResult = hal::i2cRxQueue.Receive(0);

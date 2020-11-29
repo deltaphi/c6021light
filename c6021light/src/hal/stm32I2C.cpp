@@ -16,13 +16,16 @@ I2CTxBuf i2cTxBuf;
 I2CQueueType i2cRxQueue;
 I2CQueueType i2cTxQueue;
 
+xTaskHandle taskToNotify;
+
 inline bool i2cTxMsgAvailable() { return i2cTxBuf.msgValid.load(std::memory_order_acquire); }
 
-void beginI2C(uint8_t newSlaveAddress) {
+void beginI2C(uint8_t newSlaveAddress, xTaskHandle routingTaskHandle) {
   i2c_peripheral_disable(I2C1);
   i2c_reset(I2C1);
 
   slaveAddress = newSlaveAddress;
+  taskToNotify = routingTaskHandle;
 
   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_OPENDRAIN,
                 GPIO_I2C1_SCL | GPIO_I2C1_SDA);
@@ -141,7 +144,12 @@ extern "C" void i2c1_ev_isr(void) {
         __asm("bkpt 4");
       }
       i2cRxBuf.bytesProcessed = 0;
-      if (sendResult.higherPriorityTaskWoken == pdTRUE) {
+
+      BaseType_t notifyWokeThread;
+      BaseType_t notifyResult =
+          xTaskNotifyFromISR(taskToNotify, 1, eSetValueWithoutOverwrite, &notifyWokeThread);
+
+      if (sendResult.higherPriorityTaskWoken == pdTRUE || notifyWokeThread == pdTRUE) {
         taskYIELD();
       }
     }

@@ -22,21 +22,19 @@ class LibOpencm3Hal : public HalBase {
   } CanMsg;
 
   ///
-  void begin(uint8_t i2caddr, ConsoleManager* console) {
+  void begin(uint8_t i2caddr, ConsoleManager* console, xTaskHandle routingTaskHandle) {
     HalBase::begin(i2caddr, console);
+    this->taskToNotify = routingTaskHandle;
     beginClock();
     beginGpio();
     beginSerial();
-    beginI2C(i2caddr);
+    beginI2C(i2caddr, routingTaskHandle);
     beginCan();
     beginEE();
   }
 
-  /// Receive Packet from CAN and forward to station.
-  void loop() {
-    loopCan();
-    loopSerial();
-  }
+  void loopCan();
+  void loopSerial();
 
   void led(bool on) override;
   void toggleLed() override;
@@ -47,6 +45,7 @@ class LibOpencm3Hal : public HalBase {
   using CanQueueType = freertossupport::OsQueue<LibOpencm3Hal::CanMsg>;
 
   static CanQueueType canrxq;
+  static TaskHandle_t taskToNotify;
 
  private:
   /// Transmit Packet on CAN
@@ -57,9 +56,6 @@ class LibOpencm3Hal : public HalBase {
   void beginSerial();
   void beginCan();
   void beginEE();
-
-  void loopCan();
-  void loopSerial();
 };
 
 }  // namespace hal

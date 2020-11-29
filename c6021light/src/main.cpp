@@ -25,6 +25,7 @@ extern "C" {
 
 #include "StationCbk.h"
 
+#include "tasks/ConsoleTask/ConsoleTask.h"
 #include "tasks/RoutingTask/RoutingTask.h"
 
 #include "RR32Can/RR32Can.h"
@@ -41,6 +42,13 @@ AccessoryCbk accessoryCbk;
 
 DataModel dataModel;
 tasks::RoutingTask::RoutingTask routingTask;
+freertossupport::StaticOsTask<tasks::RoutingTask::RoutingTask,
+                              tasks::RoutingTask::RoutingTask::kStackSize>
+    routingTaskBuffer;
+tasks::ConsoleTask::ConsoleTask consoleTask;
+freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
+                              tasks::ConsoleTask::ConsoleTask::kStackSize>
+    consoleTaskBuffer;
 
 ConsoleManager console;
 microrl_t microrl;
@@ -151,7 +159,7 @@ int run_app_save(int argc, const char* const* argv) {
 
 void setup() {
   // Setup I2C & CAN
-  halImpl.begin(dataModel.myAddr, &console);
+  halImpl.begin(dataModel.myAddr, &console, routingTaskBuffer.getHandle());
 
   // Setup Serial
   printf("Connect6021Light Initializing...\n");
@@ -172,6 +180,7 @@ void setup() {
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
   printf("Ready!\n");
+  consoleTask.setup(&halImpl);
   console.begin();
 }
 
@@ -192,19 +201,18 @@ void setupOsResources() {
   hal::i2cTxQueue = i2ctxqBuffer;
 }
 
-void startOsTasks() {
-  static freertossupport::StaticOsTask<tasks::RoutingTask::RoutingTask, tasks::RoutingTask::RoutingTask::kStackSize> routingTaskBuffer;
-  
+void setupOsTasks() {
   routingTaskBuffer.Create(routingTask, "RoutingTask", configMAX_PRIORITIES - 1);
+  consoleTaskBuffer.Create(consoleTask, "ConsoleTask",
+                           0);  // Lowest prio as this task will always run.
 }
 
 // Main function for non-arduino
 int main(void) {
   setupOsResources();
+  setupOsTasks();
 
   setup();
-
-  startOsTasks();
 
   vTaskStartScheduler();
 
