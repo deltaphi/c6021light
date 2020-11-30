@@ -72,6 +72,9 @@ void LibOpencm3Hal::beginClock() {
 void LibOpencm3Hal::beginGpio() {
   gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO13);
   gpio_set(GPIOC, GPIO13);  // Turn the LED off.
+
+  gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0); // Extra LED
+  gpio_set(GPIOA, GPIO0);  // Set Idle High (TODO: Correct?)
 }
 
 void LibOpencm3Hal::beginSerial() {
