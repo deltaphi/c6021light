@@ -30,6 +30,7 @@ class LibOpencm3Hal : public HalBase {
     beginSerial();
     beginI2C(i2caddr, routingTaskHandle);
     beginCan();
+    beginLocoNet();
     beginEE();
   }
 
@@ -55,6 +56,7 @@ class LibOpencm3Hal : public HalBase {
   void beginGpio();
   void beginSerial();
   void beginCan();
+  void beginLocoNet();
   void beginEE();
 };
 

@@ -2,6 +2,7 @@
 
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/can.h>
+#include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/rtc.h>
@@ -73,8 +74,20 @@ void LibOpencm3Hal::beginGpio() {
   gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO13);
   gpio_set(GPIOC, GPIO13);  // Turn the LED off.
 
-  gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0); // Extra LED
+  gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO15);  // LN TX
+  gpio_set(GPIOB, GPIO15);  // Set Idle High (TODO: Correct?)
+  gpio_set_mode(GPIOB, GPIO_MODE_INPUT, GPIO_CNF_INPUT_FLOAT, GPIO14);  // LN RX
+
+  gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0);  // Extra LED
   gpio_set(GPIOA, GPIO0);  // Set Idle High (TODO: Correct?)
+}
+
+void LibOpencm3Hal::beginLocoNet() {
+  exti_select_source(EXTI14, GPIOB);
+  exti_set_trigger(EXTI14, EXTI_TRIGGER_FALLING);  // Experiment: Use both
+  exti_enable_request(EXTI14);
+  nvic_enable_irq(NVIC_EXTI15_10_IRQ);
+  // TODO: IRQ priority?
 }
 
 void LibOpencm3Hal::beginSerial() {
@@ -131,6 +144,19 @@ void LibOpencm3Hal::beginCan() {
 }
 
 extern "C" {
+
+void exti15_10_isr(void) {
+  // Check if it really was EXTI14 that triggered this interrupt.
+  if (exti_get_flag_status(EXTI14)) {  // TODO: Is the logic the right way around?
+    // TODO: Start Timer, Disable EXTI14.
+    uint16_t values = gpio_get(GPIOB, GPIO14);
+    gpio_toggle(GPIOA, GPIO0);
+
+    exti_reset_request(EXTI14);
+  }
+  exti_reset_request(EXTI14);
+}
+
 void usb_lp_can_rx0_isr(void) {
   BaseType_t anyTaskWoken = pdFALSE;
   for (uint32_t messageCount = CAN_RF0R(CAN1) & 3; messageCount > 0; --messageCount) {
