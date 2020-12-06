@@ -6,8 +6,8 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/rtc.h>
-#include <libopencm3/stm32/usart.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/usart.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -80,14 +80,12 @@ void LibOpencm3Hal::beginGpio() {
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0);  // Extra LED
   gpio_set(GPIOA, GPIO0);  // Set Idle High (TODO: Correct?)
 
-  
-  gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, GPIO4 | GPIO5 | GPIO6);  // Extra LED
+  gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL,
+                GPIO4 | GPIO5 | GPIO6);  // Extra LED
   gpio_set(GPIOA, GPIO4 | GPIO5 | GPIO6);
 }
 
-void LibOpencm3Hal::beginLocoNet() {
-  LocoNet.init(15);
-}
+void LibOpencm3Hal::beginLocoNet() { LocoNet.init(PinNames::PB15); }
 
 void LibOpencm3Hal::beginSerial() {
   usart_disable(USART1);
