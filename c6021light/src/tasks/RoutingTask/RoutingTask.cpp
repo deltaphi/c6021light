@@ -52,12 +52,12 @@ void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respons
 
   printf(" Got an Accessory packet!");
 
-  if ((packet.locid & RR32Can::kMMAccessoryAddrStart) != RR32Can::kMMAccessoryAddrStart) {
+  if (packet.getRailProtocol() != RR32Can::RailProtocol::MM1) {
     // Not an MM2 packet
     return;
   }
 
-  uint16_t turnoutAddr = packet.locid & 0x03FF;
+  uint16_t turnoutAddr = packet.locid.value() & 0x03FF;
   if (turnoutAddr > 0xFF) {
     // Addr too large for the i2c bus.
     return;
@@ -68,7 +68,7 @@ void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respons
 
   i2cMsg.setTurnoutAddr(turnoutAddr);
   i2cMsg.setPower(packet.power);
-  i2cMsg.setDirection(packet.position);
+  i2cMsg.setDirection(static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
 
   RoutingTask::SendI2CMessage(i2cMsg);
 }

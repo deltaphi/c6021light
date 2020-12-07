@@ -12,9 +12,12 @@ class AccessoryCbk : public RR32Can::callback::SystemCbk {
   void begin(hal::HalBase& hal);
 
   /**
-   * \brief Set whether the system is on (true) or off (false)
+   * \brief Set whether the system is on (true) or off (false).
+   *
+   * \param onOff Whether the system is on (true) or off (false).
+   * \param response Whether the packet was a response (true) or a request (false).
    */
-  void setSystemState(bool onOff) override;
+  void setSystemState(bool onOff, bool response) override;
 
  private:
   hal::HalBase* hal_ = nullptr;
