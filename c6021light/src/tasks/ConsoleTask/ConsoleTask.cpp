@@ -1,5 +1,8 @@
 #include "tasks/ConsoleTask/ConsoleTask.h"
 
+#include <FreeRTOS.h>
+#include <task.h>
+
 #include <LocoNet.h>
 #include <cstdio>
 
@@ -10,18 +13,13 @@ void ConsoleTask::TaskMain() {
   while (1) {
     halImpl_->loopSerial();
 
-    lnMsg * LnPacket = LocoNet.receive();
-    if (LnPacket) {
-      printf("LN RX: ");
-      for (int i = 0; i < getLnMsgSize(LnPacket); ++i) {
-        printf(" %x", LnPacket->data[i]);
-      }
-      printf("\n");
+    // Hack: Abuse this polling task to check for LocoNet messages...
+    if (LocoNet.available()) {
+      // ..and wake the RoutingTask if needed.
+      xTaskNotify(hal::LibOpencm3Hal::taskToNotify, 1, eSetValueWithoutOverwrite);
     }
-
   }
 }
-
 
 }  // namespace ConsoleTask
 }  // namespace tasks

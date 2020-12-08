@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 
+#include <LocoNet.h>
 #include "RR32Can/RR32Can.h"
 #include "hal/stm32I2C.h"
 
@@ -68,7 +69,8 @@ void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respons
 
   i2cMsg.setTurnoutAddr(turnoutAddr);
   i2cMsg.setPower(packet.power);
-  i2cMsg.setDirection(static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
+  i2cMsg.setDirection(
+      static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
 
   RoutingTask::SendI2CMessage(i2cMsg);
 }
@@ -108,6 +110,29 @@ void RoutingTask::TaskMain() {
       }
     }
     // Process CAN: Done through callbacks.
+
+    // Process LocoNet
+    lnMsg* LnPacket = LocoNet.receive();
+    if (LnPacket) {
+      printf("LN RX: ");
+      for (int i = 0; i < getLnMsgSize(LnPacket); ++i) {
+        printf(" %x", LnPacket->data[i]);
+      }
+      printf("\n");
+    }
+
+    LocoNet.processSwitchSensorMessage(LnPacket);
+  }
+}
+
+/**
+ * \brief Notification Function used by LocoNet to indicate a Stop/Go message.
+ */
+extern "C" void notifyPower(uint8_t State) {
+  if (State != 0) {
+    RR32Can::RR32Can.SendSystemGo();
+  } else {
+    RR32Can::RR32Can.SendSystemStop();
   }
 }
 
