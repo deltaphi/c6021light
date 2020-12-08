@@ -49,40 +49,43 @@ void RoutingTask::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) 
 
 void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool response) {
   if (!response) {
-    printf(" Ignoring Accessory request packet");
-    return;
+    // Requests are forwarded to LocoNet
+    LocoNet.requestSwitch(
+        RR32Can::HumanTurnoutAddress(packet.locid).value() & 0x03FF, packet.power,
+        static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
+  } else {
+    // Responses are forwarded to I2C
+    printf(" Got an Accessory packet!");
+
+    if (packet.getRailProtocol() != RR32Can::RailProtocol::MM1) {
+      // Not an MM2 packet
+      return;
+    }
+
+    uint16_t turnoutAddr = packet.locid.value() & 0x03FF;
+    if (turnoutAddr > 0xFF) {
+      // Addr too large for the i2c bus.
+      return;
+    }
+
+    // Convert to i2c confirmation packet
+    MarklinI2C::Messages::AccessoryMsg i2cMsg = prepareI2cMessage();
+
+    i2cMsg.setTurnoutAddr(turnoutAddr);
+    i2cMsg.setPower(packet.power);
+    i2cMsg.setDirection(
+        static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
+
+    SendI2CMessage(i2cMsg);
   }
-
-  printf(" Got an Accessory packet!");
-
-  if (packet.getRailProtocol() != RR32Can::RailProtocol::MM1) {
-    // Not an MM2 packet
-    return;
-  }
-
-  uint16_t turnoutAddr = packet.locid.value() & 0x03FF;
-  if (turnoutAddr > 0xFF) {
-    // Addr too large for the i2c bus.
-    return;
-  }
-
-  // Convert to i2c confirmation packet
-  MarklinI2C::Messages::AccessoryMsg i2cMsg = prepareI2cMessage();
-
-  i2cMsg.setTurnoutAddr(turnoutAddr);
-  i2cMsg.setPower(packet.power);
-  i2cMsg.setDirection(
-      static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
-
-  SendI2CMessage(i2cMsg);
 }
 
-void printLnPacket(lnMsg*LnPacket) {
-      printf("LN RX: ");
-      for (int i = 0; i < getLnMsgSize(LnPacket); ++i) {
-        printf(" %x", LnPacket->data[i]);
-      }
-      printf("\n");
+void printLnPacket(lnMsg* LnPacket) {
+  printf("LN RX: ");
+  for (int i = 0; i < getLnMsgSize(LnPacket); ++i) {
+    printf(" %x", LnPacket->data[i]);
+  }
+  printf("\n");
 }
 
 /**
@@ -134,7 +137,6 @@ void RoutingTask::TaskMain() {
       printLnPacket(LnPacket);
       LocoNet.processSwitchSensorMessage(LnPacket);
     }
-
   }
 }
 
