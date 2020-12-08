@@ -19,6 +19,7 @@ class RoutingTask : public RR32Can::callback::AccessoryCbk {
   void begin(DataModel& dataModel, hal::LibOpencm3Hal& halImpl) {
     this->dataModel_ = &dataModel;
     this->halImpl_ = &halImpl;
+    lnCallbackInstance = this;
   };
 
   MarklinI2C::Messages::AccessoryMsg prepareI2cMessage();
@@ -33,10 +34,15 @@ class RoutingTask : public RR32Can::callback::AccessoryCbk {
    */
   void OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool response) override;
 
+  void LocoNetNotifyPower(uint8_t State);
+  void LocoNetNotifySwitchRequest(uint16_t Address, uint8_t Output, uint8_t Direction);
+
+  static RoutingTask* lnCallbackInstance;
+
  private:
   MarklinI2C::Messages::AccessoryMsg getI2CMessage(hal::I2CBuf& buffer);
 
-  uint8_t lastPowerOnTurnoutAddr;
+  RR32Can::MachineTurnoutAddress lastPowerOnTurnoutAddr;
   uint8_t lastPowerOnDirection;
   DataModel* dataModel_;
   hal::LibOpencm3Hal* halImpl_;
