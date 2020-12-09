@@ -23,3 +23,13 @@ Test Steps:
 13. Put the MS2 in STOP mode.
 14. Test 7: Attempt to switch a RED turnout to GREEN and a GREEN turnout to RED from the Keyboard. Test is passed if the indicator on the Keyboard and in the MS2 do not change.
 15. Test 8: Attempt to switch a RED turnout to GREEN and a GREEN turnout to RED from the MS2. Test is passed if the indicator on the Keyboard and in the MS2 do not change.
+
+
+Perform the Test steps with the following busses connected:
+
+* CAN, I2C, LocoNet
+* CAN, I2C
+* CAN, LocoNet
+* CAN
+
+The system is known not to work properly when CAN is not connected.
