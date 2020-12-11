@@ -47,8 +47,11 @@ class AccessoryMsg {
   uint8_t getPower() const { return (data_ & kDataPowerMask) >> 3; }
 
   void setDirection(uint8_t direction) {
-    direction &= kDataDirMask;  // Mask bit from direction that we don't want to see
-    this->data_ |= direction;
+    if (direction == 0) {
+      this->data_ &= 0xFE;
+    } else {
+      this->data_ |= 1;
+    }
   }
 
   void setPower(uint8_t power) {

@@ -73,8 +73,11 @@ void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respons
 
     i2cMsg.setTurnoutAddr(turnoutAddr);
     i2cMsg.setPower(packet.power);
-    i2cMsg.setDirection(
-        static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
+    // Direction is not transmitted on Response.
+    if (packet.power) {
+      i2cMsg.setDirection(
+          static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
+    }
 
     SendI2CMessage(i2cMsg);
   }
