@@ -16,6 +16,8 @@ I2CTxBuf i2cTxBuf;
 I2CQueueType i2cRxQueue;
 I2CQueueType i2cTxQueue;
 
+TimerHandle_t i2cWdg;
+
 xTaskHandle taskToNotify;
 
 inline bool i2cTxMsgAvailable() { return i2cTxBuf.msgValid.load(std::memory_order_acquire); }
@@ -77,12 +79,42 @@ void continueI2cTx() {
   }
 }
 
+void forwardReceivedI2CMessage(bool fromISR) {
+  // Forecefully abort the current transaction
+  i2c_peripheral_enable(I2C1);
+
+  // If there is a complete message in the buffer, consider it received.
+  if (i2cRxBuf.bytesProcessed == 3) {
+    I2CQueueType::SendResultISR sendResult = i2cRxQueue.SendFromISR(i2cRxBuf);
+    if (sendResult.errorCode != pdTRUE) {
+      // TODO: Queue full. Handle somehow.
+      __asm("bkpt 4");
+    }
+    i2cRxBuf.bytesProcessed = 0;
+
+    if (fromISR) {
+      BaseType_t notifyWokeThread;
+      xTaskNotifyFromISR(taskToNotify, 1, eSetValueWithoutOverwrite, &notifyWokeThread);
+
+      if (sendResult.higherPriorityTaskWoken == pdTRUE || notifyWokeThread == pdTRUE) {
+        taskYIELD();
+      }
+    } else {
+      xTaskNotify(taskToNotify, 1, eSetValueWithoutOverwrite);
+    }
+  }
+
+  // TODO: Sync with TX side.
+}
+
+extern "C" void i2cWdgCbk(TimerHandle_t) { forwardReceivedI2CMessage(false); }
+
 // i2c1 event ISR
 // Code based on
 // https://amitesh-singh.github.io/stm32/2018/01/07/making-i2c-slave-using-stm32f103.html
 extern "C" void i2c1_ev_isr(void) {
   // ISR appears to be called once per I2C byte received
-
+  gpio_toggle(GPIOA, GPIO5);
   uint32_t sr1, sr2;
 
   sr1 = I2C_SR1(I2C1);
@@ -111,6 +143,14 @@ extern "C" void i2c1_ev_isr(void) {
         i2cRxBuf.msgBytes[i2cRxBuf.bytesProcessed - 1] = i2c_get_data(I2C1);
         ++i2cRxBuf.bytesProcessed;
       }
+
+      if (i2cRxBuf.bytesProcessed == 3) {
+        BaseType_t notifyWokeThread;
+        xTimerStartFromISR(hal::i2cWdg, &notifyWokeThread);
+        if (notifyWokeThread == pdTRUE) {
+          taskYIELD();
+        }
+      }
     }
   }
   // Transmit buffer empty & Data byte transfer not finished
@@ -136,22 +176,11 @@ extern "C" void i2c1_ev_isr(void) {
   // this event happens when slave is in Recv mode at the end of communication
   else if (sr1 & I2C_SR1_STOPF) {
     // Reference Manual: EV3
-    i2c_peripheral_enable(I2C1);
-    if (i2cRxBuf.bytesProcessed == 3) {
-      I2CQueueType::SendResultISR sendResult = i2cRxQueue.SendFromISR(i2cRxBuf);
-      if (sendResult.errorCode != pdTRUE) {
-        // TODO: Queue full. Handle somehow.
-        __asm("bkpt 4");
-      }
-      i2cRxBuf.bytesProcessed = 0;
-
-      BaseType_t notifyWokeThread;
-      BaseType_t notifyResult =
-          xTaskNotifyFromISR(taskToNotify, 1, eSetValueWithoutOverwrite, &notifyWokeThread);
-
-      if (sendResult.higherPriorityTaskWoken == pdTRUE || notifyWokeThread == pdTRUE) {
-        taskYIELD();
-      }
+    BaseType_t notifyWokeThread;
+    xTimerStopFromISR(hal::i2cWdg, &notifyWokeThread);
+    forwardReceivedI2CMessage(true);
+    if (notifyWokeThread == pdTRUE) {
+      taskYIELD();
     }
   }
   // this event happens when slave is in transmit mode at the end of communication
