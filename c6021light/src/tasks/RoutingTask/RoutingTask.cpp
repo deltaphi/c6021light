@@ -74,10 +74,9 @@ void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respons
     i2cMsg.setTurnoutAddr(turnoutAddr);
     i2cMsg.setPower(packet.power);
     // Direction is not transmitted on Response.
-    if (packet.power) {
-      i2cMsg.setDirection(
-          static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
-    }
+    i2cMsg.setDirection(
+        static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
+    i2cMsg.makePowerConsistent();
 
     SendI2CMessage(i2cMsg);
   }
@@ -187,6 +186,7 @@ void RoutingTask::LocoNetNotifySwitchRequest(uint16_t LnAddress, uint8_t Output,
   i2cMsg.setTurnoutAddr(address.value());
   i2cMsg.setPower(Output);
   i2cMsg.setDirection(static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(dir));
+  i2cMsg.makePowerConsistent();
 
   SendI2CMessage(i2cMsg);
 }

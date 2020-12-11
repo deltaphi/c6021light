@@ -50,7 +50,7 @@ class AccessoryMsg {
     if (direction == 0) {
       this->data_ &= 0xFE;
     } else {
-      this->data_ |= 1;
+      this->data_ |= kDataDirMask;
     }
   }
 
@@ -58,6 +58,12 @@ class AccessoryMsg {
     power <<= 3;
     power &= kDataPowerMask;
     this->data_ |= power;
+  }
+
+  void makePowerConsistent() {
+    if ((this->data_ & kDataPowerMask) == 0) {
+      this->data_ &= 0xF0;
+    }
   }
 
   void setTurnoutAddr(uint8_t addr);
