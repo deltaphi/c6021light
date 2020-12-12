@@ -18,45 +18,42 @@ I2CQueueType i2cTxQueue;
 
 xTaskHandle taskToNotify;
 
-
 /**
  * \brief Checks whether the buffer contains a valid message.
- * 
+ *
  * \return true if the message is valid, false otherwise.
  */
-bool messageValid(const I2CTxBuf & buffer);
+bool messageValid(const I2CTxBuf& buffer);
 
 /**
  * \brief A buffer is occupied if the transmission ISR has access to it.
- * 
+ *
  * This means: A transmission is...
  * * ongoing,
  * * pending,
  * * About to be done.
  */
-bool bufferOccupied(const I2CTxBuf & buffer) {
+bool bufferOccupied(const I2CTxBuf& buffer) {
   return buffer.bufferOccupied.load(std::memory_order_acquire);
 }
 /// A buffer is free if it is not occupied.
-bool bufferFree(const I2CTxBuf & buffer) { return !bufferOccupied(buffer); }
+bool bufferFree(const I2CTxBuf& buffer) { return !bufferOccupied(buffer); }
 
-void claimBuffer(I2CTxBuf & buffer) {
+void claimBuffer(I2CTxBuf& buffer) {
   i2cTxBuf.bytesProcessed = 0;
   buffer.bufferOccupied.store(true, std::memory_order_release);
 }
 
-void releaseBuffer(I2CTxBuf & buffer) {
+void releaseBuffer(I2CTxBuf& buffer) {
   i2cTxBuf.bytesProcessed = 0;
   buffer.bufferOccupied.store(false, std::memory_order_release);
 }
 
-bool i2cBusy() {
-  return (I2C_SR2(I2C1) & I2C_SR2_BUSY) != 0;
-}
+bool i2cBusy() { return (I2C_SR2(I2C1) & I2C_SR2_BUSY) != 0; }
 
 /**
  * Take a message from the Queue and start transmitting.
- * 
+ *
  * Function from ISR
  */
 void startTxFromISR();
@@ -85,12 +82,11 @@ void forwardRx(bool fromISR);
 // Implementation
 // ***************************
 
-bool messageValid(const I2CTxBuf & buffer) {
+bool messageValid(const I2CTxBuf& buffer) {
   // Buffer occupied
   // its 3 bytes long.
   return bufferOccupied(buffer) && buffer.bytesProcessed == MarklinI2C::kAccessoryMessageLength;
 }
-
 
 void doTriggerTx(const I2CQueueType::ReceiveResult& receiveResult) {
   if (receiveResult.errorCode == pdPASS) {
@@ -134,8 +130,6 @@ void resumeTxForce() {
   }
 }
 
-
-
 void beginI2C(uint8_t newSlaveAddress, xTaskHandle routingTaskHandle) {
   i2c_peripheral_disable(I2C1);
   i2c_reset(I2C1);
@@ -169,7 +163,6 @@ void beginI2C(uint8_t newSlaveAddress, xTaskHandle routingTaskHandle) {
   i2c_peripheral_enable(I2C1);
   i2c_enable_ack(I2C1);
 }
-
 
 void forwardRx(bool fromISR) {
   // Forecefully abort the current transaction
@@ -212,7 +205,7 @@ void finishTx() {
 // https://amitesh-singh.github.io/stm32/2018/01/07/making-i2c-slave-using-stm32f103.html
 extern "C" void i2c1_ev_isr(void) {
   // ISR appears to be called once per I2C byte received
-  //gpio_toggle(GPIOA, GPIO5);
+  // gpio_toggle(GPIOA, GPIO5);
   uint32_t sr1, sr2;
 
   sr1 = I2C_SR1(I2C1);
@@ -281,7 +274,7 @@ extern "C" void i2c1_er_isr(void) {
   uint32_t sr1 = I2C_SR1(I2C1);
   uint32_t sr2 = I2C_SR2(I2C1);
 
-  //gpio_toggle(GPIOA, GPIO4);
+  // gpio_toggle(GPIOA, GPIO4);
 
   if (sr1 & I2C_SR1_AF) {
     // Acknowledge Failure (AF)

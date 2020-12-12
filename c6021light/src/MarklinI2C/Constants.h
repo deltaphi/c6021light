@@ -13,7 +13,6 @@ constexpr const uint8_t kAccessoryMessageLength = 3;
 constexpr const uint8_t kLocoMessageLength = 3;
 constexpr const uint8_t kFunctionMessageLength = kLocoMessageLength;
 
-
 /// I2C Address of the central.
 constexpr const uint8_t kCentralAddr = 0x7F;
 

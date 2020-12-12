@@ -30,7 +30,7 @@ void beginI2C(uint8_t slaveAddress, xTaskHandle routingTaskHandle);
 
 /**
  * Take a message from the Queue and start transmitting.
- * 
+ *
  * Function from Task
  */
 void startTx();
