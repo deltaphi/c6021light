@@ -44,7 +44,7 @@ void RoutingTask::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) 
   buf.msgBytes[1] = msg.data_;
 
   hal::i2cTxQueue.Send(buf, 0);  // TODO: Check the result.
-  hal::triggerI2cTx();
+  hal::startTx();
 }
 
 void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool response) {
