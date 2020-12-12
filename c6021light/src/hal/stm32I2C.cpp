@@ -16,8 +16,6 @@ I2CTxBuf i2cTxBuf;
 I2CQueueType i2cRxQueue;
 I2CQueueType i2cTxQueue;
 
-TimerHandle_t i2cWdg;
-
 xTaskHandle taskToNotify;
 
 inline bool i2cTxMsgAvailable() { return i2cTxBuf.msgValid.load(std::memory_order_acquire); }
@@ -112,10 +110,6 @@ void forwardReceivedI2CMessage(bool fromISR) {
 void finishI2CSend() {
   i2cTxBuf.msgValid.store(false, std::memory_order_release);
   i2c_send_stop(I2C1);
-}
-
-extern "C" void i2cWdgCbk(TimerHandle_t) {
-  forwardReceivedI2CMessage(false);
 }
 
 // i2c1 event ISR
