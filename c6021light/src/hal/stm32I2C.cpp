@@ -102,6 +102,8 @@ void forwardReceivedI2CMessage(bool fromISR) {
     } else {
       xTaskNotify(taskToNotify, 1, eSetValueWithoutOverwrite);
     }
+    // See if there is something to be sent.
+    continueI2cTx();
   }
 
   // TODO: Sync with TX side.
@@ -110,6 +112,9 @@ void forwardReceivedI2CMessage(bool fromISR) {
 void finishI2CSend() {
   i2cTxBuf.msgValid.store(false, std::memory_order_release);
   i2c_send_stop(I2C1);
+
+  // See if there is something to be sent.
+  continueI2cTx();
 }
 
 // i2c1 event ISR
