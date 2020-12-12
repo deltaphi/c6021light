@@ -152,13 +152,6 @@ extern "C" void i2c1_ev_isr(void) {
         i2cRxBuf.msgBytes[i2cRxBuf.bytesProcessed - 1] = i2c_get_data(I2C1);
         ++i2cRxBuf.bytesProcessed;
       }
-
-      if (i2cRxBuf.bytesProcessed == 3) {
-        BaseType_t notifyWokeThread;
-        if (notifyWokeThread == pdTRUE) {
-          taskYIELD();
-        }
-      }
     }
   }
   // Transmit buffer empty & Data byte transfer not finished
@@ -183,12 +176,7 @@ extern "C" void i2c1_ev_isr(void) {
   // this event happens when slave is in Recv mode at the end of communication
   else if (sr1 & I2C_SR1_STOPF) {
     // Reference Manual: EV3
-    BaseType_t notifyWokeThread;
-    xTimerStopFromISR(hal::i2cWdg, &notifyWokeThread);
     forwardReceivedI2CMessage(true);
-    if (notifyWokeThread == pdTRUE) {
-      taskYIELD();
-    }
   }
   // this event happens when slave is in transmit mode at the end of communication
   else if (sr1 & I2C_SR1_AF) {
