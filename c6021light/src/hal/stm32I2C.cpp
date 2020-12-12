@@ -47,8 +47,10 @@ void beginI2C(uint8_t newSlaveAddress, xTaskHandle routingTaskHandle) {
   i2cTxBuf.bytesProcessed = 0;
   i2cTxBuf.msgValid.store(false, std::memory_order_release);
   nvic_enable_irq(NVIC_I2C1_EV_IRQ);
+  nvic_enable_irq(NVIC_I2C1_ER_IRQ);
   nvic_set_priority(NVIC_I2C1_EV_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
-  i2c_enable_interrupt(I2C1, I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN);
+  nvic_set_priority(NVIC_I2C1_ER_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
+  i2c_enable_interrupt(I2C1, I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN | I2C_CR2_ITERREN);
 
   i2c_peripheral_enable(I2C1);
   i2c_enable_ack(I2C1);
@@ -107,7 +109,14 @@ void forwardReceivedI2CMessage(bool fromISR) {
   // TODO: Sync with TX side.
 }
 
-extern "C" void i2cWdgCbk(TimerHandle_t) { forwardReceivedI2CMessage(false); }
+void finishI2CSend() {
+  i2cTxBuf.msgValid.store(false, std::memory_order_release);
+  i2c_send_stop(I2C1);
+}
+
+extern "C" void i2cWdgCbk(TimerHandle_t) {
+  forwardReceivedI2CMessage(false);
+}
 
 // i2c1 event ISR
 // Code based on
@@ -146,7 +155,6 @@ extern "C" void i2c1_ev_isr(void) {
 
       if (i2cRxBuf.bytesProcessed == 3) {
         BaseType_t notifyWokeThread;
-        xTimerStartFromISR(hal::i2cWdg, &notifyWokeThread);
         if (notifyWokeThread == pdTRUE) {
           taskYIELD();
         }
@@ -167,8 +175,7 @@ extern "C" void i2c1_ev_isr(void) {
         break;
       default:
         // EV 8_2
-        i2cTxBuf.msgValid.store(false, std::memory_order_release);
-        i2c_send_stop(I2C1);
+        finishI2CSend();
         break;
     }
   }
@@ -187,6 +194,55 @@ extern "C" void i2c1_ev_isr(void) {
   else if (sr1 & I2C_SR1_AF) {
     //(void) I2C_SR1(I2C1);
     I2C_SR1(I2C1) &= ~(I2C_SR1_AF);
+  }
+}
+
+// Error condition interrupt for I2C1
+extern "C" void i2c1_er_isr(void) {
+  // check which error bit was set
+  uint32_t sr1 = I2C_SR1(I2C1);
+  uint32_t sr2 = I2C_SR2(I2C1);
+
+  gpio_toggle(GPIOA, GPIO4);
+
+  if (sr1 & I2C_SR1_AF) {
+    // Acknowledge Failure (AF)
+    // Reset AF bit
+    I2C_SR1(I2C1) &= ~I2C_SR1_AF;
+    // Abort the current transmission. Assume that noone is available on the bus.
+    finishI2CSend();
+    __asm("bkpt 6");
+
+  } else if (sr1 & I2C_SR1_ARLO) {
+    // Arbitration Lost
+    // Interface automatically goes to slave mode.
+    __asm("bkpt 6");
+
+  } else if (sr1 & I2C_SR1_BERR) {
+    if (sr2 & I2C_SR2_MSL) {
+      // In Master mode: software must clean up
+      //__asm("bkpt 6");
+      // In out usecase, this is caused by a misbehaving Memory device.
+      // Restart the transmission.
+      i2c_send_start(I2C1);
+
+    } else {
+      // In Slave mode: auto-release
+      //__asm("bkpt 6");
+      forwardReceivedI2CMessage(true);
+    }
+
+    // Reset the error flag as the error was handled.
+    I2C_SR1(I2C1) &= ~I2C_SR1_BERR;
+
+  } else if (sr1 & I2C_SR1_TxE) {
+    __asm("bkpt 6");
+
+  } else if (sr1 & I2C_SR1_RxNE) {
+    __asm("bkpt 6");
+
+  } else {
+    __asm("bkpt 6");
   }
 }
 
