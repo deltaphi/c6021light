@@ -13,12 +13,16 @@ class ConsoleTask {
  public:
   static constexpr const uint32_t kStackSize = 256;
 
-  void setup(hal::LibOpencm3Hal* halImpl) { halImpl_ = halImpl; }
+  void setup(hal::LibOpencm3Hal* halImpl, TaskHandle_t routingTask) {
+    halImpl_ = halImpl;
+    routingTask_ = routingTask;
+  }
 
   void TaskMain();
 
  private:
   hal::LibOpencm3Hal* halImpl_;
+  TaskHandle_t routingTask_;
 };
 
 }  // namespace ConsoleTask

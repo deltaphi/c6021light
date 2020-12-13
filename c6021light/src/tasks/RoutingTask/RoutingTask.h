@@ -6,6 +6,8 @@
 
 #include "DataModel.h"
 #include "hal/LibOpencm3Hal.h"
+#include "hal/stm32I2C.h"
+#include "hal/stm32can.h"
 
 #include "FreeRTOSConfig.h"
 
@@ -38,6 +40,8 @@ class RoutingTask : public RR32Can::callback::AccessoryCbk {
   void LocoNetNotifySwitchRequest(uint16_t Address, uint8_t Output, uint8_t Direction);
 
   static RoutingTask* lnCallbackInstance;
+
+  hal::CanTxCbk canTxCbk_;
 
  private:
   MarklinI2C::Messages::AccessoryMsg getI2CMessage(hal::I2CBuf& buffer);

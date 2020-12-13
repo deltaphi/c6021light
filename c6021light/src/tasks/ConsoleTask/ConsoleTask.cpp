@@ -16,7 +16,7 @@ void ConsoleTask::TaskMain() {
     // Hack: Abuse this polling task to check for LocoNet messages...
     if (LocoNet.available()) {
       // ..and wake the RoutingTask if needed.
-      xTaskNotify(hal::LibOpencm3Hal::taskToNotify, 1, eSetValueWithoutOverwrite);
+      xTaskNotify(routingTask_, 1, eSetValueWithoutOverwrite);
     }
   }
 }

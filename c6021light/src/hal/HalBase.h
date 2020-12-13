@@ -13,11 +13,9 @@ namespace hal {
 /*
  * \brief Class HalBase
  */
-class HalBase : public RR32Can::callback::TxCbk {
+class HalBase {
  public:
-  void begin(uint8_t i2caddr __attribute((unused)), ConsoleManager* console) {
-    this->console_ = console;
-  }
+  void begin(ConsoleManager* console) { this->console_ = console; }
 
   virtual void led(bool on) = 0;
   virtual void toggleLed() = 0;

@@ -11,6 +11,8 @@ extern "C" {
 }
 
 #include <hal/LibOpencm3Hal.h>
+#include "hal/stm32I2C.h"
+#include "hal/stm32can.h"
 
 using Hal_t = hal::LibOpencm3Hal;
 
@@ -161,7 +163,9 @@ int run_app_save(int argc, const char* const* argv) {
 
 void setup() {
   // Setup I2C & CAN
-  halImpl.begin(dataModel.myAddr, &console, routingTaskBuffer.getHandle());
+  halImpl.begin(&console);
+  hal::beginI2C(dataModel.myAddr, routingTaskBuffer.getHandle());
+  hal::beginCan(routingTaskBuffer.getHandle());
 
   // Setup Serial
   printf("Connect6021Light Initializing...\n");
@@ -176,23 +180,21 @@ void setup() {
   accessoryCbk.begin(halImpl);
 
   RR32Can::Station::CallbackStruct callbacks;
-  callbacks.tx = &halImpl;
+  callbacks.tx = &routingTask.canTxCbk_;
   callbacks.accessory = &routingTask;
   callbacks.system = &accessoryCbk;
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
   printf("Ready!\n");
-  consoleTask.setup(&halImpl);
+  consoleTask.setup(&halImpl, routingTaskBuffer.getHandle());
   console.begin();
 }
 
 void setupOsResources() {
   constexpr static const uint8_t canqueuesize = 10;
 
-  static freertossupport::StaticOsQueue<hal::LibOpencm3Hal::CanQueueType::QueueElement,
-                                        canqueuesize>
-      canrxqbuffer;
-  hal::LibOpencm3Hal::canrxq = canrxqbuffer;
+  static freertossupport::StaticOsQueue<hal::CanQueueType::QueueElement, canqueuesize> canrxqbuffer;
+  hal::canrxq = canrxqbuffer;
 
   constexpr static const uint8_t i2cqueuesize = canqueuesize;
 

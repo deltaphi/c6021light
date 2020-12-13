@@ -7,6 +7,7 @@
 #include <LocoNet.h>
 #include "RR32Can/RR32Can.h"
 #include "hal/stm32I2C.h"
+#include "hal/stm32can.h"
 
 #include "OsQueue.h"
 
@@ -96,7 +97,7 @@ void printLnPacket(lnMsg* LnPacket) {
 void RoutingTask::TaskMain() {
   while (1) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);  // Wait until someone sends us a notification.
-    halImpl_->loopCan();
+    hal::loopCan();
 
     // Process I2C
     hal::I2CQueueType::ReceiveResult receiveResult = hal::i2cRxQueue.Receive(0);
