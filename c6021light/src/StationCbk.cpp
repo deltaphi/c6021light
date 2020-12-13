@@ -4,7 +4,7 @@
 
 #include "tasks/RoutingTask/RoutingTask.h"
 
-void AccessoryCbk::begin(hal::HalBase& hal) { this->hal_ = &hal; }
+void AccessoryCbk::begin(hal::LibOpencm3Hal& hal) { this->hal_ = &hal; }
 
 void AccessoryCbk::setSystemState(bool onOff, bool response) {
   // When the system is stopped, turn on the LED.

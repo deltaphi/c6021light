@@ -3,7 +3,8 @@
 
 #include <atomic>
 
-#include "hal/HalBase.h"
+#include "ConsoleManager.h"
+#include "DataModel.h"
 
 #include "OsQueue.h"
 
@@ -12,10 +13,10 @@ namespace hal {
 /*
  * \brief Class LibOpencm3Hal
  */
-class LibOpencm3Hal : public HalBase {
+class LibOpencm3Hal {
  public:
   void begin(ConsoleManager* console) {
-    HalBase::begin(console);
+    console_ = console;
     beginClock();
     beginGpio();
     beginSerial();
@@ -25,11 +26,11 @@ class LibOpencm3Hal : public HalBase {
 
   void loopSerial();
 
-  void led(bool on) override;
-  void toggleLed() override;
+  void led(bool on);
+  void toggleLed();
 
-  void SaveConfig(const DataModel& dataModel) override;
-  DataModel LoadConfig() override;
+  void SaveConfig(const DataModel& dataModel);
+  DataModel LoadConfig();
 
  private:
   void beginClock();
@@ -37,6 +38,8 @@ class LibOpencm3Hal : public HalBase {
   void beginSerial();
   void beginLocoNet();
   void beginEE();
+
+  ConsoleManager* console_;
 };
 
 }  // namespace hal
