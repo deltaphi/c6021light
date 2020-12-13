@@ -47,12 +47,12 @@ void RoutingTask::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) 
   hal::startTx();
 }
 
-void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool response) {
+void RoutingTask::OnAccessoryPacket(const RR32Can::TurnoutPacket& packet, bool response) {
   if (!response) {
     // Requests are forwarded to LocoNet
     LocoNet.requestSwitch(
-        RR32Can::HumanTurnoutAddress(packet.locid).value() & 0x03FF, packet.power,
-        static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
+        RR32Can::HumanTurnoutAddress(packet.getLocid()).value() & 0x03FF, packet.getPower(),
+        static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.getDirection()));
   } else {
     // Responses are forwarded to I2C
     printf(" Got an Accessory packet!");
@@ -62,7 +62,7 @@ void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respons
       return;
     }
 
-    uint16_t turnoutAddr = packet.locid.value() & 0x03FF;
+    uint16_t turnoutAddr = packet.getLocid().value() & 0x03FF;
     if (turnoutAddr > 0xFF) {
       // Addr too large for the i2c bus.
       return;
@@ -72,10 +72,10 @@ void RoutingTask::OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool respons
     MarklinI2C::Messages::AccessoryMsg i2cMsg = prepareI2cMessage();
 
     i2cMsg.setTurnoutAddr(turnoutAddr);
-    i2cMsg.setPower(packet.power);
+    i2cMsg.setPower(packet.getPower());
     // Direction is not transmitted on Response.
     i2cMsg.setDirection(
-        static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.position));
+        static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.getDirection()));
     i2cMsg.makePowerConsistent();
 
     SendI2CMessage(i2cMsg);

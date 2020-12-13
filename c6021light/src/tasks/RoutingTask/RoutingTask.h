@@ -32,7 +32,7 @@ class RoutingTask : public RR32Can::callback::AccessoryCbk {
   /**
    * \brief Called when an accessory packet was received.
    */
-  void OnAccessoryPacket(RR32Can::TurnoutPacket& packet, bool response) override;
+  void OnAccessoryPacket(const RR32Can::TurnoutPacket& packet, bool response) override;
 
   void LocoNetNotifyPower(uint8_t State);
   void LocoNetNotifySwitchRequest(uint16_t Address, uint8_t Output, uint8_t Direction);
