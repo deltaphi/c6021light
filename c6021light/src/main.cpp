@@ -133,6 +133,7 @@ int run_app_get_turnout_protocol(int argc, const char* const* argv) {
     case RR32Can::RailProtocol::MM1:
     case RR32Can::RailProtocol::MM2:
     case RR32Can::RailProtocol::MFX:
+    case RR32Can::RailProtocol::UNKNOWN:
       turnoutProtocol = MM2Name;
       break;
     case RR32Can::RailProtocol::DCC:
