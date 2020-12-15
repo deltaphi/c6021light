@@ -14,8 +14,6 @@
 namespace tasks {
 namespace RoutingTask {
 
-RoutingTask* RoutingTask::lnCallbackInstance;
-
 /**
  * \brief Two addresses are on the same decoder, if they match apart from
  * the lowest two bits.
@@ -190,10 +188,11 @@ void RoutingTask::TaskMain() {
     for (hal::CanQueueType::ReceiveResult receiveResult = hal::canrxq.Receive(ticksToWait);
          receiveResult.errorCode == pdTRUE; receiveResult = hal::canrxq.Receive(ticksToWait)) {
       RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(receiveResult.element.id);
-      RR32Can::RR32Can.HandlePacket(rr32id, receiveResult.element.data);
 
       ForwardToI2C(rr32id, receiveResult.element.data);
       ForwardToLoconet(rr32id, receiveResult.element.data);
+      // Forward to self
+      RR32Can::RR32Can.HandlePacket(rr32id, receiveResult.element.data);
     }
 
     // Process I2C
@@ -208,67 +207,76 @@ void RoutingTask::TaskMain() {
 
       // Convert to generic CAN representation
       MakeRR32CanMsg(request, rr32id, rr32data);
-      // Forward to CAN
+
       RR32Can::RR32Can.SendPacket(rr32id, rr32data);
-      // Forward to LocoNet
       ForwardToLoconet(rr32id, rr32data);
+      // Forward to self
+      RR32Can::RR32Can.HandlePacket(rr32id, rr32data);
     }
 
     // Process LocoNet
     for (lnMsg* LnPacket = LocoNet.receive(); LnPacket; LnPacket = LocoNet.receive()) {
       printLnPacket(LnPacket);
       LocoNet.processSwitchSensorMessage(LnPacket);
+
+      RR32Can::Identifier rr32id;
+      RR32Can::Data rr32data;
+
+      // Convert to generic CAN representation
+      MakeRR32CanMsg(*LnPacket, rr32id, rr32data);
+      ForwardToI2C(rr32id, rr32data);
+      // Forward to CAN
+      RR32Can::RR32Can.SendPacket(rr32id, rr32data);
+
+      // Forward to self
+      RR32Can::RR32Can.HandlePacket(rr32id, rr32data);
     }
   }
 }
 
-/**
- * \brief Notification Function used by LocoNet to indicate a Stop/Go message.
- */
-extern "C" void notifyPower(uint8_t State) {
-  tasks::RoutingTask::RoutingTask::lnCallbackInstance->LocoNetNotifyPower(State);
-}
+void RoutingTask::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id,
+                                 RR32Can::Data& rr32data) {
+  // Decode the opcode
+  switch (LnPacket.data[0]) {
+    case OPC_SW_REQ: {
+      rr32id.setCommand(RR32Can::Command::ACCESSORY_SWITCH);
+      rr32id.setResponse(false);
+      RR32Can::TurnoutPacket turnoutPacket(rr32data);
+      turnoutPacket.initData();
 
-void RoutingTask::LocoNetNotifyPower(uint8_t State) {
-  if (State != 0) {
-    RR32Can::RR32Can.SendSystemGo();
-  } else {
-    RR32Can::RR32Can.SendSystemStop();
+      // Extract the switch address
+      RR32Can::MachineTurnoutAddress lnAddr = ((LnPacket.srq.sw2 & 0x0F) << 7) | LnPacket.srq.sw1;
+      lnAddr.setProtocol(dataModel_->accessoryRailProtocol);
+      turnoutPacket.setLocid(lnAddr);
+
+      RR32Can::TurnoutDirection direction =
+          ((LnPacket.srq.sw2 & OPC_SW_REQ_DIR) == 0 ? RR32Can::TurnoutDirection::RED
+                                                    : RR32Can::TurnoutDirection::GREEN);
+      turnoutPacket.setDirection(direction);
+      uint8_t power = LnPacket.srq.sw2 & OPC_SW_REQ_OUT;
+      turnoutPacket.setPower(power);
+
+      break;
+    }
+    case OPC_GPON:
+    case OPC_GPOFF: {
+      rr32id.setCommand(RR32Can::Command::SYSTEM_COMMAND);
+      rr32id.setResponse(false);
+      RR32Can::SystemMessage systemMessage(rr32data);
+      systemMessage.initData();
+
+      if (LnPacket.data[0] == OPC_GPON) {
+        systemMessage.setSubcommand(RR32Can::SystemSubcommand::SYSTEM_GO);
+      } else {
+        systemMessage.setSubcommand(RR32Can::SystemSubcommand::SYSTEM_STOP);
+      }
+
+      break;
+    }
+    default:
+      // Other packet types not handled.
+      break;
   }
-}
-
-// Address: Switch Address.
-// Output: Value 0 for Coil Off, anything else for Coil On
-// Direction: Value 0 for Closed/GREEN, anything else for Thrown/RED
-extern "C" void notifySwitchRequest(uint16_t Address, uint8_t Output, uint8_t Direction) {
-  tasks::RoutingTask::RoutingTask::lnCallbackInstance->LocoNetNotifySwitchRequest(Address, Output,
-                                                                                  Direction);
-}
-
-void RoutingTask::LocoNetNotifySwitchRequest(uint16_t LnAddress, uint8_t Output,
-                                             uint8_t LnDirection) {
-  // Send to CAN
-  RR32Can::MachineTurnoutAddress address = RR32Can::HumanTurnoutAddress(LnAddress);
-  RR32Can::TurnoutDirection dir;
-  if (LnDirection != 0) {
-    dir = RR32Can::TurnoutDirection::GREEN;
-  } else {
-    dir = RR32Can::TurnoutDirection::RED;
-  }
-  if (Output != 0) {
-    Output = 1;
-  }
-  RR32Can::RR32Can.SendAccessoryPacket(address, dataModel_->accessoryRailProtocol, dir, Output);
-
-  // Send to I2C
-  MarklinI2C::Messages::AccessoryMsg i2cMsg = prepareI2cMessage();
-
-  i2cMsg.setTurnoutAddr(address.value());
-  i2cMsg.setPower(Output);
-  i2cMsg.setDirection(dir);
-  i2cMsg.makePowerConsistent();
-
-  SendI2CMessage(i2cMsg);
 }
 
 }  // namespace RoutingTask

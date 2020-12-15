@@ -10,6 +10,8 @@
 
 #include "FreeRTOSConfig.h"
 
+#include "LocoNet.h"
+
 namespace tasks {
 namespace RoutingTask {
 
@@ -20,7 +22,6 @@ class RoutingTask {
   void begin(DataModel& dataModel, hal::LibOpencm3Hal& halImpl) {
     this->dataModel_ = &dataModel;
     this->halImpl_ = &halImpl;
-    lnCallbackInstance = this;
   };
 
   MarklinI2C::Messages::AccessoryMsg prepareI2cMessage();
@@ -28,16 +29,12 @@ class RoutingTask {
 
   void TaskMain();
 
-  void LocoNetNotifyPower(uint8_t State);
-  void LocoNetNotifySwitchRequest(uint16_t Address, uint8_t Output, uint8_t Direction);
-
-  static RoutingTask* lnCallbackInstance;
-
   hal::CanTxCbk canTxCbk_;
 
  private:
   MarklinI2C::Messages::AccessoryMsg getI2CMessage(hal::I2CBuf& buffer);
 
+  void MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id, RR32Can::Data& rr32data);
   void MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& i2cMsg, RR32Can::Identifier& rr32id,
                       RR32Can::Data& rr32data);
   void ForwardToLoconet(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data);
