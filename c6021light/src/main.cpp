@@ -181,7 +181,6 @@ void setup() {
 
   RR32Can::Station::CallbackStruct callbacks;
   callbacks.tx = &routingTask.canTxCbk_;
-  callbacks.accessory = &routingTask;
   callbacks.system = &accessoryCbk;
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 

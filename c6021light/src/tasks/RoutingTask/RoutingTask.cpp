@@ -51,32 +51,42 @@ void RoutingTask::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) 
   hal::startTx();
 }
 
-void RoutingTask::OnAccessoryPacket(const RR32Can::TurnoutPacket& packet, bool response) {
-  if (response) {
-    // Responses are forwarded to I2C
-    printf(" Got an Accessory packet!\n");
+void RoutingTask::ForwardToI2C(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data) {
+  switch (rr32id.getCommand()) {
+    case RR32Can::Command::ACCESSORY_SWITCH: {
+      const RR32Can::TurnoutPacket turnoutPacket(const_cast<RR32Can::Data&>(rr32data));
+      if (rr32id.isResponse()) {
+        // Responses are forwarded to I2C
+        printf(" Got an Accessory packet!\n");
 
-    if (packet.getRailProtocol() != RR32Can::RailProtocol::MM1) {
-      // Not an MM2 packet
-      return;
+        if (turnoutPacket.getRailProtocol() != RR32Can::RailProtocol::MM1) {
+          // Not an MM2 packet
+          return;
+        }
+
+        RR32Can::MachineTurnoutAddress turnoutAddr = turnoutPacket.getLocid().getNumericAddress();
+        if (turnoutAddr.value() > 0xFF) {
+          // Addr too large for the i2c bus.
+          return;
+        }
+
+        // Convert to i2c confirmation packet
+        MarklinI2C::Messages::AccessoryMsg i2cMsg = prepareI2cMessage();
+
+        i2cMsg.setTurnoutAddr(turnoutAddr);
+        i2cMsg.setPower(turnoutPacket.getPower());
+        // Direction is not transmitted on Response.
+        i2cMsg.setDirection(turnoutPacket.getDirection());
+        i2cMsg.makePowerConsistent();
+
+        SendI2CMessage(i2cMsg);
+      }
+      break;
     }
 
-    RR32Can::MachineTurnoutAddress turnoutAddr = packet.getLocid().getNumericAddress();
-    if (turnoutAddr.value() > 0xFF) {
-      // Addr too large for the i2c bus.
-      return;
-    }
-
-    // Convert to i2c confirmation packet
-    MarklinI2C::Messages::AccessoryMsg i2cMsg = prepareI2cMessage();
-
-    i2cMsg.setTurnoutAddr(turnoutAddr);
-    i2cMsg.setPower(packet.getPower());
-    // Direction is not transmitted on Response.
-    i2cMsg.setDirection(packet.getDirection());
-    i2cMsg.makePowerConsistent();
-
-    SendI2CMessage(i2cMsg);
+    default:
+      // Other messages not forwarded.
+      break;
   }
 }
 
@@ -137,7 +147,8 @@ void RoutingTask::ForwardToLoconet(const RR32Can::Identifier rr32id,
       if (!rr32id.isResponse()) {
         // Send to LocoNet
         LocoNet.requestSwitch(
-            RR32Can::HumanTurnoutAddress(turnoutPacket.getLocid().getNumericAddress()).value(), turnoutPacket.getPower(),
+            RR32Can::HumanTurnoutAddress(turnoutPacket.getLocid().getNumericAddress()).value(),
+            turnoutPacket.getPower(),
             RR32Can::TurnoutDirectionToIntegral<uint8_t>(turnoutPacket.getDirection()));
       }
       break;
@@ -181,6 +192,7 @@ void RoutingTask::TaskMain() {
       RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(receiveResult.element.id);
       RR32Can::RR32Can.HandlePacket(rr32id, receiveResult.element.data);
 
+      ForwardToI2C(rr32id, receiveResult.element.data);
       ForwardToLoconet(rr32id, receiveResult.element.data);
     }
 
