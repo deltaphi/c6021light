@@ -197,32 +197,27 @@ void RoutingTask::TaskMain() {
     }
 
     // Process I2C
-    {
-      hal::I2CQueueType::ReceiveResult receiveResult = hal::i2cRxQueue.Receive(0);
-      if (receiveResult.errorCode == pdPASS) {
-        MarklinI2C::Messages::AccessoryMsg request = getI2CMessage(receiveResult.element);
-        printf("I2C RX: ");
-        request.print();
+    for (hal::I2CQueueType::ReceiveResult receiveResult = hal::i2cRxQueue.Receive(0);
+         receiveResult.errorCode == pdPASS; receiveResult = hal::i2cRxQueue.Receive(0)) {
+      MarklinI2C::Messages::AccessoryMsg request = getI2CMessage(receiveResult.element);
+      printf("I2C RX: ");
+      request.print();
 
-        RR32Can::Identifier rr32id;
-        RR32Can::Data rr32data;
+      RR32Can::Identifier rr32id;
+      RR32Can::Data rr32data;
 
-        // Convert to generic CAN representation
-        MakeRR32CanMsg(request, rr32id, rr32data);
-        // Forward to CAN
-        RR32Can::RR32Can.SendPacket(rr32id, rr32data);
-        // Forward to LocoNet
-        ForwardToLoconet(rr32id, rr32data);
-      }
+      // Convert to generic CAN representation
+      MakeRR32CanMsg(request, rr32id, rr32data);
+      // Forward to CAN
+      RR32Can::RR32Can.SendPacket(rr32id, rr32data);
+      // Forward to LocoNet
+      ForwardToLoconet(rr32id, rr32data);
     }
 
     // Process LocoNet
-    {
-      lnMsg* LnPacket = LocoNet.receive();
-      if (LnPacket) {
-        printLnPacket(LnPacket);
-        LocoNet.processSwitchSensorMessage(LnPacket);
-      }
+    for (lnMsg* LnPacket = LocoNet.receive(); LnPacket; LnPacket = LocoNet.receive()) {
+      printLnPacket(LnPacket);
+      LocoNet.processSwitchSensorMessage(LnPacket);
     }
   }
 }
