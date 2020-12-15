@@ -16,28 +16,28 @@ uint8_t AccessoryMsg::getDecoderOutput() const {
   return addr;
 }
 
-uint8_t AccessoryMsg::getTurnoutAddr() const {
+RR32Can::MachineTurnoutAddress AccessoryMsg::getTurnoutAddr() const {
   uint8_t addr = 0;
   addr |= getSender();
   addr <<= 4;
   addr |= getDecoderOutput();
-  return addr;
+  return RR32Can::MachineTurnoutAddress(addr);
 }
 
-void AccessoryMsg::setTurnoutAddr(uint8_t addr) {
+void AccessoryMsg::setTurnoutAddr(RR32Can::MachineTurnoutAddress addr) {
   {
-    this->destination_ = addr & 0xF0;
+    this->destination_ = addr.value() & 0xF0;
     this->destination_ >>= 3;
-    this->destination_ &= 0b00100000;
+    this->destination_ |= 0b00100000;
   }
   {
-    uint8_t decoderAddrPart = addr & 0x0C;
+    uint8_t decoderAddrPart = addr.value() & 0x0C;
     decoderAddrPart <<= 2;
     decoderAddrPart &= kDataUpperAddrMask;
     this->data_ |= decoderAddrPart;
   }
   {
-    uint8_t decoderOutput = addr & 0x03;
+    uint8_t decoderOutput = addr.value() & 0x03;
     decoderOutput <<= 1;
     decoderOutput &= kDataLowerAddrMask;
     this->data_ |= decoderOutput;
@@ -105,10 +105,10 @@ void AccessoryMsg::print() const {
   const char* powerString;
 
   switch (getDirection()) {
-    case kDataDirRed:
+    case RR32Can::TurnoutDirection::RED:
       directionString = "RED  ";
       break;
-    case kDataDirGreen:
+    case RR32Can::TurnoutDirection::GREEN:
       directionString = "GREEN";
       break;
     default:

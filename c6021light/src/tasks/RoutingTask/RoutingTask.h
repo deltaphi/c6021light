@@ -46,8 +46,12 @@ class RoutingTask : public RR32Can::callback::AccessoryCbk {
  private:
   MarklinI2C::Messages::AccessoryMsg getI2CMessage(hal::I2CBuf& buffer);
 
+  void MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& i2cMsg, RR32Can::Identifier& rr32id,
+                      RR32Can::Data& rr32data);
+  void ForwardToLoconet(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data);
+
   RR32Can::MachineTurnoutAddress lastPowerOnTurnoutAddr;
-  uint8_t lastPowerOnDirection;
+  RR32Can::TurnoutDirection lastPowerOnDirection;
   DataModel* dataModel_;
   hal::LibOpencm3Hal* halImpl_;
 };

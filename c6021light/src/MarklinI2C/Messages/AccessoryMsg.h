@@ -8,6 +8,7 @@
 #endif
 
 #include "MarklinI2C/Constants.h"
+#include "RR32Can/Types.h"
 
 namespace MarklinI2C {
 namespace Messages {
@@ -41,13 +42,16 @@ class AccessoryMsg {
    * The result is 0-based. Pressing a button for Turnout 1
    * on the first Keyboard is Address 0.
    */
-  uint8_t getTurnoutAddr() const;
+  RR32Can::MachineTurnoutAddress getTurnoutAddr() const;
 
-  uint8_t getDirection() const { return data_ & kDataDirMask; }
+  RR32Can::TurnoutDirection getDirection() const {
+    return (((data_ & kDataDirMask) == 0) ? RR32Can::TurnoutDirection::RED
+                                          : RR32Can::TurnoutDirection::GREEN);
+  }
   uint8_t getPower() const { return (data_ & kDataPowerMask) >> 3; }
 
-  void setDirection(uint8_t direction) {
-    if (direction == 0) {
+  void setDirection(RR32Can::TurnoutDirection direction) {
+    if (direction == RR32Can::TurnoutDirection::RED) {
       this->data_ &= 0xFE;
     } else {
       this->data_ |= kDataDirMask;
@@ -66,7 +70,7 @@ class AccessoryMsg {
     }
   }
 
-  void setTurnoutAddr(uint8_t addr);
+  void setTurnoutAddr(RR32Can::MachineTurnoutAddress addr);
 
   void print() const;
 

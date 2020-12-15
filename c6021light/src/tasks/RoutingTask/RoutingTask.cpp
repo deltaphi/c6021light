@@ -20,9 +20,9 @@ RoutingTask* RoutingTask::lnCallbackInstance;
  * \brief Two addresses are on the same decoder, if they match apart from
  * the lowest two bits.
  */
-bool sameDecoder(uint8_t left, uint8_t right) {
+bool sameDecoder(RR32Can::MachineTurnoutAddress left, RR32Can::MachineTurnoutAddress right) {
   constexpr const uint8_t mask = 0xFC;
-  return (left & mask) == (right & mask);
+  return (left.value() & mask) == (right.value() & mask);
 }
 
 MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage(hal::I2CBuf& buffer) {
@@ -40,8 +40,11 @@ MarklinI2C::Messages::AccessoryMsg RoutingTask::prepareI2cMessage() {
 }
 
 void RoutingTask::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) {
+  printf("I2C TX: ");
+  msg.print();
+
   hal::I2CBuf buf;
-  buf.msgBytes[0] = msg.destination_;
+  buf.msgBytes[0] = msg.destination_ >> 1;
   buf.msgBytes[1] = msg.data_;
 
   hal::i2cTxQueue.Send(buf, 0);  // TODO: Check the result.
@@ -49,22 +52,17 @@ void RoutingTask::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) 
 }
 
 void RoutingTask::OnAccessoryPacket(const RR32Can::TurnoutPacket& packet, bool response) {
-  if (!response) {
-    // Requests are forwarded to LocoNet
-    LocoNet.requestSwitch(
-        RR32Can::HumanTurnoutAddress(packet.getLocid()).value() & 0x03FF, packet.getPower(),
-        static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.getDirection()));
-  } else {
+  if (response) {
     // Responses are forwarded to I2C
-    printf(" Got an Accessory packet!");
+    printf(" Got an Accessory packet!\n");
 
     if (packet.getRailProtocol() != RR32Can::RailProtocol::MM1) {
       // Not an MM2 packet
       return;
     }
 
-    uint16_t turnoutAddr = packet.getLocid().value() & 0x03FF;
-    if (turnoutAddr > 0xFF) {
+    RR32Can::MachineTurnoutAddress turnoutAddr = packet.getLocid().getNumericAddress();
+    if (turnoutAddr.value() > 0xFF) {
       // Addr too large for the i2c bus.
       return;
     }
@@ -75,8 +73,7 @@ void RoutingTask::OnAccessoryPacket(const RR32Can::TurnoutPacket& packet, bool r
     i2cMsg.setTurnoutAddr(turnoutAddr);
     i2cMsg.setPower(packet.getPower());
     // Direction is not transmitted on Response.
-    i2cMsg.setDirection(
-        static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(packet.getDirection()));
+    i2cMsg.setDirection(packet.getDirection());
     i2cMsg.makePowerConsistent();
 
     SendI2CMessage(i2cMsg);
@@ -89,6 +86,85 @@ void printLnPacket(lnMsg* LnPacket) {
     printf(" %x", LnPacket->data[i]);
   }
   printf("\n");
+}
+
+void RoutingTask::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& request,
+                                 RR32Can::Identifier& rr32id, RR32Can::Data& rr32data) {
+  rr32id.setCommand(RR32Can::Command::ACCESSORY_SWITCH);
+  rr32id.setResponse(false);
+
+  RR32Can::TurnoutPacket turnoutPacket(rr32data);
+  turnoutPacket.initData();
+
+  // If this is a power ON packet: Send directly to CAN
+  if (request.getPower()) {
+    lastPowerOnDirection = request.getDirection();
+    lastPowerOnTurnoutAddr = RR32Can::MachineTurnoutAddress(request.getTurnoutAddr());
+
+    RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddr;
+    protocolAddr.setProtocol(dataModel_->accessoryRailProtocol);
+
+    turnoutPacket.setLocid(protocolAddr);
+    turnoutPacket.setPower(request.getPower());
+    turnoutPacket.setDirection(request.getDirection());
+
+  } else {
+    // On I2C, for a Power OFF message, the two lowest bits (decoder output channel) are always
+    // 0, regardless of the actual turnout address to be switched off.
+    //
+    // Note that we store the last direction where power was applied and only turn off that.
+    // The CAN side interprets a "Power Off" as "Flip the switch" anyways.
+    RR32Can::MachineTurnoutAddress i2cAddr = request.getTurnoutAddr();
+    if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddr.value())) {
+      RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddr;
+      protocolAddr.setProtocol(dataModel_->accessoryRailProtocol);
+
+      turnoutPacket.setLocid(protocolAddr);
+      turnoutPacket.setPower(request.getPower());
+      turnoutPacket.setDirection(lastPowerOnDirection);
+
+    } else {
+      printf("PowerOff for wrong decoder.\n");
+    }
+  }
+}
+
+void RoutingTask::ForwardToLoconet(const RR32Can::Identifier rr32id,
+                                   const RR32Can::Data& rr32data) {
+  switch (rr32id.getCommand()) {
+    case RR32Can::Command::ACCESSORY_SWITCH: {
+      const RR32Can::TurnoutPacket turnoutPacket(const_cast<RR32Can::Data&>(rr32data));
+      if (!rr32id.isResponse()) {
+        // Send to LocoNet
+        LocoNet.requestSwitch(
+            RR32Can::HumanTurnoutAddress(turnoutPacket.getLocid().getNumericAddress()).value(), turnoutPacket.getPower(),
+            RR32Can::TurnoutDirectionToIntegral<uint8_t>(turnoutPacket.getDirection()));
+      }
+      break;
+    }
+
+    case RR32Can::Command::SYSTEM_COMMAND: {
+      const RR32Can::SystemMessage systemMessage(const_cast<RR32Can::Data&>(rr32data));
+      switch (systemMessage.getSubcommand()) {
+        case RR32Can::SystemSubcommand::SYSTEM_STOP:
+          if (!rr32id.isResponse()) {
+            LocoNet.reportPower(false);
+          }
+          break;
+        case RR32Can::SystemSubcommand::SYSTEM_GO:
+          if (!rr32id.isResponse()) {
+            LocoNet.reportPower(true);
+          }
+          break;
+        default:
+          // Other messages not forwarded.
+          break;
+      }
+    }
+    default:
+      // Other messages not forwarded.
+      break;
+  }
 }
 
 /**
@@ -104,46 +180,37 @@ void RoutingTask::TaskMain() {
          receiveResult.errorCode == pdTRUE; receiveResult = hal::canrxq.Receive(ticksToWait)) {
       RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(receiveResult.element.id);
       RR32Can::RR32Can.HandlePacket(rr32id, receiveResult.element.data);
+
+      ForwardToLoconet(rr32id, receiveResult.element.data);
     }
 
     // Process I2C
-    hal::I2CQueueType::ReceiveResult receiveResult = hal::i2cRxQueue.Receive(0);
-    if (receiveResult.errorCode == pdPASS) {
-      MarklinI2C::Messages::AccessoryMsg request = getI2CMessage(receiveResult.element);
-      request.print();
-      // If this is a power ON packet: Send directly to CAN
-      if (request.getPower()) {
-        lastPowerOnDirection = request.getDirection();
-        lastPowerOnTurnoutAddr = RR32Can::MachineTurnoutAddress(request.getTurnoutAddr());
-        RR32Can::RR32Can.SendAccessoryPacket(
-            lastPowerOnTurnoutAddr, dataModel_->accessoryRailProtocol,
-            static_cast<RR32Can::TurnoutDirection>(request.getDirection()), request.getPower());
-      } else {
-        // On I2C, for a Power OFF message, the two lowest bits (decoder output channel) are always
-        // 0, regardless of the actual turnout address to be switched off.
-        //
-        // Note that we store the last direction where power was applied and only turn off that.
-        // The CAN side interprets a "Power Off" as "Flip the switch" anyways.
-        uint8_t i2cAddr = request.getTurnoutAddr();
-        if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddr.value())) {
-          RR32Can::RR32Can.SendAccessoryPacket(
-              lastPowerOnTurnoutAddr, dataModel_->accessoryRailProtocol,
-              static_cast<RR32Can::TurnoutDirection>(lastPowerOnDirection), request.getPower());
-        } else {
-          printf("PowerOff for wrong decoder.\n");
-        }
-      }
+    {
+      hal::I2CQueueType::ReceiveResult receiveResult = hal::i2cRxQueue.Receive(0);
+      if (receiveResult.errorCode == pdPASS) {
+        MarklinI2C::Messages::AccessoryMsg request = getI2CMessage(receiveResult.element);
+        printf("I2C RX: ");
+        request.print();
 
-      // Send to LocoNet
-      LocoNet.requestSwitch(RR32Can::HumanTurnoutAddress(lastPowerOnTurnoutAddr).value(),
-                            request.getPower(), request.getDirection());
+        RR32Can::Identifier rr32id;
+        RR32Can::Data rr32data;
+
+        // Convert to generic CAN representation
+        MakeRR32CanMsg(request, rr32id, rr32data);
+        // Forward to CAN
+        RR32Can::RR32Can.SendPacket(rr32id, rr32data);
+        // Forward to LocoNet
+        ForwardToLoconet(rr32id, rr32data);
+      }
     }
 
     // Process LocoNet
-    lnMsg* LnPacket = LocoNet.receive();
-    if (LnPacket) {
-      printLnPacket(LnPacket);
-      LocoNet.processSwitchSensorMessage(LnPacket);
+    {
+      lnMsg* LnPacket = LocoNet.receive();
+      if (LnPacket) {
+        printLnPacket(LnPacket);
+        LocoNet.processSwitchSensorMessage(LnPacket);
+      }
     }
   }
 }
@@ -191,7 +258,7 @@ void RoutingTask::LocoNetNotifySwitchRequest(uint16_t LnAddress, uint8_t Output,
 
   i2cMsg.setTurnoutAddr(address.value());
   i2cMsg.setPower(Output);
-  i2cMsg.setDirection(static_cast<std::underlying_type<RR32Can::TurnoutDirection>::type>(dir));
+  i2cMsg.setDirection(dir);
   i2cMsg.makePowerConsistent();
 
   SendI2CMessage(i2cMsg);
