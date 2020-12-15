@@ -97,7 +97,14 @@ void printLnPacket(lnMsg* LnPacket) {
 void RoutingTask::TaskMain() {
   while (1) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);  // Wait until someone sends us a notification.
-    hal::loopCan();
+
+    // Process CAN
+    constexpr const TickType_t ticksToWait = 0;
+    for (hal::CanQueueType::ReceiveResult receiveResult = hal::canrxq.Receive(ticksToWait);
+         receiveResult.errorCode == pdTRUE; receiveResult = hal::canrxq.Receive(ticksToWait)) {
+      RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(receiveResult.element.id);
+      RR32Can::RR32Can.HandlePacket(rr32id, receiveResult.element.data);
+    }
 
     // Process I2C
     hal::I2CQueueType::ReceiveResult receiveResult = hal::i2cRxQueue.Receive(0);
@@ -131,8 +138,6 @@ void RoutingTask::TaskMain() {
       LocoNet.requestSwitch(RR32Can::HumanTurnoutAddress(lastPowerOnTurnoutAddr).value(),
                             request.getPower(), request.getDirection());
     }
-
-    // Process CAN: Done through callbacks.
 
     // Process LocoNet
     lnMsg* LnPacket = LocoNet.receive();

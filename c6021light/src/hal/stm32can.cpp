@@ -86,15 +86,6 @@ void usb_lp_can_rx0_isr(void) {
 }
 }
 
-void loopCan() {
-  constexpr const TickType_t ticksToWait = 0;
-  for (CanQueueType::ReceiveResult receiveResult = canrxq.Receive(ticksToWait);
-       receiveResult.errorCode == pdTRUE; receiveResult = canrxq.Receive(ticksToWait)) {
-    RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(receiveResult.element.id);
-    RR32Can::RR32Can.HandlePacket(rr32id, receiveResult.element.data);
-  }
-}
-
 void CanTxCbk::SendPacket(RR32Can::Identifier const& id, RR32Can::Data const& data) {
   uint32_t packetId = id.makeIdentifier();
   can_transmit(CAN1, packetId, true, false, data.dlc, const_cast<uint8_t*>(data.data));

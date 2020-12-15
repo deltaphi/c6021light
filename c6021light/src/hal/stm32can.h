@@ -16,7 +16,6 @@ typedef struct {
   RR32Can::Data data;
 } CanMsg;
 
-void loopCan();
 void beginCan(TaskHandle_t taskToNotify);
 
 using CanQueueType = freertossupport::OsQueue<CanMsg>;
