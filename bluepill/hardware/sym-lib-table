@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name c6021light-rescue)(type Legacy)(uri ${KIPRJMOD}/c6021light-rescue.lib)(options "")(descr ""))
+)
