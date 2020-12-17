@@ -3,6 +3,8 @@
 
 #include <atomic>
 
+#include "AtomicRingBuffer/AtomicRingBuffer.h"
+
 #include "ConsoleManager.h"
 #include "DataModel.h"
 
@@ -32,6 +34,11 @@ class LibOpencm3Hal {
   void SaveConfig(const DataModel& dataModel);
   DataModel LoadConfig();
 
+  uint8_t SerialWrite(char* ptr, AtomicRingBuffer::size_type len);
+
+  static LibOpencm3Hal* instance_;
+  void irqSerialTxDMA();
+
  private:
   void beginClock();
   void beginGpio();
@@ -39,7 +46,18 @@ class LibOpencm3Hal {
   void beginLocoNet();
   void beginEE();
 
+  void startSerialTx();
+
   ConsoleManager* console_;
+
+  constexpr static const AtomicRingBuffer::size_type bufferSize_ = 1024;
+  AtomicRingBuffer serialBuffer_;
+  uint8_t bufferMemory_[bufferSize_];
+
+  std::atomic_bool serialDmaBusy_;
+
+  AtomicRingBuffer::pointer_type serialMem_;
+  AtomicRingBuffer::size_type serialNumBytes_;
 };
 
 }  // namespace hal
