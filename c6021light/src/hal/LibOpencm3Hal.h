@@ -34,7 +34,7 @@ class LibOpencm3Hal {
   void SaveConfig(const DataModel& dataModel);
   DataModel LoadConfig();
 
-  uint8_t SerialWrite(char* ptr, AtomicRingBuffer::size_type len);
+  uint8_t SerialWrite(char* ptr, AtomicRingBuffer::AtomicRingBuffer::size_type len);
 
   static LibOpencm3Hal* instance_;
   void irqSerialTxDMA();
@@ -50,14 +50,14 @@ class LibOpencm3Hal {
 
   ConsoleManager* console_;
 
-  constexpr static const AtomicRingBuffer::size_type bufferSize_ = 1024;
-  AtomicRingBuffer serialBuffer_;
+  constexpr static const AtomicRingBuffer::AtomicRingBuffer::size_type bufferSize_ = 1024;
+  AtomicRingBuffer::AtomicRingBuffer serialBuffer_;
   uint8_t bufferMemory_[bufferSize_];
 
   std::atomic_bool serialDmaBusy_;
 
-  AtomicRingBuffer::pointer_type serialMem_;
-  AtomicRingBuffer::size_type serialNumBytes_;
+  AtomicRingBuffer::AtomicRingBuffer::pointer_type serialMem_;
+  AtomicRingBuffer::AtomicRingBuffer::size_type serialNumBytes_;
 };
 
 }  // namespace hal

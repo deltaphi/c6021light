@@ -25,6 +25,8 @@
 
 #include <LocoNet.h>
 
+#include "AtomicRingBuffer/StringCopyHelper.h"
+
 extern "C" {
 /* _write code taken from example at
  * https://github.com/libopencm3/libopencm3-examples/blob/master/examples/stm32/l1/stm32l-discovery/button-irq-printf-lowpower/main.c
@@ -35,7 +37,7 @@ int _write(int file, char* ptr, int len) {
   if (file == STDOUT_FILENO || file == STDERR_FILENO) {
     int bytesLeft = len;
     while (bytesLeft > 0) {
-      AtomicRingBuffer::size_type bytesWritten =
+      AtomicRingBuffer::AtomicRingBuffer::size_type bytesWritten =
           hal::LibOpencm3Hal::instance_->SerialWrite(ptr, bytesLeft);
       bytesLeft -= bytesWritten;
     }
@@ -52,34 +54,27 @@ namespace hal {
 
 LibOpencm3Hal* LibOpencm3Hal::instance_;
 
-uint8_t LibOpencm3Hal::SerialWrite(char* ptr, AtomicRingBuffer::size_type len) {
-  /*
-    for (i = 0; i < len; i++) {
-      if (ptr[i] == '\n') {
-          usart_send_blocking(USART1, '\r');
-        }
-        usart_send_blocking(USART1, ptr[i]);
-    }
-    */
-
-  // Copy Data to buffer
-  AtomicRingBuffer::pointer_type mem;
-  AtomicRingBuffer::size_type numBytes = serialBuffer_.allocate(mem, len, true);
-  if (numBytes > 0) {
-    strncpy(reinterpret_cast<char*>(mem), ptr, numBytes);
-    for (std::size_t i = 0; i < numBytes; ++i) {
-      if (mem[i] == '\n') {
-        mem[i] = '\r';
-      }
-    }
-    serialBuffer_.publish(mem, numBytes);
-    startSerialTx();
+uint8_t LibOpencm3Hal::SerialWrite(char* ptr, AtomicRingBuffer::AtomicRingBuffer::size_type len) {
+  // Check for regular case: Newline at the end of the string
+  AtomicRingBuffer::AtomicRingBuffer::size_type requestedLen = len;
+  if (ptr[len - 1] == '\n') {
+    ++requestedLen;
   }
 
-  // Start DMA
+  AtomicRingBuffer::AtomicRingBuffer::pointer_type dest;
+  AtomicRingBuffer::AtomicRingBuffer::size_type destLen =
+      serialBuffer_.allocate(dest, requestedLen, true);
+
+  char* useDest = reinterpret_cast<char*>(dest);
+  AtomicRingBuffer::AtomicRingBuffer::size_type bytesConsumed =
+      AtomicRingBuffer::memcpyCharReplace(useDest, ptr, '\n', "\r\n", destLen, len);
+
+  // TODO: Handle the case where the source did not fit into the buffer.
+  serialBuffer_.publish(dest, reinterpret_cast<uint8_t*>(useDest) - dest);
+  startSerialTx();
 
   // Return how many bytes were sent off
-  return numBytes;
+  return bytesConsumed;
 }
 
 void LibOpencm3Hal::startSerialTx() {
@@ -88,11 +83,10 @@ void LibOpencm3Hal::startSerialTx() {
     bool dmaBusy = false;
     if (serialDmaBusy_.compare_exchange_strong(dmaBusy, true, std::memory_order_acq_rel)) {
       serialNumBytes_ = serialBuffer_.peek(
-          serialMem_, std::numeric_limits<AtomicRingBuffer::size_type>::max(), true);
+          serialMem_, std::numeric_limits<AtomicRingBuffer::AtomicRingBuffer::size_type>::max(),
+          true);
 
       dma_channel_reset(DMA1, DMA_CHANNEL4);
-
-      dma_set_memory_size(DMA1, DMA_CHANNEL4, 1);
 
       dma_set_peripheral_address(DMA1, DMA_CHANNEL4, (uint32_t)&USART1_DR);
       dma_set_memory_address(DMA1, DMA_CHANNEL4, (uint32_t)serialMem_);
@@ -111,11 +105,9 @@ void LibOpencm3Hal::startSerialTx() {
 
       dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL4);
 
-      usart_enable_tx_dma(USART1);
-
       dma_enable_channel(DMA1, DMA_CHANNEL4);
 
-      //USART_SR(USART1) &= ~USART_SR_TC;
+      usart_enable_tx_dma(USART1);
     }
   }
 }
@@ -190,12 +182,12 @@ void LibOpencm3Hal::beginSerial() {
   // Set Serial speed
   usart_set_baudrate(USART1, 115200);
   usart_set_databits(USART1, 8);
-  usart_set_parity(USART1, USART_PARITY_NONE);
   usart_set_stopbits(USART1, USART_STOPBITS_1);
+  usart_set_mode(USART1, USART_MODE_TX_RX);
+  usart_set_parity(USART1, USART_PARITY_NONE);
   usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
 
   // Enable Serial TX
-  usart_set_mode(USART1, USART_MODE_TX_RX);
   usart_enable(USART1);
 
   // Setup serial DMA IRQ
