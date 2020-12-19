@@ -13,6 +13,7 @@ extern "C" {
 #include <hal/LibOpencm3Hal.h>
 #include "hal/stm32I2C.h"
 #include "hal/stm32can.h"
+#include "hal/stm32eepromEmulation.h"
 #include "hal/stm32usart.h"
 
 using Hal_t = hal::LibOpencm3Hal;
@@ -155,7 +156,7 @@ int run_app_save(int argc, const char* const* argv) {
     return -2;
   }
 
-  halImpl.SaveConfig(dataModel);
+  hal::SaveConfig(dataModel);
   printf("%s: Configuration saved to flash.\n", argv[0]);
 
   return 0;
@@ -165,6 +166,7 @@ void setup() {
   // Setup I2C & CAN
   halImpl.begin();
   hal::beginSerial();
+  hal::beginEE();
   hal::beginI2C(dataModel.myAddr, routingTaskBuffer.getHandle());
   hal::beginCan(routingTaskBuffer.getHandle());
 
@@ -173,7 +175,7 @@ void setup() {
 
   // Load Configuration
   printf("Reading Configuration.\n");
-  dataModel = halImpl.LoadConfig();
+  dataModel = hal::LoadConfig();
   routingTask.begin(dataModel, halImpl);
 
   // Tie callbacks together
