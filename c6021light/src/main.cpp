@@ -53,9 +53,6 @@ freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
                               tasks::ConsoleTask::ConsoleTask::kStackSize>
     consoleTaskBuffer;
 
-ConsoleManager console;
-microrl_t microrl;
-
 // ******** Code ********
 extern "C" {
 void vApplicationStackOverflowHook(xTaskHandle pxTask __attribute((unused)),
@@ -92,76 +89,6 @@ void vApplicationGetIdleTaskMemory(StaticTask_t** ppxIdleTaskTCBBuffer,
 
 }  // extern "C"
 
-void microrl_print_cbk(const char* s) { printf(s); }
-
-int run_app_set_turnout_protocol(int argc, const char* const* argv) {
-  static constexpr const char* text{": Set Turnout protocol to "};
-  if (argc < 2) {
-    printf("%s: Too few arguments (1 expected).\n", argv[0]);
-    return -2;
-  } else if (argc > 2) {
-    printf("%s: Too many arguments (1 expected).\n", argv[0]);
-    return -2;
-  }
-
-  if (strncasecmp(argv[1], MM2Name, strlen(MM2Name)) == 0) {
-    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::MM2;
-    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
-  } else if (strncasecmp(argv[1], DCCName, strlen(DCCName)) == 0) {
-    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::DCC;
-    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
-  } else if (strncasecmp(argv[1], SX1Name, strlen(SX1Name)) == 0) {
-    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::SX1;
-    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
-  } else {
-    printf("%s: Unknown rail protocol '%s'.\n", argv[0], argv[1]);
-    return -3;
-  }
-
-  return 0;
-}
-
-int run_app_get_turnout_protocol(int argc, const char* const* argv) {
-  if (argc > 1) {
-    printf("%s: Too many arguments (0 expected).\n", argv[0]);
-    return -2;
-  }
-
-  const char* turnoutProtocol = nullptr;
-
-  switch (dataModel.accessoryRailProtocol) {
-    case RR32Can::RailProtocol::MM1:
-    case RR32Can::RailProtocol::MM2:
-    case RR32Can::RailProtocol::MFX:
-    case RR32Can::RailProtocol::UNKNOWN:
-      turnoutProtocol = MM2Name;
-      break;
-    case RR32Can::RailProtocol::DCC:
-      turnoutProtocol = DCCName;
-      break;
-    case RR32Can::RailProtocol::SX1:
-    case RR32Can::RailProtocol::SX2:
-      turnoutProtocol = SX1Name;
-      break;
-  }
-
-  printf("%s: The current turnout protocol is %s.\n", argv[0], turnoutProtocol);
-
-  return 0;
-}
-
-int run_app_save(int argc, const char* const* argv) {
-  if (argc > 1) {
-    printf("%s: Too many arguments (0 expected).\n", argv[0]);
-    return -2;
-  }
-
-  hal::SaveConfig(dataModel);
-  printf("%s: Configuration saved to flash.\n", argv[0]);
-
-  return 0;
-}
-
 void setup() {
   // Setup I2C & CAN
   halImpl.begin();
@@ -188,8 +115,8 @@ void setup() {
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
   printf("Ready!\n");
-  consoleTask.setup(&console, routingTaskBuffer.getHandle());
-  console.begin();
+  consoleTask.setup(routingTaskBuffer.getHandle());
+  ConsoleManager::begin(&dataModel);
 }
 
 void setupOsResources() {

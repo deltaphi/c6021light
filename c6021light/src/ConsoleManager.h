@@ -5,10 +5,7 @@ extern "C" {
 #include "microrl.h"
 }
 
-// Forward delaration for implementation elsewhere.
-int run_app_set_turnout_protocol(int argc, const char* const* argv);
-int run_app_get_turnout_protocol(int argc, const char* const* argv);
-int run_app_save(int argc, const char* const* argv);
+#include "DataModel.h"
 
 constexpr const char* MM2Name = "MM2";
 constexpr const char* DCCName = "DCC";
@@ -17,13 +14,10 @@ constexpr const char* SX1Name = "SX1";
 /*
  * \brief Class ConsoleManager
  */
-class ConsoleManager {
- public:
-  void begin();
-  microrl_t* getMicroRl() { return &microrl; };
+namespace ConsoleManager {
 
- private:
-  microrl_t microrl;
-};
+extern microrl_t microrl;
+void begin(DataModel* dataModel);
+};  // namespace ConsoleManager
 
 #endif  // __CONSOLEMANAGER_H__

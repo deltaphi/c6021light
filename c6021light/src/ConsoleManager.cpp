@@ -1,9 +1,11 @@
 #include "ConsoleManager.h"
 
-extern "C" {
-#include <stdio.h>
-#include <string.h>
-}
+#include <cstdio>
+#include <cstring>
+
+#include "RR32Can/Constants.h"
+
+#include "hal/stm32eepromEmulation.h"
 
 #define NUM_CONSOLE_APPS (5)
 
@@ -17,6 +19,14 @@ char* completion_data[NUM_CONSOLE_APPS];
 
 #define ISAPP(inp, name) (strncasecmp(inp, name, strlen(name)) == 0)
 
+namespace ConsoleManager {
+
+DataModel* dataModel_;
+microrl_t microrl;
+
+int run_app_set_turnout_protocol(int argc, const char* const* argv);
+int run_app_get_turnout_protocol(int argc, const char* const* argv);
+int run_app_save(int argc, const char* const* argv);
 int run_app_help(int argc, const char* const* argv);
 static void microrl_print_cbk(const char* s);
 static int microrl_execute_callback(int argc, const char* const* argv);
@@ -25,7 +35,6 @@ static void microrl_print_cbk(const char* s) {
   printf(s);
   fflush(stdout);
 }
-
 static int microrl_execute_callback(int argc, const char* const* argv) {
   if (argc < 1) {
     return -1;  // No application given.
@@ -96,7 +105,9 @@ int run_app_help(int, const char* const*) {
   return 0;
 }
 
-void ConsoleManager::begin() {
+void begin(DataModel* dataModel) {
+  dataModel_ = dataModel;
+
   microrl_init(&microrl, microrl_print_cbk);
   microrl_set_execute_callback(&microrl, microrl_execute_callback);
 
@@ -108,3 +119,73 @@ void ConsoleManager::begin() {
 
   microrl_set_complete_callback(&microrl, microrl_complete_callback);
 }
+
+int run_app_set_turnout_protocol(int argc, const char* const* argv) {
+  static constexpr const char* text{": Set Turnout protocol to "};
+  if (argc < 2) {
+    printf("%s: Too few arguments (1 expected).\n", argv[0]);
+    return -2;
+  } else if (argc > 2) {
+    printf("%s: Too many arguments (1 expected).\n", argv[0]);
+    return -2;
+  }
+
+  if (strncasecmp(argv[1], MM2Name, strlen(MM2Name)) == 0) {
+    dataModel_->accessoryRailProtocol = RR32Can::RailProtocol::MM2;
+    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
+  } else if (strncasecmp(argv[1], DCCName, strlen(DCCName)) == 0) {
+    dataModel_->accessoryRailProtocol = RR32Can::RailProtocol::DCC;
+    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
+  } else if (strncasecmp(argv[1], SX1Name, strlen(SX1Name)) == 0) {
+    dataModel_->accessoryRailProtocol = RR32Can::RailProtocol::SX1;
+    printf("%s%s'%s'.\n", argv[0], text, argv[1]);
+  } else {
+    printf("%s: Unknown rail protocol '%s'.\n", argv[0], argv[1]);
+    return -3;
+  }
+
+  return 0;
+}
+
+int run_app_get_turnout_protocol(int argc, const char* const* argv) {
+  if (argc > 1) {
+    printf("%s: Too many arguments (0 expected).\n", argv[0]);
+    return -2;
+  }
+
+  const char* turnoutProtocol = nullptr;
+
+  switch (dataModel_->accessoryRailProtocol) {
+    case RR32Can::RailProtocol::MM1:
+    case RR32Can::RailProtocol::MM2:
+    case RR32Can::RailProtocol::MFX:
+    case RR32Can::RailProtocol::UNKNOWN:
+      turnoutProtocol = MM2Name;
+      break;
+    case RR32Can::RailProtocol::DCC:
+      turnoutProtocol = DCCName;
+      break;
+    case RR32Can::RailProtocol::SX1:
+    case RR32Can::RailProtocol::SX2:
+      turnoutProtocol = SX1Name;
+      break;
+  }
+
+  printf("%s: The current turnout protocol is %s.\n", argv[0], turnoutProtocol);
+
+  return 0;
+}
+
+int run_app_save(int argc, const char* const* argv) {
+  if (argc > 1) {
+    printf("%s: Too many arguments (0 expected).\n", argv[0]);
+    return -2;
+  }
+
+  hal::SaveConfig(*dataModel_);
+  printf("%s: Configuration saved to flash.\n", argv[0]);
+
+  return 0;
+}
+
+}  // namespace ConsoleManager
