@@ -103,7 +103,7 @@ void setup() {
   // Load Configuration
   printf("Reading Configuration.\n");
   dataModel = hal::LoadConfig();
-  routingTask.begin(dataModel, halImpl);
+  routingTask.begin(dataModel);
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");
