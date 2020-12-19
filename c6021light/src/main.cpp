@@ -13,6 +13,7 @@ extern "C" {
 #include <hal/LibOpencm3Hal.h>
 #include "hal/stm32I2C.h"
 #include "hal/stm32can.h"
+#include "hal/stm32usart.h"
 
 using Hal_t = hal::LibOpencm3Hal;
 
@@ -162,7 +163,8 @@ int run_app_save(int argc, const char* const* argv) {
 
 void setup() {
   // Setup I2C & CAN
-  halImpl.begin(&console);
+  halImpl.begin();
+  hal::beginSerial();
   hal::beginI2C(dataModel.myAddr, routingTaskBuffer.getHandle());
   hal::beginCan(routingTaskBuffer.getHandle());
 
@@ -184,7 +186,7 @@ void setup() {
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
   printf("Ready!\n");
-  consoleTask.setup(&halImpl, routingTaskBuffer.getHandle());
+  consoleTask.setup(&console, routingTaskBuffer.getHandle());
   console.begin();
 }
 

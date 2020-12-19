@@ -1,7 +1,12 @@
 #ifndef __TASKS__CONSOLETASK__CONSOLETASK_H__
 #define __TASKS__CONSOLETASK__CONSOLETASK_H__
 
-#include "hal/LibOpencm3Hal.h"
+#include <cstdint>
+
+#include "FreeRTOS.h"
+#include "task.h"
+
+#include "ConsoleManager.h"
 
 namespace tasks {
 namespace ConsoleTask {
@@ -13,15 +18,16 @@ class ConsoleTask {
  public:
   static constexpr const uint32_t kStackSize = 256;
 
-  void setup(hal::LibOpencm3Hal* halImpl, TaskHandle_t routingTask) {
-    halImpl_ = halImpl;
+  void setup(ConsoleManager* console, TaskHandle_t routingTask) {
+    console_ = console;
     routingTask_ = routingTask;
   }
 
   void TaskMain();
 
  private:
-  hal::LibOpencm3Hal* halImpl_;
+  ConsoleManager* console_;
+
   TaskHandle_t routingTask_;
 };
 
