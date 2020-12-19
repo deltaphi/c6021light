@@ -61,20 +61,29 @@ uint8_t LibOpencm3Hal::SerialWrite(char* ptr, AtomicRingBuffer::AtomicRingBuffer
     ++requestedLen;
   }
 
-  AtomicRingBuffer::AtomicRingBuffer::pointer_type dest;
-  AtomicRingBuffer::AtomicRingBuffer::size_type destLen =
-      serialBuffer_.allocate(dest, requestedLen, true);
+  AtomicRingBuffer::AtomicRingBuffer::size_type totalBytesConsumed = 0;
+  AtomicRingBuffer::AtomicRingBuffer::size_type bytesConsumed = 0;
 
-  char* useDest = reinterpret_cast<char*>(dest);
-  AtomicRingBuffer::AtomicRingBuffer::size_type bytesConsumed =
-      AtomicRingBuffer::memcpyCharReplace(useDest, ptr, '\n', "\r\n", destLen, len);
+  while (totalBytesConsumed < len) {
+    requestedLen -= bytesConsumed;
 
-  // TODO: Handle the case where the source did not fit into the buffer.
-  serialBuffer_.publish(dest, reinterpret_cast<uint8_t*>(useDest) - dest);
-  startSerialTx();
+    AtomicRingBuffer::AtomicRingBuffer::pointer_type dest;
+    AtomicRingBuffer::AtomicRingBuffer::size_type destLen =
+        serialBuffer_.allocate(dest, requestedLen, true);
 
+    char* useDest = reinterpret_cast<char*>(dest);
+    bytesConsumed = AtomicRingBuffer::memcpyCharReplace(useDest, &ptr[bytesConsumed], '\n', "\r\n",
+                                                        destLen, len);
+
+    // TODO: Handle the case where the source did not fit into the buffer.
+    serialBuffer_.publish(dest, reinterpret_cast<uint8_t*>(useDest) - dest);
+    startSerialTx();
+
+    totalBytesConsumed += bytesConsumed;
+  }
   // Return how many bytes were sent off
-  return bytesConsumed;
+
+  return totalBytesConsumed;
 }
 
 void LibOpencm3Hal::startSerialTx() {
