@@ -33,8 +33,6 @@ extern "C" {
 #include "RR32Can/RR32Can.h"
 #include "RR32Can_config.h"
 
-#include "hal/stm32I2C.h"
-
 #include <FreeRTOS.h>
 #include "OsQueue.h"
 #include "OsTask.h"
