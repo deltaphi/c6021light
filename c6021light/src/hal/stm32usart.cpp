@@ -78,15 +78,13 @@ extern "C" {
  * https://github.com/libopencm3/libopencm3-examples/blob/master/examples/stm32/l1/stm32l-discovery/button-irq-printf-lowpower/main.c
  */
 int _write(int file, char* ptr, int len) {
-  int i;
-
   if (file == STDOUT_FILENO || file == STDERR_FILENO) {
     int bytesLeft = len;
     while (bytesLeft > 0) {
       AtomicRingBuffer::AtomicRingBuffer::size_type bytesWritten = SerialWrite(ptr, bytesLeft);
       bytesLeft -= bytesWritten;
     }
-    return i;
+    return len - bytesLeft;
   }
   errno = EIO;
   return -1;
