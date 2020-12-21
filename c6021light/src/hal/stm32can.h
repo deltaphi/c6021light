@@ -12,7 +12,7 @@ namespace hal {
  * \brief Class stm32can
  */
 typedef struct {
-  uint32_t id;
+  RR32Can::Identifier id;
   RR32Can::Data data;
 } CanMsg;
 

@@ -187,12 +187,10 @@ void RoutingTask::TaskMain() {
     constexpr const TickType_t ticksToWait = 0;
     for (hal::CanQueueType::ReceiveResult receiveResult = hal::canrxq.Receive(ticksToWait);
          receiveResult.errorCode == pdTRUE; receiveResult = hal::canrxq.Receive(ticksToWait)) {
-      RR32Can::Identifier rr32id = RR32Can::Identifier::GetIdentifier(receiveResult.element.id);
-
-      ForwardToI2C(rr32id, receiveResult.element.data);
-      ForwardToLoconet(rr32id, receiveResult.element.data);
+      ForwardToI2C(receiveResult.element.id, receiveResult.element.data);
+      ForwardToLoconet(receiveResult.element.id, receiveResult.element.data);
       // Forward to self
-      RR32Can::RR32Can.HandlePacket(rr32id, receiveResult.element.data);
+      RR32Can::RR32Can.HandlePacket(receiveResult.element.id, receiveResult.element.data);
     }
 
     // Process I2C

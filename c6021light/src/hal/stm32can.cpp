@@ -64,8 +64,8 @@ void usb_lp_can_rx0_isr(void) {
     uint8_t fmi;
     uint16_t timestamp;
 
-    can_receive(CAN1, 0, true, &canMsg.id, &ext, &rtr, &fmi, &canMsg.data.dlc, canMsg.data.data,
-                &timestamp);
+    can_receive(CAN1, 0, true, &(canMsg.id.rawValue()), &ext, &rtr, &fmi, &canMsg.data.dlc,
+                canMsg.data.data, &timestamp);
     CanQueueType::SendResultISR sendResult = canrxq.SendFromISR(canMsg);
     if (sendResult.errorCode != pdTRUE) {
       // TODO: Handle Queue full by notifying the user.
