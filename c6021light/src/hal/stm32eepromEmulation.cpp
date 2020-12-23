@@ -11,8 +11,8 @@ namespace hal {
 
 // Extern declarations for flash pages defined in linker script
 extern "C" {
-  extern uint32_t _flashFairyPage0;
-  extern uint32_t _flashFairyPage1;
+extern uint32_t _flashFairyPage0;
+extern uint32_t _flashFairyPage1;
 }
 
 FlashFairyPP::FlashFairyPP flashFairy;
@@ -27,16 +27,18 @@ void beginEE() {
 
 DataModel LoadConfig() {
   DataModel model;
-  model.accessoryRailProtocol = static_cast<RR32Can::RailProtocol>(flashFairy.getValue(DataAddresses::accessoryRailProtocol));
+  model.accessoryRailProtocol =
+      static_cast<RR32Can::RailProtocol>(flashFairy.getValue(DataAddresses::accessoryRailProtocol));
   return model;
 }
 
 void SaveConfig(const DataModel& model) {
-  uint16_t value = static_cast<std::underlying_type<RR32Can::RailProtocol>::type>(model.accessoryRailProtocol);
+  uint16_t value =
+      static_cast<std::underlying_type<RR32Can::RailProtocol>::type>(model.accessoryRailProtocol);
   flashFairy.setValue(DataAddresses::accessoryRailProtocol, value);
 }
 
-extern "C" void flash_write(uint32_t *pagePtr, uint32_t line) {
+extern "C" void flash_write(uint32_t* pagePtr, uint32_t line) {
   flash_program_half_word(reinterpret_cast<uint32_t>(pagePtr) + 2, line >> 16);
   flash_program_half_word(reinterpret_cast<uint32_t>(pagePtr), line);
 }
