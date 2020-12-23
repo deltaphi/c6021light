@@ -5,6 +5,8 @@
 .vscode/launch.json
 .vscode/ipch
 
+*.code-workspace
+
 # Eclipse
 .project
 .cproject
