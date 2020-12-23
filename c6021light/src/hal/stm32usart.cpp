@@ -127,11 +127,12 @@ uint8_t SerialWrite(char* ptr, AtomicRingBuffer::AtomicRingBuffer::size_type len
         serialBuffer_.allocate(dest, requestedLen, true);
 
     char* useDest = reinterpret_cast<char*>(dest);
-    bytesConsumed = AtomicRingBuffer::memcpyCharReplace(useDest, &ptr[bytesConsumed], '\n', "\r\n",
-                                                        destLen, len);
+    bytesConsumed = AtomicRingBuffer::memcpyCharReplace(useDest, &ptr[totalBytesConsumed], '\n',
+                                                        "\r\n", destLen, len);
 
-    // TODO: Handle the case where the source did not fit into the buffer.
-    serialBuffer_.publish(dest, reinterpret_cast<uint8_t*>(useDest) - dest);
+    AtomicRingBuffer::AtomicRingBuffer::size_type bytesToPublish =
+        reinterpret_cast<uint8_t*>(useDest) - dest;
+    serialBuffer_.publish(dest, bytesToPublish);
     startSerialTx();
 
     totalBytesConsumed += bytesConsumed;
