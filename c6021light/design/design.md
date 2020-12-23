@@ -80,9 +80,9 @@ c6021light allows runtime configurable settings to be done via the command line 
 * ConsoleManager
 * DataModel
 * stm32eepromEmulation
-* nimaltd_ee
+* FlashFairyPP
 
-DataModel holds the actual runtime configuration data. All components wishing to read or write configuration data must do so by accessing a central instance of DataModel. ConsoleManager can be used to trigger a write of the current DataModel to persistent flash storage from the command line interface. Flash handling is performed by nimaltd_ee, where stm32eepromEmulation adds a few callbacks to map nimaltd_ee to libopencm3.
+DataModel holds the actual runtime configuration data. All components wishing to read or write configuration data must do so by accessing a central instance of DataModel. ConsoleManager can be used to trigger a write of the current DataModel to persistent flash storage from the command line interface. Flash handling is performed by FlashFairyPP, where stm32eepromEmulation adds a few callbacks to map FlashFairyPP to libopencm3.
 
 ## Bus communciation routing
 

@@ -7,12 +7,13 @@
 
 #include "hal/stm32eepromEmulation.h"
 
-#define NUM_CONSOLE_APPS (5)
+#define NUM_CONSOLE_APPS (6)
 
 static constexpr const char* app_set_turnout_protocol{"set-protocol"};
 static constexpr const char* app_get_turnout_protocol{"get-protocol"};
 static constexpr const char* app_help{"help"};
 static constexpr const char* app_save{"save"};
+static constexpr const char* app_dump_flash{"dump-flash"};
 
 const char* all_apps[NUM_CONSOLE_APPS];
 char* completion_data[NUM_CONSOLE_APPS];
@@ -28,6 +29,7 @@ int run_app_set_turnout_protocol(int argc, const char* const* argv);
 int run_app_get_turnout_protocol(int argc, const char* const* argv);
 int run_app_save(int argc, const char* const* argv);
 int run_app_help(int argc, const char* const* argv);
+int run_app_dump_flash(int argc, const char* const* argv);  // implemented in eeprom emulation
 static void microrl_print_cbk(const char* s);
 static int microrl_execute_callback(int argc, const char* const* argv);
 
@@ -35,6 +37,7 @@ static void microrl_print_cbk(const char* s) {
   printf(s);
   fflush(stdout);
 }
+
 static int microrl_execute_callback(int argc, const char* const* argv) {
   if (argc < 1) {
     return -1;  // No application given.
@@ -47,6 +50,8 @@ static int microrl_execute_callback(int argc, const char* const* argv) {
     return run_app_get_turnout_protocol(argc, argv);
   } else if (ISAPP(argv[0], app_save)) {
     return run_app_save(argc, argv);
+  } else if (ISAPP(argv[0], app_dump_flash)) {
+    return run_app_dump_flash(argc, argv);
   }
 
   return -1;
@@ -102,6 +107,7 @@ int run_app_help(int, const char* const*) {
   printf("  %s - Get current Turnout Protocol.\n", app_get_turnout_protocol);
   printf("  %s - Save configuration across reset.\n", app_save);
   printf("  %s - Display this help message.\n", app_help);
+  printf("  %s - Show contents of EEPROM Emulation Flash.\n", app_dump_flash);
   return 0;
 }
 
@@ -115,7 +121,8 @@ void begin(DataModel* dataModel) {
   all_apps[1] = const_cast<char*>(app_get_turnout_protocol);
   all_apps[2] = const_cast<char*>(app_help);
   all_apps[3] = const_cast<char*>(app_save);
-  all_apps[4] = nullptr;
+  all_apps[4] = const_cast<char*>(app_dump_flash);
+  all_apps[5] = nullptr;
 
   microrl_set_complete_callback(&microrl, microrl_complete_callback);
 }

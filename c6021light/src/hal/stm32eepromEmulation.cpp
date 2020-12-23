@@ -45,20 +45,41 @@ extern "C" void flash_write(uint32_t* pagePtr, uint32_t line) {
 
 }  // namespace hal
 
+namespace ConsoleManager {
 
-extern "C" uint8_t HAL_FLASH_Program(uint8_t flashProgramType, uint32_t addr, uint64_t data) {
-  if (flashProgramType == FLASH_TYPEPROGRAM_HALFWORD) {
-    flash_program_half_word(addr, data);
-    uint32_t flashStatus = flash_get_status_flags();
-    if (flashStatus != FLASH_SR_EOP) {
-      return HAL_NOK;
-    } else {
-      return HAL_OK;
+int run_app_dump_flash(int, const char* const*) {
+  FlashFairyPP::FlashFairyPP::Config_t config;
+  config.pages[0] = &hal::_flashFairyPage0;
+  config.pages[1] = &hal::_flashFairyPage1;
+
+  for (unsigned int i = 0; i < 2; ++i) {
+    printf("\nPage %d:\n", i);
+    FlashFairyPP::FlashFairyPP::page_pointer_type page = config.pages[i];
+
+    // 1024 bytes, hex output -> 3 columns per byte -> an 80 column line fits 26 bytes.
+    // Rather display only 16 bytes to make navigation easier
+    // constexpr std::size_t columnsPerByte = 3;
+    constexpr std::size_t bytesPerLine = 32;
+    // constexpr std::size_t indentLength = 1;
+    constexpr std::size_t totalBytes = FlashFairyPP::FlashFairyPP::Config_t::pageSize;
+    constexpr std::size_t totalLines = totalBytes / bytesPerLine;
+    // constexpr std::size_t totalColumns = indentLength + (columnsPerByte * bytesPerLine);
+
+    std::size_t absoluteByteIdx = 0;
+    uint8_t* ptr = reinterpret_cast<uint8_t*>(page);
+
+    for (std::size_t line = 0; line < totalLines; ++line) {
+      printf(" %03x: ", absoluteByteIdx);  // Indent and base address
+      for (std::size_t localByteIdx = 0; localByteIdx < bytesPerLine; ++localByteIdx) {
+        printf(" %02x", *ptr);
+        ++ptr;
+      }
+      printf("\n");
+      absoluteByteIdx += bytesPerLine;
     }
-  } else {
-    printf("HAL_FLASH_Program: flashProgramType not supported.\n");
-    return HAL_NOK;
   }
+
+  return 0;
 }
 
-}  // namespace hal
+}  // namespace ConsoleManager
