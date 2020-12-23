@@ -5,8 +5,8 @@ ENTRY(reset_handler)
 MEMORY
 {
  ram (rwx) : ORIGIN = 0x20000000, LENGTH = 20K
- rom (rx) : ORIGIN = 0x08000000, LENGTH = 63K
- ee (rw) : ORIGIN = ORIGIN(rom) + LENGTH(rom), LENGTH = 1K
+ rom (rx) : ORIGIN = 0x08000000, LENGTH = 62K
+ ee (rw) : ORIGIN = ORIGIN(rom) + LENGTH(rom), LENGTH = 2K
 }
 
 SECTIONS
@@ -63,6 +63,16 @@ SECTIONS
  } >ram AT >rom
 
  _data_loadaddr = LOADADDR(.data);
+
+ .flashFairy : {
+  _flashFairy_start = .;
+  . = ALIGN(4);
+  KEEP (*(.flashFairy))
+  _flashFairyPage0 = .;
+  _flashFairyPage1 = . + 1024;
+  . = ALIGN(4);
+  _flashFairy_end = . + 2048;
+ } >ee
 
  .bss : {
   *(.bss*)
