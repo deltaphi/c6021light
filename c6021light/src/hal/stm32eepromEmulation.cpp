@@ -38,9 +38,13 @@ void SaveConfig(const DataModel& model) {
   flashFairy.setValue(DataAddresses::accessoryRailProtocol, value);
 }
 
-extern "C" void flash_write(uint32_t* pagePtr, uint32_t line) {
+extern "C" void FlashFairy_Write_Word(void* pagePtr, uint32_t line) {
   flash_program_half_word(reinterpret_cast<uint32_t>(pagePtr) + 2, line >> 16);
   flash_program_half_word(reinterpret_cast<uint32_t>(pagePtr), line);
+}
+
+extern "C" void FlashFairy_Erase_Page(void* pagePtr) {
+  flash_erase_page(reinterpret_cast<uint32_t>(pagePtr));
 }
 
 }  // namespace hal
