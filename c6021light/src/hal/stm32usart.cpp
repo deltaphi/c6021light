@@ -111,8 +111,11 @@ void dma1_channel4_isr(void) {
 }
 }  // extern "C"
 
-uint8_t SerialWrite(const char* ptr, AtomicRingBuffer::AtomicRingBuffer::size_type len,
+uint8_t SerialWrite(const char* src, AtomicRingBuffer::AtomicRingBuffer::size_type srcLen,
                     bool doReplace) {
+  using size_type = AtomicRingBuffer::AtomicRingBuffer::size_type;
+  using pointer_type = AtomicRingBuffer::AtomicRingBuffer::pointer_type;
+
   // Constants used for memcpyCharReplace
   constexpr static char search = '\n';
   constexpr static const char* replace = "\r\n";
@@ -121,52 +124,51 @@ uint8_t SerialWrite(const char* ptr, AtomicRingBuffer::AtomicRingBuffer::size_ty
 
   // Optimization for a common case: When the input string end in a newline, request enough
   // additional characters to fit at least one replace.
-  AtomicRingBuffer::AtomicRingBuffer::size_type remainingLen = len;
-  if (ptr[len - 1] == '\n') {
-    remainingLen += replaceLen - 1;
+  size_type expectedDestLen = srcLen;
+  if (src[srcLen - 1] == '\n') {
+    expectedDestLen += replaceLen - 1;
   }
 
-  AtomicRingBuffer::AtomicRingBuffer::size_type totalBytesConsumed = 0;
+  size_type srcBytesConsumed = 0;
 
-  while (totalBytesConsumed < len) {
-    AtomicRingBuffer::AtomicRingBuffer::pointer_type dest;
-    AtomicRingBuffer::AtomicRingBuffer::size_type destLen =
-        serialBuffer_.allocate(dest, remainingLen, true);
-
-    AtomicRingBuffer::AtomicRingBuffer::size_type bytesToPublish = 0;
+  while (srcBytesConsumed < srcLen) {
     const char* replacePtr = replace;
-    AtomicRingBuffer::AtomicRingBuffer::size_type bytesConsumed = 0;
+    {
+      pointer_type dest;
+      size_type destLen = serialBuffer_.allocate(dest, expectedDestLen, true);
 
-    if (doReplace) {
-      char* useDest = reinterpret_cast<char*>(dest);
+      size_type bytesToPublish = 0;
+      size_type bytesConsumed = 0;
 
-      bytesConsumed = AtomicRingBuffer::memcpyCharReplace(useDest, &ptr[totalBytesConsumed], search,
-                                                          replacePtr, destLen, len);
-      bytesToPublish = reinterpret_cast<uint8_t*>(useDest) - dest;
-    } else {
-      memcpy(dest, &ptr[totalBytesConsumed], destLen);
-      bytesConsumed = destLen;
-      bytesToPublish = destLen;
+      if (doReplace) {
+        char* useDest = reinterpret_cast<char*>(dest);
+
+        bytesConsumed = AtomicRingBuffer::memcpyCharReplace(useDest, &src[srcBytesConsumed], search,
+                                                            replacePtr, destLen, srcLen);
+        bytesToPublish = reinterpret_cast<uint8_t*>(useDest) - dest;
+      } else {
+        memcpy(dest, &src[srcBytesConsumed], destLen);
+        bytesConsumed = destLen;
+        bytesToPublish = destLen;
+      }
+
+      serialBuffer_.publish(dest, bytesToPublish);
+      startSerialTx();
+
+      srcBytesConsumed += bytesConsumed;
+      expectedDestLen -= bytesConsumed;
     }
-
-    serialBuffer_.publish(dest, bytesToPublish);
-    startSerialTx();
-
-    totalBytesConsumed += bytesConsumed;
-    remainingLen -= bytesConsumed;
-
     bool replaceIncomplete = replacePtr != replace;
 
     if (replaceIncomplete && doReplace) {
       // There were bytes left, try to send those *without* replacement.
-      AtomicRingBuffer::AtomicRingBuffer::size_type remainingReplaceLen =
-          replaceLen - (replacePtr - replace);
+      size_type remainingReplaceLen = replaceLen - (replacePtr - replace);
       SerialWrite(replacePtr, remainingReplaceLen, false);
     }
   }
   // Return how many bytes were sent off
 
-  return totalBytesConsumed;
+  return srcBytesConsumed;
 }
 
 void startSerialTx() {
