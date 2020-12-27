@@ -68,7 +68,7 @@ static char** microrl_complete_callback(int argc, const char* const* argv) {
     // Apps are possible
     unsigned int j = 0;
     for (unsigned int i = 0; i < NUM_CONSOLE_APPS; ++i) {
-      if (strstr(all_apps[i], argv[0]) != nullptr) {
+      if (strstr(all_apps[i], argv[0]) == all_apps[i]) {
         completion_data[j] = const_cast<char*>(all_apps[i]);
         ++j;
       }
@@ -84,12 +84,13 @@ static char** microrl_complete_callback(int argc, const char* const* argv) {
         possible_completions[1] = const_cast<char*>(DCCName);
         possible_completions[2] = const_cast<char*>(SX1Name);
         possible_completions[3] = nullptr;
-        possible_completions[3] = nullptr;
+        possible_completions[4] = nullptr;
+        possible_completions[5] = nullptr;
 
         // remove all that do not match the current command line
         unsigned int j = 0;
         for (unsigned int i = 0; i < NUM_CONSOLE_APPS; ++i) {
-          if (strstr(possible_completions[i], argv[1]) != nullptr) {
+          if (strstr(possible_completions[i], argv[1]) == possible_completions[i]) {
             completion_data[j] = possible_completions[i];
             ++j;
           }
