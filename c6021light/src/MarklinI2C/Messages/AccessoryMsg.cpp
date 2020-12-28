@@ -1,5 +1,7 @@
 #include "MarklinI2C/Messages/AccessoryMsg.h"
 
+#include <cinttypes>
+
 #include "RR32Can/StlAdapter.h"
 
 namespace MarklinI2C {
@@ -128,8 +130,9 @@ void AccessoryMsg::print() const {
       break;
   }
 
-  printf("[0x%x 0x%x 0x%x] - Keyboard: %i, Decoder: %i, (Turnout: %i, Direction: %s, Power: %s)\n",
-         destination_, source_, data_, getSender(), getDecoderOutput(), getTurnoutAddr(),
+  printf("[0x%x 0x%x 0x%x] - Keyboard: %i, Decoder: %i, (Turnout: %" PRId32
+         ", Direction: %s, Power: %s)\n",
+         destination_, source_, data_, getSender(), getDecoderOutput(), getTurnoutAddr().value(),
          directionString, powerString);
 #endif
 }
