@@ -284,14 +284,9 @@ bool RoutingTask::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr3
       message.setDeviceId(0);
 
       {
-        uint16_t addr = 0;
-        addr |= LnPacket.ir.in1 << 1;
+        uint16_t addr = LnPacket.ir.in1 << 1;
         addr |= (LnPacket.ir.in2 & 0x0F) << 8;
         addr |= (LnPacket.ir.in2 & 0x20) >> 5;
-
-        // uint16_t addr = ((LnPacket.ir.in2 & 0x0F) << 7) | LnPacket.ir.in1;
-        // addr <<= 1;
-        // addr |= (LnPacket.ir.in2 & 0x20) >> 4;
         RR32Can::MachineTurnoutAddress lnAddr(addr);
 
         message.setContactId(lnAddr);
