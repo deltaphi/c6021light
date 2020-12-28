@@ -18,6 +18,6 @@ namespace ConsoleManager {
 
 extern microrl_t microrl;
 void begin(DataModel* dataModel);
-};  // namespace ConsoleManager
+}  // namespace ConsoleManager
 
 #endif  // __CONSOLEMANAGER_H__
