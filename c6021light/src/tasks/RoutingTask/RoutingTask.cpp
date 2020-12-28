@@ -6,6 +6,7 @@
 
 #include <LocoNet.h>
 #include "RR32Can/RR32Can.h"
+#include "RR32Can/messages/S88Event.h"
 #include "hal/stm32I2C.h"
 #include "hal/stm32can.h"
 
@@ -216,7 +217,6 @@ void RoutingTask::TaskMain() {
     // Process LocoNet
     for (lnMsg* LnPacket = LocoNet.receive(); LnPacket; LnPacket = LocoNet.receive()) {
       printLnPacket(LnPacket);
-      LocoNet.processSwitchSensorMessage(LnPacket);
 
       RR32Can::Identifier rr32id;
       RR32Can::Data rr32data;
@@ -272,6 +272,44 @@ bool RoutingTask::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr3
         systemMessage.setSubcommand(RR32Can::SystemSubcommand::SYSTEM_STOP);
       }
 
+      return true;
+      break;
+    }
+    case OPC_INPUT_REP: {
+      rr32id.setCommand(RR32Can::Command::S88_EVENT);
+      rr32id.setResponse(true);
+      RR32Can::S88Event message(rr32data);
+      message.initData();
+      message.setSubtype(RR32Can::S88Event::Subtype::RESPONSE);
+      message.setDeviceId(0);
+
+      {
+        uint16_t addr = 0;
+        addr |= LnPacket.ir.in1 << 1;
+        addr |= (LnPacket.ir.in2 & 0x0F) << 8;
+        addr |= (LnPacket.ir.in2 & 0x20) >> 5;
+
+        // uint16_t addr = ((LnPacket.ir.in2 & 0x0F) << 7) | LnPacket.ir.in1;
+        // addr <<= 1;
+        // addr |= (LnPacket.ir.in2 & 0x20) >> 4;
+        RR32Can::MachineTurnoutAddress lnAddr(addr);
+
+        message.setContactId(lnAddr);
+      }
+      {
+        RR32Can::S88Event::State newState;
+        RR32Can::S88Event::State oldState;
+        if (((LnPacket.ir.in2 & 0x10) >> 4) == 0) {
+          newState = RR32Can::S88Event::State::OPEN;
+          oldState = RR32Can::S88Event::State::CLOSED;
+        } else {
+          newState = RR32Can::S88Event::State::CLOSED;
+          oldState = RR32Can::S88Event::State::OPEN;
+        }
+
+        message.setStates(oldState, newState);
+      }
+      message.setTime(0);
       return true;
       break;
     }
