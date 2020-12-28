@@ -172,6 +172,21 @@ void RoutingTask::ForwardToLoconet(const RR32Can::Identifier rr32id,
           break;
       }
     }
+    case RR32Can::Command::S88_EVENT: {
+      const RR32Can::S88Event s88Event(const_cast<RR32Can::Data&>(rr32data));
+      if (s88Event.getSubtype() == RR32Can::S88Event::Subtype::RESPONSE) {
+        uint8_t state = 0;
+        switch (s88Event.getNewState()) {
+          case RR32Can::S88Event::State::OPEN:
+            state = 0;
+            break;
+          case RR32Can::S88Event::State::CLOSED:
+            state = 1;
+            break;
+        }
+        LocoNet.reportSensor(RR32Can::HumanTurnoutAddress(s88Event.getContactId()).value(), state);
+      }
+    }
     default:
       // Other messages not forwarded.
       break;
