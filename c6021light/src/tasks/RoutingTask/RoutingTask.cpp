@@ -96,7 +96,7 @@ void printLnPacket(lnMsg* LnPacket) {
   printf("\n");
 }
 
-void RoutingTask::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& request,
+bool RoutingTask::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& request,
                                  RR32Can::Identifier& rr32id, RR32Can::Data& rr32data) {
   rr32id.setCommand(RR32Can::Command::ACCESSORY_SWITCH);
   rr32id.setResponse(false);
@@ -135,6 +135,7 @@ void RoutingTask::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& reque
       printf("PowerOff for wrong decoder.\n");
     }
   }
+  return true;
 }
 
 void RoutingTask::ForwardToLoconet(const RR32Can::Identifier rr32id,
@@ -204,12 +205,12 @@ void RoutingTask::TaskMain() {
       RR32Can::Data rr32data;
 
       // Convert to generic CAN representation
-      MakeRR32CanMsg(request, rr32id, rr32data);
-
-      RR32Can::RR32Can.SendPacket(rr32id, rr32data);
-      ForwardToLoconet(rr32id, rr32data);
-      // Forward to self
-      RR32Can::RR32Can.HandlePacket(rr32id, rr32data);
+      if (MakeRR32CanMsg(request, rr32id, rr32data)) {
+        RR32Can::RR32Can.SendPacket(rr32id, rr32data);
+        ForwardToLoconet(rr32id, rr32data);
+        // Forward to self
+        RR32Can::RR32Can.HandlePacket(rr32id, rr32data);
+      }
     }
 
     // Process LocoNet
@@ -221,18 +222,19 @@ void RoutingTask::TaskMain() {
       RR32Can::Data rr32data;
 
       // Convert to generic CAN representation
-      MakeRR32CanMsg(*LnPacket, rr32id, rr32data);
-      ForwardToI2C(rr32id, rr32data);
-      // Forward to CAN
-      RR32Can::RR32Can.SendPacket(rr32id, rr32data);
+      if (MakeRR32CanMsg(*LnPacket, rr32id, rr32data)) {
+        ForwardToI2C(rr32id, rr32data);
+        // Forward to CAN
+        RR32Can::RR32Can.SendPacket(rr32id, rr32data);
 
-      // Forward to self
-      RR32Can::RR32Can.HandlePacket(rr32id, rr32data);
+        // Forward to self
+        RR32Can::RR32Can.HandlePacket(rr32id, rr32data);
+      }
     }
   }
 }
 
-void RoutingTask::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id,
+bool RoutingTask::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id,
                                  RR32Can::Data& rr32data) {
   // Decode the opcode
   switch (LnPacket.data[0]) {
@@ -254,6 +256,7 @@ void RoutingTask::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr3
       uint8_t power = LnPacket.srq.sw2 & OPC_SW_REQ_OUT;
       turnoutPacket.setPower(power);
 
+      return true;
       break;
     }
     case OPC_GPON:
@@ -269,10 +272,12 @@ void RoutingTask::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr3
         systemMessage.setSubcommand(RR32Can::SystemSubcommand::SYSTEM_STOP);
       }
 
+      return true;
       break;
     }
     default:
       // Other packet types not handled.
+      return false;
       break;
   }
 }

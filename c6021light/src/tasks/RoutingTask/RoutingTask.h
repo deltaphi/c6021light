@@ -29,8 +29,8 @@ class RoutingTask {
   void SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg);
   MarklinI2C::Messages::AccessoryMsg getI2CMessage(hal::I2CBuf& buffer);
 
-  void MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id, RR32Can::Data& rr32data);
-  void MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& i2cMsg, RR32Can::Identifier& rr32id,
+  bool MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id, RR32Can::Data& rr32data);
+  bool MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& i2cMsg, RR32Can::Identifier& rr32id,
                       RR32Can::Data& rr32data);
   void ForwardToLoconet(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data);
   void ForwardToI2C(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data);
