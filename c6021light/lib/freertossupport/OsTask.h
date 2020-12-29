@@ -13,6 +13,11 @@ class OsTask {
  public:
   TaskHandle_t getHandle() { return handle_; }
 
+  void notify() { xTaskNotify(handle_, 1, eSetValueWithoutOverwrite); }
+  void notifyFromISR(BaseType_t HigherPriorityTaskWoken) {
+    xTaskNotifyFromISR(handle_, 1, eSetValueWithoutOverwrite, &HigherPriorityTaskWoken);
+  }
+
  protected:
   TaskHandle_t handle_;
 };
