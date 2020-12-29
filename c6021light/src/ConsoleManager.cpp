@@ -15,6 +15,8 @@
 
 #define NUM_COMPLETIONS (6)
 
+using MainFunc_t = int (*)(int argc, const char* const* argv);
+
 struct Argument;
 
 struct Argument {
@@ -60,6 +62,18 @@ int run_app_help(int argc, const char* const* argv);
 int run_app_dump_flash(int argc, const char* const* argv);  // implemented in eeprom emulation
 static void microrl_print_cbk(const char* s);
 static int microrl_execute_callback(int argc, const char* const* argv);
+
+struct MainFuncName {
+  const char* name;
+  MainFunc_t mainFunc;
+};
+
+static const MainFuncName mainFuncs[] = {{app_set_turnout_protocol, run_app_set_turnout_protocol},
+                                         {app_get_turnout_protocol, run_app_get_turnout_protocol},
+                                         {app_help, run_app_help},
+                                         {app_save, run_app_save},
+                                         {app_dump_flash, run_app_dump_flash},
+                                         {nullptr, nullptr}};
 
 static void microrl_print_cbk(const char* s) {
   printf(s);
@@ -115,18 +129,16 @@ static int microrl_execute_callback(int argc, const char* const* argv) {
   if (argc < 1) {
     return -1;  // No application given.
   }
-  if (ISAPP(argv[0], app_help)) {
-    return run_app_help(argc, argv);
-  } else if (ISAPP(argv[0], app_set_turnout_protocol)) {
-    return run_app_set_turnout_protocol(argc, argv);
-  } else if (ISAPP(argv[0], app_get_turnout_protocol)) {
-    return run_app_get_turnout_protocol(argc, argv);
-  } else if (ISAPP(argv[0], app_save)) {
-    return run_app_save(argc, argv);
-  } else if (ISAPP(argv[0], app_dump_flash)) {
-    return run_app_dump_flash(argc, argv);
-  }
 
+  uint32_t i = 0;
+  const MainFuncName* func = mainFuncs;
+  while (func->name != nullptr) {
+    if (ISAPP(argv[0], func->name)) {
+      return func->mainFunc(argc, argv);
+    }
+    ++i;
+    ++func;
+  }
   return -1;
 }
 
