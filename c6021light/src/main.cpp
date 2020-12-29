@@ -115,7 +115,6 @@ void setup() {
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
   printf("Ready!\n");
-  consoleTask.setup(routingTaskBuffer.getHandle());
   ConsoleManager::begin(&dataModel);
 }
 
@@ -153,4 +152,12 @@ int main(void) {
     ;
   }
   return 0;
+}
+
+extern "C" void notifyLnByteReceived() {
+  BaseType_t HigherPriorityTaskWoken = pdFALSE;
+  routingTaskBuffer.notifyFromISR(HigherPriorityTaskWoken);
+  if (HigherPriorityTaskWoken == pdTRUE) {
+    taskYIELD();
+  }
 }

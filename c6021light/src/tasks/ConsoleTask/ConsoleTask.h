@@ -16,12 +16,7 @@ class ConsoleTask {
  public:
   static constexpr const uint32_t kStackSize = 256;
 
-  void setup(TaskHandle_t routingTask) { routingTask_ = routingTask; }
-
   void TaskMain();
-
- private:
-  TaskHandle_t routingTask_;
 };
 
 }  // namespace ConsoleTask
