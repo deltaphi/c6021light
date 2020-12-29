@@ -240,6 +240,9 @@ void RoutingTask::TaskMain() {
         // Forward to self
         RR32Can::RR32Can.HandlePacket(rr32id, rr32data);
       }
+      if (false /* slot server currently inactive */) {
+        slotServer_.process(*LnPacket);
+      }
     }
   }
 }

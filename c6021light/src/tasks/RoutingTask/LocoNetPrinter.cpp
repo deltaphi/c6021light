@@ -3,13 +3,10 @@
 #include <cinttypes>
 #include <cstdio>
 
+#include "LocoNetSlotServer.h"
+
 namespace tasks {
 namespace RoutingTask {
-
-uint16_t extractAddress(const lnMsg& LnPacket) {
-  uint16_t addr = (LnPacket.data[1] | ((LnPacket.data[2] & 0x0F) << 7));
-  return addr;
-}
 
 void printLnPacket(const lnMsg& LnPacket) {
   printf("LN RX: ");
@@ -41,10 +38,10 @@ void printLnPacket(const lnMsg& LnPacket) {
       printf(" [OPC_LOCO_SND] Slot: %u Sound: %#02x", LnPacket.ls.slot, LnPacket.ls.snd);
       break;
     case OPC_SW_REQ:
-      printf(" [Switch Req] %u", extractAddress(LnPacket));
+      printf(" [Switch Req] %u", LocoNetSlotServer::extractAddress(LnPacket));
       break;
     case OPC_SW_REP:
-      printf(" [Switch Rep] %u", extractAddress(LnPacket));
+      printf(" [Switch Rep] %u", LocoNetSlotServer::extractAddress(LnPacket));
       break;
     case OPC_INPUT_REP:
       printf(" [Input Rep]");
@@ -74,10 +71,10 @@ void printLnPacket(const lnMsg& LnPacket) {
       printf(" [OPC_RQ_SL_DATA] Slot %u", LnPacket.sr.slot);
       break;
     case OPC_SW_STATE:
-      printf(" [OPC_SW_STATE] Addr %u", extractAddress(LnPacket));
+      printf(" [OPC_SW_STATE] Addr %u", LocoNetSlotServer::extractAddress(LnPacket));
       break;
     case OPC_SW_ACK:
-      printf(" [OPC_SW_ACK] Addr %u", extractAddress(LnPacket));
+      printf(" [OPC_SW_ACK] Addr %u", LocoNetSlotServer::extractAddress(LnPacket));
       break;
     case OPC_LOCO_ADR:
       printf(" [OPC_LOCO_ADR] Addr %u", LnPacket.la.adr_lo);

@@ -11,6 +11,8 @@
 
 #include "LocoNet.h"
 
+#include "LocoNetSlotServer.h"
+
 namespace tasks {
 namespace RoutingTask {
 
@@ -38,6 +40,7 @@ class RoutingTask {
   RR32Can::MachineTurnoutAddress lastPowerOnTurnoutAddr;
   RR32Can::TurnoutDirection lastPowerOnDirection;
   DataModel* dataModel_;
+  LocoNetSlotServer slotServer_;
 };
 
 }  // namespace RoutingTask
