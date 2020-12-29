@@ -7,7 +7,20 @@
 
 #include "hal/stm32eepromEmulation.h"
 
-#define NUM_CONSOLE_APPS (6)
+/* Argument Table concept
+ *
+ * Recursive set of structs. Each struct points to a name and a follow-up struct.
+ * Parse through the level of structs to decend in the syntax tree.
+ */
+
+#define NUM_COMPLETIONS (6)
+
+struct Argument;
+
+struct Argument {
+  const char* name;
+  const Argument* options;
+};
 
 static constexpr const char* app_set_turnout_protocol{"set-protocol"};
 static constexpr const char* app_get_turnout_protocol{"get-protocol"};
@@ -15,8 +28,20 @@ static constexpr const char* app_help{"help"};
 static constexpr const char* app_save{"save"};
 static constexpr const char* app_dump_flash{"dump-flash"};
 
-const char* all_apps[NUM_CONSOLE_APPS];
-char* completion_data[NUM_CONSOLE_APPS];
+// Arguments for set-protocol
+static const Argument configArguments[] = {
+    {MM2Name, nullptr}, {DCCName, nullptr}, {SX1Name, nullptr}, {nullptr, nullptr}};
+
+// Top-Level Arguments
+static const Argument argtable[] = {{app_set_turnout_protocol, configArguments},
+                                    {app_get_turnout_protocol, nullptr},
+                                    {app_help, nullptr},
+                                    {app_save, nullptr},
+                                    {app_dump_flash, nullptr},
+                                    {nullptr, nullptr}};
+
+/// Static buffer for the completion data passed to microrl.
+char* completion_data[NUM_COMPLETIONS];
 
 #define ISAPP(inp, name) (strncasecmp(inp, name, strlen(name)) == 0)
 
@@ -24,6 +49,9 @@ namespace ConsoleManager {
 
 DataModel* dataModel_;
 microrl_t microrl;
+
+const Argument* walkArgumentTree(const Argument* argTree, int argc, const char* const* argv);
+void fillCompletionData(int argc, const char* const* argv);
 
 int run_app_set_turnout_protocol(int argc, const char* const* argv);
 int run_app_get_turnout_protocol(int argc, const char* const* argv);
@@ -36,6 +64,51 @@ static int microrl_execute_callback(int argc, const char* const* argv);
 static void microrl_print_cbk(const char* s) {
   printf(s);
   fflush(stdout);
+}
+
+/**
+ * Finds the longest branch in the tree that matches all arguments.
+ */
+const Argument* walkArgumentTree(const Argument* argTree, int& firstUnparsedArgc, int argc,
+                                 const char* const* argv) {
+  const Argument* nextLevelCandidate = argTree;
+  for (firstUnparsedArgc = 0; firstUnparsedArgc < argc && nextLevelCandidate != nullptr;
+       ++firstUnparsedArgc) {
+    // Find all candidates for the next level
+    bool parseSuccess = false;
+    for (const Argument* levelIt = nextLevelCandidate; levelIt->name != nullptr; ++levelIt) {
+      if (strcmp(levelIt->name, argv[firstUnparsedArgc]) == 0) {
+        nextLevelCandidate = levelIt->options;
+        parseSuccess = true;
+        break;  // Advance to the next level
+      }
+    }
+    if (!parseSuccess) {
+      // No candidate found - abort search
+      return nextLevelCandidate;
+    }
+  }
+  return nextLevelCandidate;
+}
+
+void fillCompletionData(int argc, const char* const* argv) {
+  // completions: Parse through the tree which args match. When an arg matches completely and there
+  // are more args, consider the following elements.
+
+  int firstUnparsedArgc = 0;
+  const Argument* candidateLevel = walkArgumentTree(argtable, firstUnparsedArgc, argc, argv);
+
+  memset(completion_data, 0, sizeof(completion_data));
+
+  if (firstUnparsedArgc < argc && candidateLevel != nullptr) {
+    int completionDataIt = 0;
+    for (const Argument* levelIt = candidateLevel; levelIt->name != nullptr; ++levelIt) {
+      if (strstr(levelIt->name, argv[firstUnparsedArgc]) == levelIt->name) {
+        completion_data[completionDataIt] = const_cast<char*>(levelIt->name);
+        ++completionDataIt;
+      }
+    }
+  }
 }
 
 static int microrl_execute_callback(int argc, const char* const* argv) {
@@ -58,46 +131,7 @@ static int microrl_execute_callback(int argc, const char* const* argv) {
 }
 
 static char** microrl_complete_callback(int argc, const char* const* argv) {
-  memset(completion_data, 0, sizeof(completion_data));
-
-  if (argc == 0) {
-    // Everything is possible
-    return const_cast<char**>(all_apps);
-
-  } else if (argc == 1) {
-    // Apps are possible
-    unsigned int j = 0;
-    for (unsigned int i = 0; i < NUM_CONSOLE_APPS; ++i) {
-      if (strstr(all_apps[i], argv[0]) == all_apps[i]) {
-        completion_data[j] = const_cast<char*>(all_apps[i]);
-        ++j;
-      }
-    }
-
-  } else {
-    // Find the app first
-    if (ISAPP(argv[0], app_set_turnout_protocol)) {
-      if (argc == 2) {
-        // App has additional parameters
-        char* possible_completions[NUM_CONSOLE_APPS];
-        possible_completions[0] = const_cast<char*>(MM2Name);
-        possible_completions[1] = const_cast<char*>(DCCName);
-        possible_completions[2] = const_cast<char*>(SX1Name);
-        possible_completions[3] = nullptr;
-        possible_completions[4] = nullptr;
-        possible_completions[5] = nullptr;
-
-        // remove all that do not match the current command line
-        unsigned int j = 0;
-        for (unsigned int i = 0; i < NUM_CONSOLE_APPS; ++i) {
-          if (strstr(possible_completions[i], argv[1]) == possible_completions[i]) {
-            completion_data[j] = possible_completions[i];
-            ++j;
-          }
-        }
-      }
-    }
-  }
+  fillCompletionData(argc, argv);
   return completion_data;
 }
 
@@ -117,14 +151,6 @@ void begin(DataModel* dataModel) {
 
   microrl_init(&microrl, microrl_print_cbk);
   microrl_set_execute_callback(&microrl, microrl_execute_callback);
-
-  all_apps[0] = const_cast<char*>(app_set_turnout_protocol);
-  all_apps[1] = const_cast<char*>(app_get_turnout_protocol);
-  all_apps[2] = const_cast<char*>(app_help);
-  all_apps[3] = const_cast<char*>(app_save);
-  all_apps[4] = const_cast<char*>(app_dump_flash);
-  all_apps[5] = nullptr;
-
   microrl_set_complete_callback(&microrl, microrl_complete_callback);
 }
 
