@@ -9,6 +9,7 @@
 #include "RR32Can/messages/S88Event.h"
 #include "hal/stm32I2C.h"
 #include "hal/stm32can.h"
+#include "tasks/RoutingTask/LocoNetPrinter.h"
 
 #include "OsQueue.h"
 
@@ -87,14 +88,6 @@ void RoutingTask::ForwardToI2C(const RR32Can::Identifier rr32id, const RR32Can::
       // Other messages not forwarded.
       break;
   }
-}
-
-void printLnPacket(lnMsg* LnPacket) {
-  printf("LN RX: ");
-  for (int i = 0; i < getLnMsgSize(LnPacket); ++i) {
-    printf(" %x", LnPacket->data[i]);
-  }
-  printf("\n");
 }
 
 bool RoutingTask::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& request,
@@ -233,7 +226,7 @@ void RoutingTask::TaskMain() {
 
     // Process LocoNet
     for (lnMsg* LnPacket = LocoNet.receive(); LnPacket; LnPacket = LocoNet.receive()) {
-      printLnPacket(LnPacket);
+      printLnPacket(*LnPacket);
 
       RR32Can::Identifier rr32id;
       RR32Can::Data rr32data;
