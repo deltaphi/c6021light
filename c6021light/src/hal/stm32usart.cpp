@@ -4,6 +4,7 @@
 #include <unistd.h>
 
 #include <limits>
+#include <mutex>
 
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/stm32/dma.h>
@@ -15,6 +16,8 @@
 
 #include "FreeRTOSConfig.h"
 
+#include "OsMutex.h"
+
 namespace hal {
 
 // Definition of Module-private functions
@@ -24,6 +27,8 @@ void irqSerialTxDMA();
 
 uint8_t SerialWrite(const char* ptr, AtomicRingBuffer::AtomicRingBuffer::size_type len,
                     bool doReplace);
+
+freertossupport::OsMutexStatic serialWriteMutex_;
 
 // Definition of Module-private data
 
@@ -39,6 +44,8 @@ AtomicRingBuffer::AtomicRingBuffer::size_type serialNumBytes_;
 // Actual Code
 
 void beginSerial() {
+  serialWriteMutex_.Create();
+
   serialDmaBusy_ = false;
   serialBuffer_.init(bufferMemory_, bufferSize_);
 
@@ -135,24 +142,28 @@ uint8_t SerialWrite(const char* src, AtomicRingBuffer::AtomicRingBuffer::size_ty
     const char* replacePtr = replace;
     {
       pointer_type dest;
-      size_type destLen = serialBuffer_.allocate(dest, expectedDestLen, true);
 
       size_type bytesToPublish = 0;
       size_type bytesConsumed = 0;
 
-      if (doReplace) {
-        char* useDest = reinterpret_cast<char*>(dest);
+      {
+        std::lock_guard<freertossupport::OsMutex> guard{serialWriteMutex_};
+        size_type destLen = serialBuffer_.allocate(dest, expectedDestLen, true);
 
-        bytesConsumed = AtomicRingBuffer::memcpyCharReplace(useDest, &src[srcBytesConsumed], search,
-                                                            replacePtr, destLen, srcLen);
-        bytesToPublish = reinterpret_cast<uint8_t*>(useDest) - dest;
-      } else {
-        memcpy(dest, &src[srcBytesConsumed], destLen);
-        bytesConsumed = destLen;
-        bytesToPublish = destLen;
+        if (doReplace) {
+          char* useDest = reinterpret_cast<char*>(dest);
+
+          bytesConsumed = AtomicRingBuffer::memcpyCharReplace(useDest, &src[srcBytesConsumed],
+                                                              search, replacePtr, destLen, srcLen);
+          bytesToPublish = reinterpret_cast<uint8_t*>(useDest) - dest;
+        } else {
+          memcpy(dest, &src[srcBytesConsumed], destLen);
+          bytesConsumed = destLen;
+          bytesToPublish = destLen;
+        }
+
+        serialBuffer_.publish(dest, bytesToPublish);
       }
-
-      serialBuffer_.publish(dest, bytesToPublish);
       startSerialTx();
 
       srcBytesConsumed += bytesConsumed;

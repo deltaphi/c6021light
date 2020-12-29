@@ -5,6 +5,8 @@
 #define xPortPendSVHandler pend_sv_handler
 #define xPortSysTickHandler sys_tick_handler
 
+// clang-format off
+
 #define configSUPPORT_STATIC_ALLOCATION 1
 #define configSUPPORT_DYNAMIC_ALLOCATION 0
 
@@ -20,7 +22,7 @@
 #define configUSE_TRACE_FACILITY  0
 #define configUSE_16_BIT_TICKS    0
 #define configIDLE_SHOULD_YIELD   1
-#define configUSE_MUTEXES         0
+#define configUSE_MUTEXES         1
 
 /* Hook function related definitions. */
 #define configUSE_IDLE_HOOK                     0
@@ -53,5 +55,6 @@ configKERNEL_INTERRUPT_PRIORITY setting.  Here 15 corresponds to the lowest
 NVIC value of 255. */
 #define configLIBRARY_KERNEL_INTERRUPT_PRIORITY	15
 
+// clang-format on
 
 #endif  // FREERTOS_CONFIG_H
