@@ -171,6 +171,7 @@ void RoutingTask::ForwardToLoconet(const RR32Can::Identifier rr32id,
           // Other messages not forwarded.
           break;
       }
+      break;
     }
     case RR32Can::Command::S88_EVENT: {
       const RR32Can::S88Event s88Event(const_cast<RR32Can::Data&>(rr32data));
@@ -186,6 +187,7 @@ void RoutingTask::ForwardToLoconet(const RR32Can::Identifier rr32id,
         }
         LocoNet.reportSensor(RR32Can::HumanTurnoutAddress(s88Event.getContactId()).value(), state);
       }
+      break;
     }
     default:
       // Other messages not forwarded.
