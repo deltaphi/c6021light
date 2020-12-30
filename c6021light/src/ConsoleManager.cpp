@@ -156,7 +156,7 @@ int run_app_set_turnout_protocol(int argc, const char* const* argv, int argcMatc
   return 0;
 }
 
-int run_app_get_turnout_protocol(int argc, const char* const* argv, int argcMatched) {
+int run_app_get_turnout_protocol(int argc, const char* const*, int argcMatched) {
   static constexpr const char* appName{"GetTurnoutProtocol"};
 
   if (!checkNumArgs(argc - argcMatched, 0, 0, appName)) {
@@ -186,7 +186,7 @@ int run_app_get_turnout_protocol(int argc, const char* const* argv, int argcMatc
   return 0;
 }
 
-int run_app_save(int argc, const char* const* argv, int argcMatched) {
+int run_app_save(int argc, const char* const*, int argcMatched) {
   static constexpr const char* appName{"SaveToFlash"};
 
   if (!checkNumArgs(argc - argcMatched, 0, 0, appName)) {
