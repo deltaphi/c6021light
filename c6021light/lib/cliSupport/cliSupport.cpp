@@ -13,6 +13,9 @@ using PrefixPredicate_t = bool (*)(const Argument*);
 struct PrefixResult {
   const Argument* arg = nullptr;
   int level = 0;
+
+  bool empty() const { return arg == nullptr && level == 0; }
+  bool valid(int argc) const { return arg != nullptr && level < argc; }
 };
 
 /**
@@ -38,6 +41,8 @@ PrefixResult findLongestPrefix(const Argument* argTree, int argc, const char* co
  */
 bool TruePredicate(const Argument*) { return true; }
 
+bool HasHandlerPredicate(const Argument* arg) { return arg->handler != nullptr; }
+
 void setResultIfPredicateHolds(PrefixResult& result, PrefixPredicate_t predicate,
                                decltype(PrefixResult::arg) argument,
                                decltype(PrefixResult::level) level) {
@@ -51,7 +56,6 @@ PrefixResult findLongestPrefix(const Argument* argtable, int argc, const char* c
                                PrefixPredicate_t predicate) {
   PrefixResult result;
   const Argument* currentLevelArguments = argtable;
-  setResultIfPredicateHolds(result, predicate, currentLevelArguments, 0);
 
   for (int argvIdx = 0; argvIdx < argc && currentLevelArguments != nullptr; ++argvIdx) {
     // Find all candidates for the next level
@@ -59,8 +63,8 @@ PrefixResult findLongestPrefix(const Argument* argtable, int argc, const char* c
 
     for (const Argument* argument = currentLevelArguments; argument->name != nullptr; ++argument) {
       if (strcmp(argument->name, argv[argvIdx]) == 0) {
+        setResultIfPredicateHolds(result, predicate, argument, argvIdx);
         currentLevelArguments = argument->options;  // Decend a level
-        setResultIfPredicateHolds(result, predicate, currentLevelArguments, argvIdx);
         furtherDescendPossible = true;
         break;  // Skip remainder of this level, advance to the next level.
       }
@@ -74,10 +78,6 @@ PrefixResult findLongestPrefix(const Argument* argtable, int argc, const char* c
   return result;
 }
 
-bool prefixValid(PrefixResult prefix, int argc) {
-  return prefix.level < argc && prefix.arg != nullptr;
-}
-
 void fillCompletionData(char** completionBuffer, std::size_t maxNumCompletions,
                         const cliSupport::Argument* argtable, int argc, const char* const* argv) {
   // completions: Parse through the tree which args match. When an arg matches completely and there
@@ -87,7 +87,14 @@ void fillCompletionData(char** completionBuffer, std::size_t maxNumCompletions,
 
   memset(completionBuffer, 0, maxNumCompletions * sizeof(char*));
 
-  if (prefixValid(prefix, argc)) {
+  if (prefix.level > argc) {
+    // We somehow ran out of bounds. No completions.
+    return;
+  } else if (prefix.empty()) {
+    prefix.arg = argtable;  // Default to top-level table for completion search
+  }
+
+  if (prefix.valid(argc)) {
     std::size_t completionIt = 0;
     for (const Argument* levelIt = prefix.arg;
          (levelIt->name != nullptr) && (completionIt < maxNumCompletions); ++levelIt) {
@@ -96,6 +103,16 @@ void fillCompletionData(char** completionBuffer, std::size_t maxNumCompletions,
         ++completionIt;
       }
     }
+  }
+}
+
+int callHandler(const cliSupport::Argument* argtable, int argc, const char* const* argv) {
+  PrefixResult prefix = findLongestPrefix(argtable, argc, argv, HasHandlerPredicate);
+
+  if (prefix.valid(argc)) {
+    return prefix.arg->handler(argc, argv, prefix.level);
+  } else {
+    return kNoHandler;
   }
 }
 
