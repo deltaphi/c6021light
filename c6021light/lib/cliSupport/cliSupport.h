@@ -29,6 +29,7 @@ struct Argument {
   const char* name = nullptr;
   const Argument* options = nullptr;
   CliHandlerFunc_t handler = nullptr;
+  const char* help = nullptr;
 };
 
 struct PrefixResult {
