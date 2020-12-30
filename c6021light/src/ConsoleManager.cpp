@@ -4,25 +4,11 @@
 #include <cstring>
 
 #include "RR32Can/Constants.h"
+#include "cliSupport.h"
 
 #include "hal/stm32eepromEmulation.h"
 
-/* Argument Table concept
- *
- * Recursive set of structs. Each struct points to a name and a follow-up struct.
- * Parse through the level of structs to decend in the syntax tree.
- */
-
 #define NUM_COMPLETIONS (6)
-
-using MainFunc_t = int (*)(int argc, const char* const* argv);
-
-struct Argument;
-
-struct Argument {
-  const char* name;
-  const Argument* options;
-};
 
 static constexpr const char* app_set_turnout_protocol{"set-protocol"};
 static constexpr const char* app_get_turnout_protocol{"get-protocol"};
@@ -31,16 +17,16 @@ static constexpr const char* app_save{"save"};
 static constexpr const char* app_dump_flash{"dump-flash"};
 
 // Arguments for set-protocol
-static const Argument configArguments[] = {
+static const cliSupport::Argument configArguments[] = {
     {MM2Name, nullptr}, {DCCName, nullptr}, {SX1Name, nullptr}, {nullptr, nullptr}};
 
 // Top-Level Arguments
-static const Argument argtable[] = {{app_set_turnout_protocol, configArguments},
-                                    {app_get_turnout_protocol, nullptr},
-                                    {app_help, nullptr},
-                                    {app_save, nullptr},
-                                    {app_dump_flash, nullptr},
-                                    {nullptr, nullptr}};
+static const cliSupport::Argument argtable[] = {{app_set_turnout_protocol, configArguments},
+                                                {app_get_turnout_protocol, nullptr},
+                                                {app_help, nullptr},
+                                                {app_save, nullptr},
+                                                {app_dump_flash, nullptr},
+                                                {nullptr, nullptr}};
 
 /// Static buffer for the completion data passed to microrl.
 char* completion_data[NUM_COMPLETIONS];
@@ -52,9 +38,6 @@ namespace ConsoleManager {
 DataModel* dataModel_;
 microrl_t microrl;
 
-const Argument* walkArgumentTree(const Argument* argTree, int argc, const char* const* argv);
-void fillCompletionData(int argc, const char* const* argv);
-
 int run_app_set_turnout_protocol(int argc, const char* const* argv);
 int run_app_get_turnout_protocol(int argc, const char* const* argv);
 int run_app_save(int argc, const char* const* argv);
@@ -63,66 +46,17 @@ int run_app_dump_flash(int argc, const char* const* argv);  // implemented in ee
 static void microrl_print_cbk(const char* s);
 static int microrl_execute_callback(int argc, const char* const* argv);
 
-struct MainFuncName {
-  const char* name;
-  MainFunc_t mainFunc;
-};
-
-static const MainFuncName mainFuncs[] = {{app_set_turnout_protocol, run_app_set_turnout_protocol},
-                                         {app_get_turnout_protocol, run_app_get_turnout_protocol},
-                                         {app_help, run_app_help},
-                                         {app_save, run_app_save},
-                                         {app_dump_flash, run_app_dump_flash},
-                                         {nullptr, nullptr}};
+static const cliSupport::MainFuncName mainFuncs[] = {
+    {app_set_turnout_protocol, run_app_set_turnout_protocol},
+    {app_get_turnout_protocol, run_app_get_turnout_protocol},
+    {app_help, run_app_help},
+    {app_save, run_app_save},
+    {app_dump_flash, run_app_dump_flash},
+    {nullptr, nullptr}};
 
 static void microrl_print_cbk(const char* s) {
   printf(s);
   fflush(stdout);
-}
-
-/**
- * Finds the longest branch in the tree that matches all arguments.
- */
-const Argument* walkArgumentTree(const Argument* argTree, int& firstUnparsedArgc, int argc,
-                                 const char* const* argv) {
-  const Argument* nextLevelCandidate = argTree;
-  for (firstUnparsedArgc = 0; firstUnparsedArgc < argc && nextLevelCandidate != nullptr;
-       ++firstUnparsedArgc) {
-    // Find all candidates for the next level
-    bool parseSuccess = false;
-    for (const Argument* levelIt = nextLevelCandidate; levelIt->name != nullptr; ++levelIt) {
-      if (strcmp(levelIt->name, argv[firstUnparsedArgc]) == 0) {
-        nextLevelCandidate = levelIt->options;
-        parseSuccess = true;
-        break;  // Advance to the next level
-      }
-    }
-    if (!parseSuccess) {
-      // No candidate found - abort search
-      return nextLevelCandidate;
-    }
-  }
-  return nextLevelCandidate;
-}
-
-void fillCompletionData(int argc, const char* const* argv) {
-  // completions: Parse through the tree which args match. When an arg matches completely and there
-  // are more args, consider the following elements.
-
-  int firstUnparsedArgc = 0;
-  const Argument* candidateLevel = walkArgumentTree(argtable, firstUnparsedArgc, argc, argv);
-
-  memset(completion_data, 0, sizeof(completion_data));
-
-  if (firstUnparsedArgc < argc && candidateLevel != nullptr) {
-    int completionDataIt = 0;
-    for (const Argument* levelIt = candidateLevel; levelIt->name != nullptr; ++levelIt) {
-      if (strstr(levelIt->name, argv[firstUnparsedArgc]) == levelIt->name) {
-        completion_data[completionDataIt] = const_cast<char*>(levelIt->name);
-        ++completionDataIt;
-      }
-    }
-  }
 }
 
 static int microrl_execute_callback(int argc, const char* const* argv) {
@@ -131,7 +65,7 @@ static int microrl_execute_callback(int argc, const char* const* argv) {
   }
 
   uint32_t i = 0;
-  const MainFuncName* func = mainFuncs;
+  const cliSupport::MainFuncName* func = mainFuncs;
   while (func->name != nullptr) {
     if (ISAPP(argv[0], func->name)) {
       return func->mainFunc(argc, argv);
@@ -143,7 +77,7 @@ static int microrl_execute_callback(int argc, const char* const* argv) {
 }
 
 static char** microrl_complete_callback(int argc, const char* const* argv) {
-  fillCompletionData(argc, argv);
+  cliSupport::fillCompletionData(completion_data, NUM_COMPLETIONS - 1, argc, argv, argtable);
   return completion_data;
 }
 
