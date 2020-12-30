@@ -92,25 +92,25 @@ void fillCompletionData(const char** completionBuffer, std::size_t maxNumComplet
 
   PrefixResult prefix = findLongestPrefix(argtable, argc, argv, TruePredicate);
 
-  const Argument argtable_virtual_root[]{{nullptr, argtable, nullptr}};
+  if (prefix.level <= argc) {
+    const char* argvToMatch = nullptr;
+    const Argument* argumentIt = nullptr;
 
-  if (prefix.level > argc) {
-    // We somehow ran out of bounds. No completions.
-    return;
-  } else if (prefix.empty()) {
-    prefix.arg = argtable_virtual_root;  // Default to top-level table for completion search
-    prefix.level = -1;
-  }
+    if (prefix.empty()) {
+      argumentIt = argtable;
+      argvToMatch = argv[0];
+    } else if (prefix.valid(argc)) {
+      argumentIt = prefix.arg->options;
+      argvToMatch = argv[prefix.level + 1];
+    }
 
-  if (prefix.valid(argc)) {
     std::size_t completionIt = 0;
-    const char* argvToMatch = argv[prefix.level + 1];
-    for (const Argument* levelIt = prefix.arg->options;
-         (levelIt->name != nullptr) && (completionIt < maxNumCompletions); ++levelIt) {
-      if (strstr(levelIt->name, argvToMatch) == levelIt->name) {
-        completionBuffer[completionIt] = levelIt->name;
+    while ((argumentIt->name != nullptr) && (completionIt < maxNumCompletions)) {
+      if (strstr(argumentIt->name, argvToMatch) == argumentIt->name) {
+        completionBuffer[completionIt] = argumentIt->name;
         ++completionIt;
       }
+      ++argumentIt;
     }
   }
 }
