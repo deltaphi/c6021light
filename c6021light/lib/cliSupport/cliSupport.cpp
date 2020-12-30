@@ -78,7 +78,7 @@ PrefixResult findLongestPrefix(const Argument* argtable, int argc, const char* c
   return result;
 }
 
-void fillCompletionData(char** completionBuffer, std::size_t maxNumCompletions,
+void fillCompletionData(const char** completionBuffer, std::size_t maxNumCompletions,
                         const cliSupport::Argument* argtable, int argc, const char* const* argv) {
   // completions: Parse through the tree which args match. When an arg matches completely and there
   // are more args, consider the following elements.
@@ -108,7 +108,7 @@ void fillCompletionData(char** completionBuffer, std::size_t maxNumCompletions,
     for (const Argument* levelIt = prefix.arg->options;
          (levelIt->name != nullptr) && (completionIt < maxNumCompletions); ++levelIt) {
       if (strstr(levelIt->name, argvToMatch) == levelIt->name) {
-        completionBuffer[completionIt] = const_cast<char*>(levelIt->name);
+        completionBuffer[completionIt] = levelIt->name;
         ++completionIt;
       }
     }

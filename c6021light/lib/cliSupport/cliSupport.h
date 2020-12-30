@@ -31,7 +31,7 @@ struct Argument {
   CliHandlerFunc_t handler = nullptr;
 };
 
-void fillCompletionData(char** completionBuffer, std::size_t maxNumCompletions,
+void fillCompletionData(const char** completionBuffer, std::size_t maxNumCompletions,
                         const cliSupport::Argument* argtable, int argc, const char* const* argv);
 
 int callHandler(const cliSupport::Argument* argtable, int argc, const char* const* argv);

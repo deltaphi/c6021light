@@ -90,10 +90,10 @@ static int microrl_execute_callback(int argc, const char* const* argv) {
 }
 
 static char** microrl_complete_callback(int argc, const char* const* argv) {
-  /// Static buffer for the completion data passed to microrl.
-  static char* completion_data[NUM_COMPLETIONS];
+  // Static buffer for the completion data passed to microrl.
+  static const char* completion_data[NUM_COMPLETIONS];
   cliSupport::fillCompletionData(completion_data, NUM_COMPLETIONS - 1, argtable, argc, argv);
-  return completion_data;
+  return const_cast<char**>(completion_data);
 }
 
 int run_app_help(int, const char* const*, int) {
