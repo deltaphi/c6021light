@@ -142,7 +142,7 @@ void RoutingTask::ForwardToLoconet(const RR32Can::Identifier rr32id,
         LocoNet.requestSwitch(
             RR32Can::HumanTurnoutAddress(turnoutPacket.getLocid().getNumericAddress()).value(),
             turnoutPacket.getPower(),
-            RR32Can::TurnoutDirectionToIntegral<uint8_t>(turnoutPacket.getDirection()));
+            RR32Can::TurnoutDirectionToIntegral(turnoutPacket.getDirection()));
       }
       break;
     }
