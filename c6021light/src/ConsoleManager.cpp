@@ -17,6 +17,11 @@
 
 #define COMMAND_ARGS(cmdName) args_##cmdName
 
+namespace ConsoleManager {
+
+DataModel* dataModel_;
+microrl_t microrl;
+
 DEFINE_COMMAND_STRING(config);
 
 DEFINE_COMMAND_STRING(get);
@@ -30,11 +35,6 @@ DEFINE_COMMAND_STRING(flash);
 DEFINE_COMMAND_STRING(dump);
 DEFINE_COMMAND_STRING(save);
 DEFINE_COMMAND_STRING(help);
-
-namespace ConsoleManager {
-
-DataModel* dataModel_;
-microrl_t microrl;
 
 int run_app_set_turnout_protocol(int argc, const char* const* argv, int argcMatched);
 int run_app_get_turnout_protocol(int argc, const char* const* argv, int argcMatched);
