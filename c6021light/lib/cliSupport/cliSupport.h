@@ -25,13 +25,8 @@ struct MainFuncName {
   MainFunc_t mainFunc;
 };
 
-/**
- * Finds the longest branch in the tree that matches all arguments.
- */
-const Argument* walkArgumentTree(const Argument* argTree, int argc, const char* const* argv);
-
-void fillCompletionData(char** completionData, std::size_t maxNumCompletions, int argc,
-                        const char* const* argv, const cliSupport::Argument* argtable);
+void fillCompletionData(char** completionBuffer, std::size_t maxNumCompletions,
+                        const cliSupport::Argument* argtable, int argc, const char* const* argv);
 
 }  // namespace cliSupport
 

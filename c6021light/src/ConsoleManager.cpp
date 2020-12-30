@@ -77,7 +77,7 @@ static int microrl_execute_callback(int argc, const char* const* argv) {
 }
 
 static char** microrl_complete_callback(int argc, const char* const* argv) {
-  cliSupport::fillCompletionData(completion_data, NUM_COMPLETIONS - 1, argc, argv, argtable);
+  cliSupport::fillCompletionData(completion_data, NUM_COMPLETIONS - 1, argtable, argc, argv);
   return completion_data;
 }
 
