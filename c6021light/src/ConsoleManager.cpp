@@ -181,7 +181,7 @@ int run_app_get_turnout_protocol(int argc, const char* const* argv, int argcMatc
       break;
   }
 
-  printf("%s: The current turnout protocol is %s.\n", argv[0], turnoutProtocol);
+  printf("%s: The current turnout protocol is %s.\n", appName, turnoutProtocol);
 
   return 0;
 }
@@ -194,7 +194,7 @@ int run_app_save(int argc, const char* const* argv, int argcMatched) {
   }
 
   hal::SaveConfig(*dataModel_);
-  printf("%s: Configuration saved to flash.\n", argv[0]);
+  printf("%s: Configuration saved to flash.\n", appName);
 
   return 0;
 }
