@@ -31,10 +31,20 @@ struct Argument {
   CliHandlerFunc_t handler = nullptr;
 };
 
+struct PrefixResult {
+  const Argument* arg = nullptr;
+  int level = 0;
+
+  bool empty() const { return arg == nullptr && level == 0; }
+  bool valid(int argc) const { return arg != nullptr && level < argc; }
+};
+
 void fillCompletionData(const char** completionBuffer, std::size_t maxNumCompletions,
                         const cliSupport::Argument* argtable, int argc, const char* const* argv);
 
 int callHandler(const cliSupport::Argument* argtable, int argc, const char* const* argv);
+
+PrefixResult findLongestPrefix(const Argument* argTree, int argc, const char* const* argv);
 
 }  // namespace cliSupport
 

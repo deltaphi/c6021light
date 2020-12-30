@@ -10,14 +10,6 @@ namespace cliSupport {
  */
 using PrefixPredicate_t = bool (*)(const Argument*);
 
-struct PrefixResult {
-  const Argument* arg = nullptr;
-  int level = 0;
-
-  bool empty() const { return arg == nullptr && level == 0; }
-  bool valid(int argc) const { return arg != nullptr && level < argc; }
-};
-
 /**
  * Finds the longest branch in the tree that perfectly matches all arguments.
  *
@@ -50,6 +42,10 @@ void setResultIfPredicateHolds(PrefixResult& result, PrefixPredicate_t predicate
     result.arg = argument;
     result.level = level;
   }
+}
+
+PrefixResult findLongestPrefix(const Argument* argTree, int argc, const char* const* argv) {
+  return findLongestPrefix(argTree, argc, argv, TruePredicate);
 }
 
 PrefixResult findLongestPrefix(const Argument* argtable, int argc, const char* const* argv,

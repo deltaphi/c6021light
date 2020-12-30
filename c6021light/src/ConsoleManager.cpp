@@ -40,6 +40,7 @@ int run_app_set_turnout_protocol(int argc, const char* const* argv, int argcMatc
 int run_app_get_turnout_protocol(int argc, const char* const* argv, int argcMatched);
 int run_app_save(int argc, const char* const* argv, int argcMatched);
 int run_app_help(int argc, const char* const* argv, int argcMatched);
+void display_help(int argc, const char* const* argv);
 int run_app_dump_flash(int argc, const char* const* argv,
                        int argcMatched);  // implemented in eeprom emulation
 
@@ -48,7 +49,7 @@ static const cliSupport::Argument turnoutProtocolArguments[] = {
     {MM2Name, nullptr, nullptr}, {DCCName, nullptr, nullptr}, {SX1Name, nullptr, nullptr}, {}};
 
 static const cliSupport::Argument COMMAND_ARGS(config_get)[] = {
-    {COMMAND(turnoutProtocol), turnoutProtocolArguments, run_app_get_turnout_protocol}, {}};
+    {COMMAND(turnoutProtocol), nullptr, run_app_get_turnout_protocol}, {}};
 
 static const cliSupport::Argument COMMAND_ARGS(config_set)[] = {
     {COMMAND(turnoutProtocol), turnoutProtocolArguments, run_app_set_turnout_protocol}, {}};
@@ -84,7 +85,7 @@ static int microrl_execute_callback(int argc, const char* const* argv) {
       printf("%s ", argv[i]);
     }
     printf("\"\n");
-    run_app_help(argc, argv, 0);
+    display_help(argc, argv);
   }
   return result;
 }
@@ -97,14 +98,46 @@ static char** microrl_complete_callback(int argc, const char* const* argv) {
 }
 
 int run_app_help(int, const char* const*, int) {
-  printf("Choose one of the following:\n");
-  printf("  %s [%s|%s|%s] - Set Turnout Protocol.\n", COMMAND(config), MM2Name, DCCName, SX1Name);
-  printf("  %s - Get current Turnout Protocol.\n", COMMAND(config));
-  printf("  %s %s - Save configuration across reset.\n", COMMAND(flash), COMMAND(save));
-  printf("  %s %s - Show contents of EEPROM Emulation Flash.\n", COMMAND(flash), COMMAND(dump));
-  printf("  %s - Display this help message.\n", COMMAND(help));
-
+  display_help(0, nullptr);
   return 0;
+}
+
+int printArguments(int argc, const char* const* argv) {
+  for (int i = 0; i < argc; ++i) {
+    printf(argv[i]);
+    printf(" ");
+  }
+}
+
+void display_help(int argc, const char* const* argv) {
+  cliSupport::PrefixResult prefix = cliSupport::findLongestPrefix(argtable, argc, argv);
+
+  const cliSupport::Argument* argumentIt = nullptr;
+  int validArgc = 0;
+
+  if (prefix.empty()) {
+    // No prefix match at all. Use root
+    argumentIt = argtable;
+    validArgc = 0;
+  } else {
+    argumentIt = prefix.arg->options;
+    validArgc = prefix.level + 1;
+  }
+
+  puts("Available commands:");
+
+  while ((argumentIt->name != nullptr)) {
+    static constexpr const char* dots{" ..."};
+    const char* doDots = "";
+    if (argumentIt->options != nullptr) {
+      doDots = dots;
+    }
+    printf("  ");
+    printArguments(validArgc, argv);
+    printf("%s%s\n", argumentIt->name, doDots);
+
+    ++argumentIt;
+  }
 }
 
 void begin(DataModel* dataModel) {
@@ -115,13 +148,13 @@ void begin(DataModel* dataModel) {
   microrl_set_complete_callback(&microrl, microrl_complete_callback);
 }
 
-bool checkNumArgs(int numArgs, int lower, int upper, const char* appName) {
+bool checkNumArgs(int argc, int lower, int upper, const char* appName) {
   static constexpr const char* formatString = "%s: Too %s arguments (%i expected, %i given).\n";
-  if (numArgs < lower) {
-    printf(formatString, appName, "few", lower, numArgs);
+  if (argc < lower) {
+    printf(formatString, appName, "few", lower, argc);
     return false;
-  } else if (numArgs > upper) {
-    printf(formatString, appName, "many", lower, numArgs);
+  } else if (argc > upper) {
+    printf(formatString, appName, "many", lower, argc);
     return false;
   } else {
     return true;
@@ -133,6 +166,7 @@ int run_app_set_turnout_protocol(int argc, const char* const* argv, int argcMatc
   static constexpr const char* appName{"SetTurnoutProtocol"};
 
   if (!checkNumArgs(argc - argcMatched, 1, 1, appName)) {
+    display_help(argc, argv);
     return -2;
   }
 
