@@ -4,30 +4,32 @@
 // Simulation of several Arduino APIs.
 // This file is used to inject definitions into Arduino-Libraries that are now used without Arduino.
 
+#include <libopencm3/stm32/gpio.h>
 #include <cstdint>
 #include <type_traits>
-#include <libopencm3/stm32/gpio.h>
 
 #include <FreeRTOS.h>
 #include <portmacro.h>
 
 /// The I/O mode of a GPIO
 enum PinMode {
-    OUTPUT = 0, // Assume Push-Pull
-    INPUT,
-    INPUT_PULLUP
+  OUTPUT = 0,  // Assume Push-Pull
+  INPUT,
+  INPUT_PULLUP
 };
 
 /**
  * \brief Possible GPIO ports of the Bluepill board.
- * 
- * Note that not all of these GPIOs are physically accessible on the Bluepill. However, having them all listed
- * makes resulting computations a whole lot easier.
+ *
+ * Note that not all of these GPIOs are physically accessible on the Bluepill. However, having them
+ * all listed makes resulting computations a whole lot easier.
  */
-enum PinNames: uint8_t { 
-PA0 = 0, PA1, PA2, PA3, PA4, PA5, PA6, PA7, PA8, PA9, PA10, PA11, PA12, PA13, PA14, PA15,
-PB0, PB1, PB2, PB3, PB4, PB5, PB6, PB7, PB8, PB9, PB10, PB11, PB12, PB13, PB14, PB15,
-PC0, PC1, PC2, PC3, PC4, PC5, PC6, PC7, PC8, PC9, PC10, PC11, PC12, PC13, PC14, PC15
+enum PinNames : uint8_t {
+  // clang-format off
+  PA0 = 0, PA1, PA2, PA3, PA4, PA5, PA6, PA7, PA8, PA9, PA10, PA11, PA12, PA13, PA14, PA15,
+  PB0, PB1, PB2, PB3, PB4, PB5, PB6, PB7, PB8, PB9, PB10, PB11, PB12, PB13, PB14, PB15,
+  PC0, PC1, PC2, PC3, PC4, PC5, PC6, PC7, PC8, PC9, PC10, PC11, PC12, PC13, PC14, PC15
+  // clang-format on
 };
 
 /// Macro to define ISR functions.
@@ -44,24 +46,23 @@ void pinMode(PinNames pin, PinMode mode);
 
 /// Forwarding functions for implicit conversion
 inline void pinMode(std::underlying_type<PinNames>::type pin, PinMode mode) {
-    pinMode(static_cast<PinNames>(pin), mode);
+  pinMode(static_cast<PinNames>(pin), mode);
 }
 
 /// Forwarding functions for implicit conversion
 inline uint32_t digitalPinToPort(std::underlying_type<PinNames>::type pin) {
-    return digitalPinToPort(static_cast<PinNames>(pin));
+  return digitalPinToPort(static_cast<PinNames>(pin));
 }
 
 /// Forwarding functions for implicit conversion
 inline uint16_t digitalPinToBitMask(std::underlying_type<PinNames>::type pin) {
-    return digitalPinToBitMask(static_cast<PinNames>(pin));
+  return digitalPinToBitMask(static_cast<PinNames>(pin));
 }
 
 #define noInterrupts() (portDISABLE_INTERRUPTS())
 #define interrupts() (portENABLE_INTERRUPTS())
 
 #define delay(ms) (vTaskDelay(pdMS_TO_TICKS(ms)))
-
 
 /*
 01 VBAT
@@ -118,6 +119,5 @@ inline uint16_t digitalPinToBitMask(std::underlying_type<PinNames>::type pin) {
 48
 49
 */
-
 
 #endif  // __WPROGRAM_H__

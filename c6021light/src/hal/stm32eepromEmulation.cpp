@@ -51,7 +51,7 @@ extern "C" void FlashFairy_Erase_Page(void* pagePtr) {
 
 namespace ConsoleManager {
 
-int run_app_dump_flash(int, const char* const*) {
+int run_app_dump_flash(int, const char* const*, int) {
   FlashFairyPP::FlashFairyPP::Config_t config;
   config.pages[0] = &hal::_flashFairyPage0;
   config.pages[1] = &hal::_flashFairyPage1;
