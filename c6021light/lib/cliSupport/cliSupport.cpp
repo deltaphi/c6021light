@@ -83,22 +83,31 @@ void fillCompletionData(char** completionBuffer, std::size_t maxNumCompletions,
   // completions: Parse through the tree which args match. When an arg matches completely and there
   // are more args, consider the following elements.
 
+  memset(completionBuffer, 0, maxNumCompletions * sizeof(char*));
+
+  if (argc < 1) {
+    // Nothing to match.
+    return;
+  }
+
   PrefixResult prefix = findLongestPrefix(argtable, argc, argv, TruePredicate);
 
-  memset(completionBuffer, 0, maxNumCompletions * sizeof(char*));
+  const Argument argtable_virtual_root[]{{nullptr, argtable, nullptr}};
 
   if (prefix.level > argc) {
     // We somehow ran out of bounds. No completions.
     return;
   } else if (prefix.empty()) {
-    prefix.arg = argtable;  // Default to top-level table for completion search
+    prefix.arg = argtable_virtual_root;  // Default to top-level table for completion search
+    prefix.level = -1;
   }
 
   if (prefix.valid(argc)) {
     std::size_t completionIt = 0;
-    for (const Argument* levelIt = prefix.arg;
+    const char* argvToMatch = argv[prefix.level + 1];
+    for (const Argument* levelIt = prefix.arg->options;
          (levelIt->name != nullptr) && (completionIt < maxNumCompletions); ++levelIt) {
-      if (strstr(levelIt->name, argv[prefix.level]) == levelIt->name) {
+      if (strstr(levelIt->name, argvToMatch) == levelIt->name) {
         completionBuffer[completionIt] = const_cast<char*>(levelIt->name);
         ++completionIt;
       }
@@ -110,7 +119,7 @@ int callHandler(const cliSupport::Argument* argtable, int argc, const char* cons
   PrefixResult prefix = findLongestPrefix(argtable, argc, argv, HasHandlerPredicate);
 
   if (prefix.valid(argc)) {
-    return prefix.arg->handler(argc, argv, prefix.level);
+    return prefix.arg->handler(argc, argv, prefix.level + 1);
   } else {
     return kNoHandler;
   }
