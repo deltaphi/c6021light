@@ -29,13 +29,22 @@ DataModel LoadConfig() {
   DataModel model;
   model.accessoryRailProtocol =
       static_cast<RR32Can::RailProtocol>(flashFairy.getValue(DataAddresses::accessoryRailProtocol));
+  model.lnSlotServerState = static_cast<decltype(DataModel::lnSlotServerState)>(
+      flashFairy.getValue(DataAddresses::lnSlotServerState));
   return model;
 }
 
 void SaveConfig(const DataModel& model) {
-  uint16_t value =
-      static_cast<std::underlying_type<RR32Can::RailProtocol>::type>(model.accessoryRailProtocol);
-  flashFairy.setValue(DataAddresses::accessoryRailProtocol, value);
+  {
+    FlashFairyPP::FlashFairyPP::value_type value =
+        static_cast<std::underlying_type<RR32Can::RailProtocol>::type>(model.accessoryRailProtocol);
+    flashFairy.setValue(DataAddresses::accessoryRailProtocol, value);
+  }
+  {
+    FlashFairyPP::FlashFairyPP::value_type value =
+        static_cast<std::underlying_type<RR32Can::RailProtocol>::type>(model.lnSlotServerState);
+    flashFairy.setValue(DataAddresses::lnSlotServerState, value);
+  }
 }
 
 extern "C" void FlashFairy_Write_Word(void* pagePtr, uint32_t line) {

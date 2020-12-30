@@ -17,6 +17,8 @@ namespace RoutingTask {
  */
 class LocoNetSlotServer {
  public:
+  enum class SlotServerState : uint8_t { DISABLED = 0, PASSIVE = 1, ACTIVE = 2 };
+
   using LocoAddr_t = RR32Can::LocId_t;
   using SlotIdx_t = uint8_t;
 
