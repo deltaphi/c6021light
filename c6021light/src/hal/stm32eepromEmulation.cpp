@@ -28,8 +28,7 @@ void beginEE() {
 DataModel LoadConfig() {
   DataModel model;
   flashFairy.readValueIfAvailable(DataAddresses::accessoryRailProtocol, model.accessoryRailProtocol);
-  model.lnSlotServerState = static_cast<decltype(DataModel::lnSlotServerState)>(
-      flashFairy.getValue(DataAddresses::lnSlotServerState));
+  flashFairy.readValueIfAvailable(DataAddresses::lnSlotServerState, model.lnSlotServerState);
   return model;
 }
 
