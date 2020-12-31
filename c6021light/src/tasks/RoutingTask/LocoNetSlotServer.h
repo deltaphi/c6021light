@@ -9,11 +9,15 @@
 
 #include "LocoNet.h"
 
+class DataModel;
+
 namespace tasks {
 namespace RoutingTask {
 
 /*
  * \brief Class LocoNetSlotServer
+ *
+ * See https://wiki.rocrail.net/doku.php?id=loconet:ln-pe-en for protocol details
  */
 class LocoNetSlotServer {
  public:
@@ -24,11 +28,13 @@ class LocoNetSlotServer {
 
   struct SlotEntry {
     bool inUse = false;
-    LocoAddr_t locoAddress;
+    LocoAddr_t locoAddress = 0;
   };
 
   constexpr static const SlotIdx_t kNumSlots = 127;
   using SlotDB_t = std::array<SlotEntry, kNumSlots>;  // note that Slot 0 is not used
+
+  void init(DataModel& dataModel) { this->dataModel_ = &dataModel; }
 
   bool markAddressForDispatch(LocoAddr_t addr) {
     SlotDB_t::iterator it = findOrAllocateSlotForAddress(addr);
@@ -65,6 +71,11 @@ class LocoNetSlotServer {
     return addr;
   }
 
+  /**
+   * \brief Write the current slot status to STDOUT.
+   */
+  void dump() const;
+
  private:
   bool dispatchSlotAvailable() const { return slotInDispatch_ != slotDB_.end(); }
 
@@ -77,7 +88,28 @@ class LocoNetSlotServer {
   void sendNoDispatch() const;
 
   void processLocoRequest(LocoAddr_t locoAddr);
+  void processSlotRead(const rwSlotDataMsg& msg);
 
+  bool isDisabled() const;
+  bool isPassive() const;
+  bool isActive() const;
+
+  bool isSlotInBounds(const SlotDB_t::const_iterator& it) const { return it != slotDB_.end(); }
+
+  static void clearSlot(SlotDB_t::iterator& slot) { *slot = SlotEntry(); }
+
+  static LocoAddr_t getLocoAddress(const rwSlotDataMsg& slotRead) {
+    LocoAddr_t address = slotRead.adr2 << 7;
+    address |= slotRead.adr & 0x7F;
+    return address;
+  }
+
+  static void putLocoAddress(rwSlotDataMsg& slotRead, LocoAddr_t address) {
+    slotRead.adr = address & 0x7F;  // Loco Address low bits
+    slotRead.adr2 = address >> 7;   // Loco Address high bits
+  }
+
+  DataModel* dataModel_;
   SlotDB_t slotDB_;
   SlotDB_t::iterator slotInDispatch_;  // slotDB_.end() means no slot.
 };

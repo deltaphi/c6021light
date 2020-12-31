@@ -161,3 +161,19 @@ extern "C" void notifyLnByteReceived() {
     taskYIELD();
   }
 }
+
+namespace ConsoleManager {
+
+int run_ln_slot_server_dump(int argc, const char* const* argv, int argcMatched) {
+  static constexpr const char* appName{"LnSlotServerDump"};
+  if (!checkNumArgs(argc - argcMatched, 0, 0, appName)) {
+    display_help(argc, argv);
+    return -2;
+  }
+
+  routingTask.getLnSlotServer().dump();
+
+  return 0;
+}
+
+}  // namespace ConsoleManager

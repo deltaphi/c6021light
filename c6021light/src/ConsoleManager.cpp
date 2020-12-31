@@ -47,13 +47,14 @@ int run_app_set_turnout_protocol(int argc, const char* const* argv, int argcMatc
 int run_app_get_turnout_protocol(int argc, const char* const* argv, int argcMatched);
 int run_app_save(int argc, const char* const* argv, int argcMatched);
 int run_app_help(int argc, const char* const* argv, int argcMatched);
-void display_help(int argc, const char* const* argv);
 int run_app_dump_flash(int argc, const char* const* argv,
                        int argcMatched);  // implemented in eeprom emulation
+
 int run_ln_slot_server_active(int argc, const char* const* argv, int argcMatched);
 int run_ln_slot_server_passive(int argc, const char* const* argv, int argcMatched);
 int run_ln_slot_server_disable(int argc, const char* const* argv, int argcMatched);
 int run_ln_slot_server_getstatus(int argc, const char* const* argv, int argcMatched);
+int run_ln_slot_server_dump(int, const char* const*, int);
 
 // Arguments for config
 static const cliSupport::Argument turnoutProtocolArguments[] = {
@@ -82,6 +83,12 @@ static const cliSupport::Argument COMMAND_ARGS(config)[] = {
     "Modify configuraiton value.",
     {}};
 
+// Arguments for lnSlotServer
+static const cliSupport::Argument COMMAND_ARGS(lnSlotServer)[] = {
+    {COMMAND(dump), nullptr, run_ln_slot_server_dump, "Display current slots."},
+    "Modify configuraiton value.",
+    {}};
+
 // Arguments for flash
 static const cliSupport::Argument COMMAND_ARGS(flash)[] = {
     {COMMAND(dump), nullptr, run_app_dump_flash, "Show contents of EEPROM Emulation Flash."},
@@ -91,8 +98,10 @@ static const cliSupport::Argument COMMAND_ARGS(flash)[] = {
 // Top-Level Arguments
 static const cliSupport::Argument argtable[] = {
     {COMMAND(config), COMMAND_ARGS(config), nullptr, "Change runtime configuration."},
-    {COMMAND(help), nullptr, run_app_help, "Display this help message."},
     {COMMAND(flash), COMMAND_ARGS(flash), nullptr, "Operations on persistent storage."},
+    {COMMAND(lnSlotServer), COMMAND_ARGS(lnSlotServer), nullptr,
+     "Control the LocoNet Refresh Slot server."},
+    {COMMAND(help), nullptr, run_app_help, "Display this help message."},
     {}};
 
 static void microrl_print_cbk(const char* s);

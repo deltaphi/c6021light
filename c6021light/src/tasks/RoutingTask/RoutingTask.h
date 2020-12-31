@@ -20,11 +20,16 @@ class RoutingTask {
  public:
   static constexpr const uint32_t kStackSize = 256;
 
-  void begin(DataModel& dataModel) { this->dataModel_ = &dataModel; };
+  void begin(DataModel& dataModel) {
+    this->dataModel_ = &dataModel;
+    slotServer_.init(dataModel);
+  };
 
   void TaskMain();
 
   hal::CanTxCbk canTxCbk_;
+
+  const LocoNetSlotServer& getLnSlotServer() const { return slotServer_; }
 
  private:
   MarklinI2C::Messages::AccessoryMsg prepareI2cMessage();
