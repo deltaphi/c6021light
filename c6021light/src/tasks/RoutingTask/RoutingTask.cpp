@@ -256,7 +256,8 @@ bool RoutingTask::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr3
       turnoutPacket.initData();
 
       // Extract the switch address
-      RR32Can::MachineTurnoutAddress lnAddr{((LnPacket.srq.sw2 & 0x0F) << 7) | LnPacket.srq.sw1};
+      RR32Can::MachineTurnoutAddress lnAddr{static_cast<RR32Can::MachineTurnoutAddress::value_type>(
+          ((LnPacket.srq.sw2 & 0x0F) << 7) | LnPacket.srq.sw1)};
       lnAddr.setProtocol(dataModel_->accessoryRailProtocol);
       turnoutPacket.setLocid(lnAddr);
 
