@@ -66,8 +66,39 @@ void LocoNetSlotServer::processSlotRead(const rwSlotDataMsg& msg) {
   std::advance(slotIt, std::min(msg.slot, kNumSlots));
 
   if (slotIt != slotDB_.end()) {
-    slotIt->locoAddress = getLocoAddress(msg);
     slotIt->inUse = true;
+    slotIt->loco.reset();
+    slotIt->loco.setAddress(getLocoAddress(msg));
+    slotIt->loco.setVelocity(lnSpeedToCanVelocity(msg.spd));
+    dirfToLoco(msg.dirf, slotIt->loco);
+    sndToLoco(msg.snd, slotIt->loco);
+  }
+}
+
+void LocoNetSlotServer::processLocoSpeed(const locoSpdMsg& msg) {
+  SlotDB_t::iterator slotIt = slotDB_.begin();
+  std::advance(slotIt, std::min(msg.slot, kNumSlots));
+
+  if (slotIt != slotDB_.end()) {
+    slotIt->loco.setVelocity(lnSpeedToCanVelocity(msg.spd));
+  }
+}
+
+void LocoNetSlotServer::processLocoDirF(const locoDirfMsg& msg) {
+  SlotDB_t::iterator slotIt = slotDB_.begin();
+  std::advance(slotIt, std::min(msg.slot, kNumSlots));
+
+  if (slotIt != slotDB_.end()) {
+    dirfToLoco(msg.dirf, slotIt->loco);
+  }
+}
+
+void LocoNetSlotServer::processLocoSnd(const locoSndMsg& msg) {
+  SlotDB_t::iterator slotIt = slotDB_.begin();
+  std::advance(slotIt, std::min(msg.slot, kNumSlots));
+
+  if (slotIt != slotDB_.end()) {
+    sndToLoco(msg.snd, slotIt->loco);
   }
 }
 
@@ -77,11 +108,20 @@ void LocoNetSlotServer::process(const lnMsg& LnPacket) {
       processSlotMove(LnPacket.sm);
       break;
     case OPC_LOCO_ADR:
-      processLocoRequest(extractAddress(LnPacket));
+      processLocoRequest(extractLocoAddress(LnPacket));
       break;
     case OPC_SL_RD_DATA:
     case OPC_WR_SL_DATA:
       processSlotRead(LnPacket.sd);
+      break;
+    case OPC_LOCO_SPD:
+      processLocoSpeed(LnPacket.lsp);
+      break;
+    case OPC_LOCO_DIRF:
+      processLocoDirF(LnPacket.ldf);
+      break;
+    case OPC_LOCO_SND:
+      processLocoSnd(LnPacket.ls);
       break;
     default:
       break;
@@ -107,29 +147,104 @@ void LocoNetSlotServer::sendSlotDataRead(SlotDB_t::const_iterator slot) const {
     slotRead.stat &= ~0b00110000;  // FREE Slot
   }
 
-  putLocoAddress(slotRead, slot->locoAddress);
+  putLocoAddress(slotRead, slot->loco.getAddress().getNumericAddress());
 
-  slotRead.spd = 0;   // Speed
-  slotRead.dirf = 0;  // Direction & Functions 0-4
-  slotRead.trk = 0;   //
-  slotRead.ss2 = 0;   // Status2
-  slotRead.snd = 0;   // Sound
-  slotRead.id1 = 0;   // Throttle ID (low)
-  slotRead.id2 = 0;   // Throttle ID (high)
+  slotRead.spd = canVelocityToLnSpeed(slot->loco.getVelocity());  // Speed
+  slotRead.dirf = locoToDirf(slot->loco);                         // Direction & Functions 0-4
+  slotRead.trk = 0;                                               //
+  slotRead.ss2 = 0;                                               // Status2
+  slotRead.snd = locoToSnd(slot->loco);                           // F5-8
+  slotRead.id1 = 0;                                               // Throttle ID (low)
+  slotRead.id2 = 0;                                               // Throttle ID (high)
 
   LocoNet.send(&txMsg);
 }
 
 void LocoNetSlotServer::sendNoDispatch() const { LocoNet.sendLongAck(0); }
 
+void LocoNetSlotServer::dirfToLoco(const uint8_t dirf, LocoData_t& loco) {
+  RR32Can::EngineDirection direction;
+  if ((dirf & kDirfDirMask) == kDirfDirMask) {
+    direction = RR32Can::EngineDirection::REVERSE;
+  } else {
+    direction = RR32Can::EngineDirection::FORWARD;
+  }
+  loco.setDirection(direction);
+
+  uint8_t functionMask = 1;
+  for (uint8_t i = 0; i < kFunctionsInDirfMessage; ++i) {
+    uint8_t functionIdx = i + 1;
+    if (functionIdx == kFunctionsInDirfMessage) {
+      functionIdx = 0;
+    }
+    loco.setFunction(functionIdx, ((dirf & functionMask) != 0));
+    functionMask <<= 1;
+  }
+}
+
+uint8_t LocoNetSlotServer::locoToDirf(const LocoData_t& loco) {
+  uint8_t dirf = 0;
+
+  if (loco.getDirection() == RR32Can::EngineDirection::FORWARD) {
+    dirf &= ~kDirfDirMask;
+  } else {
+    dirf |= kDirfDirMask;
+  }
+
+  uint8_t functionMask = 1;
+  for (uint8_t i = 0; i < kFunctionsInDirfMessage; ++i) {
+    uint8_t functionIdx = i + 1;
+    if (functionIdx == kFunctionsInDirfMessage) {
+      functionIdx = 0;
+    }
+    if (loco.getFunction(functionIdx)) {
+      dirf |= functionMask;
+    } else {
+      dirf &= ~functionMask;
+    }
+    functionMask <<= 1;
+  }
+
+  return dirf;
+}
+
+void LocoNetSlotServer::sndToLoco(const uint8_t snd, LocoData_t& loco) {
+  uint8_t functionMask = 1;
+  for (uint8_t functionIdx = kFunctionsInSndMessage;
+       functionIdx < kLowestFunctionInSndMessage + kFunctionsInSndMessage; ++functionIdx) {
+    loco.setFunction(functionIdx, ((snd & functionMask) != 0));
+    functionMask <<= 1;
+  }
+}
+
+uint8_t LocoNetSlotServer::locoToSnd(const LocoData_t& loco) {
+  uint8_t snd = 0;
+
+  uint8_t functionMask = 1;
+  for (uint8_t i = kFunctionsInSndMessage; i < kLowestFunctionInSndMessage + kFunctionsInSndMessage;
+       ++i) {
+    uint8_t functionIdx = i;
+    if (loco.getFunction(functionIdx)) {
+      snd |= functionMask;
+    } else {
+      snd &= ~functionMask;
+    }
+    functionMask <<= 1;
+  }
+  return snd;
+}
+
 void LocoNetSlotServer::dump() const {
-  puts("LocoNet Slot Server Status");
+  puts("LocoNet Slot Server Status:");
   SlotIdx_t slotIdx = 0;
   for (auto& slot : slotDB_) {
-    printf("Slot %i:\n  InUse: %s\n  LocoAddr: %lu\n", slotIdx, (slot.inUse ? "true" : "false"),
-           slot.locoAddress);
+    if (slot.inUse) {
+      printf("Slot %i: InUse: %s Loco:", slotIdx, (slot.inUse ? "true" : "false"));
+      slot.loco.print();
+    }
     ++slotIdx;
   }
+  puts("-- LocoNet Slot Server Status.");
 }
 
 }  // namespace RoutingTask

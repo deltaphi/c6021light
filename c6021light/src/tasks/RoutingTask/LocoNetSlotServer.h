@@ -5,6 +5,7 @@
 #include <array>
 #include <cstdint>
 
+#include "RR32Can/Locomotive.h"
 #include "RR32Can/Types.h"
 
 #include "LocoNet.h"
@@ -23,16 +24,24 @@ class LocoNetSlotServer {
  public:
   enum class SlotServerState : uint8_t { DISABLED = 0, PASSIVE = 1, ACTIVE = 2 };
 
-  using LocoAddr_t = RR32Can::LocId_t;
+  using LocoAddr_t = RR32Can::MachineLocomotiveAddress;
+  using LocoData_t = RR32Can::LocomotiveData;
   using SlotIdx_t = uint8_t;
 
   struct SlotEntry {
     bool inUse = false;
-    LocoAddr_t locoAddress = 0;
+    LocoData_t loco;
   };
 
   constexpr static const SlotIdx_t kNumSlots = 127;
   using SlotDB_t = std::array<SlotEntry, kNumSlots>;  // note that Slot 0 is not used
+
+  constexpr static const RR32Can::Velocity_t kLocoNetMaxVeloctiy = 127;
+  constexpr static const uint8_t kDirfDirMask = 0b00100000;  // mask set == reverse
+  constexpr static const uint8_t kFunctionsInDirfMessage = 5;
+
+  constexpr static const uint8_t kFunctionsInSndMessage = 4;
+  constexpr static const uint8_t kLowestFunctionInSndMessage = 5;
 
   void init(DataModel& dataModel) { this->dataModel_ = &dataModel; }
 
@@ -48,14 +57,15 @@ class LocoNetSlotServer {
 
   SlotDB_t::iterator findSlotForAddress(LocoAddr_t addr) {
     return std::find_if(slotDB_.begin(), slotDB_.end(), [addr](const auto& entry) {
-      return (entry.inUse && entry.locoAddress == addr);
+      return (entry.inUse && entry.loco.getAddress() == addr);
     });
   }
 
   SlotDB_t::iterator findOrAllocateSlotForAddress(LocoAddr_t addr) {
+    addr = addr.getNumericAddress();
     SlotDB_t::iterator freeIt = slotDB_.end();
     for (SlotDB_t::iterator addrIt = slotDB_.begin() + 1; addrIt != slotDB_.end(); ++addrIt) {
-      if (addrIt->locoAddress == addr) {
+      if (addrIt->loco.getAddress().getNumericAddress() == addr) {
         return addrIt;
       } else if (freeIt == slotDB_.end() && !(addrIt->inUse)) {
         freeIt = addrIt;
@@ -65,6 +75,10 @@ class LocoNetSlotServer {
   }
 
   void process(const lnMsg& LnPacket);
+
+  static RR32Can::MachineLocomotiveAddress extractLocoAddress(const lnMsg& LnPacket) {
+    return RR32Can::MachineLocomotiveAddress(extractAddress(LnPacket));
+  }
 
   static uint16_t extractAddress(const lnMsg& LnPacket) {
     uint16_t addr = (LnPacket.data[1] | ((LnPacket.data[2] & 0x0F) << 7));
@@ -90,6 +104,10 @@ class LocoNetSlotServer {
   void processLocoRequest(LocoAddr_t locoAddr);
   void processSlotRead(const rwSlotDataMsg& msg);
 
+  void processLocoSpeed(const locoSpdMsg& msg);
+  void processLocoDirF(const locoDirfMsg& msg);
+  void processLocoSnd(const locoSndMsg& msg);
+
   bool isDisabled() const;
   bool isPassive() const;
   bool isActive() const;
@@ -99,14 +117,28 @@ class LocoNetSlotServer {
   static void clearSlot(SlotDB_t::iterator& slot) { *slot = SlotEntry(); }
 
   static LocoAddr_t getLocoAddress(const rwSlotDataMsg& slotRead) {
-    LocoAddr_t address = slotRead.adr2 << 7;
+    LocoAddr_t::value_type address = slotRead.adr2 << 7;
     address |= slotRead.adr & 0x7F;
-    return address;
+    return LocoAddr_t{address};
   }
 
-  static void putLocoAddress(rwSlotDataMsg& slotRead, LocoAddr_t address) {
-    slotRead.adr = address & 0x7F;  // Loco Address low bits
-    slotRead.adr2 = address >> 7;   // Loco Address high bits
+  static void putLocoAddress(rwSlotDataMsg& slotRead, const LocoAddr_t address) {
+    slotRead.adr = address.value() & 0x7F;  // Loco Address low bits
+    slotRead.adr2 = address.value() >> 7;   // Loco Address high bits
+  }
+
+  static void dirfToLoco(const uint8_t dirf, LocoData_t& loco);
+  static uint8_t locoToDirf(const LocoData_t& loco);
+
+  static void sndToLoco(const uint8_t snd, LocoData_t& loco);
+  static uint8_t locoToSnd(const LocoData_t& loco);
+
+  static RR32Can::Velocity_t lnSpeedToCanVelocity(RR32Can::Velocity_t speed) {
+    return (speed * RR32Can::kMaxEngineVelocity / kLocoNetMaxVeloctiy);
+  }
+
+  static RR32Can::Velocity_t canVelocityToLnSpeed(RR32Can::Velocity_t velocity) {
+    return (velocity * kLocoNetMaxVeloctiy) / RR32Can::kMaxEngineVelocity;
   }
 
   DataModel* dataModel_;
