@@ -117,7 +117,7 @@ bool RoutingTask::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& reque
     // Note that we store the last direction where power was applied and only turn off that.
     // The CAN side interprets a "Power Off" as "Flip the switch" anyways.
     RR32Can::MachineTurnoutAddress i2cAddr = request.getTurnoutAddr();
-    if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddr.value())) {
+    if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddr)) {
       RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddr;
       protocolAddr.setProtocol(dataModel_->accessoryRailProtocol);
 
@@ -256,7 +256,7 @@ bool RoutingTask::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr3
       turnoutPacket.initData();
 
       // Extract the switch address
-      RR32Can::MachineTurnoutAddress lnAddr = ((LnPacket.srq.sw2 & 0x0F) << 7) | LnPacket.srq.sw1;
+      RR32Can::MachineTurnoutAddress lnAddr{((LnPacket.srq.sw2 & 0x0F) << 7) | LnPacket.srq.sw1};
       lnAddr.setProtocol(dataModel_->accessoryRailProtocol);
       turnoutPacket.setLocid(lnAddr);
 
@@ -292,7 +292,7 @@ bool RoutingTask::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr3
       RR32Can::S88Event message(rr32data);
       message.initData();
       message.setSubtype(RR32Can::S88Event::Subtype::RESPONSE);
-      message.setDeviceId(0);
+      message.setDeviceId(RR32Can::MachineTurnoutAddress(0));
 
       {
         uint16_t addr = LnPacket.ir.in1 << 1;
