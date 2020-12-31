@@ -60,7 +60,7 @@ int run_ln_slot_server_dump(int, const char* const*, int);
 static const cliSupport::Argument turnoutProtocolArguments[] = {
     {MM2Name, nullptr, nullptr}, {DCCName, nullptr, nullptr}, {SX1Name, nullptr, nullptr}, {}};
 
-static const cliSupport::Argument lnSlotServerArguments[] = {
+static const cliSupport::Argument lnSlotServerConfigArguments[] = {
     {COMMAND(active), nullptr, run_ln_slot_server_active},
     {COMMAND(passive), nullptr, run_ln_slot_server_passive},
     {COMMAND(disabled), nullptr, run_ln_slot_server_disable},
@@ -74,20 +74,17 @@ static const cliSupport::Argument COMMAND_ARGS(config_get)[] = {
 static const cliSupport::Argument COMMAND_ARGS(config_set)[] = {
     {COMMAND(turnoutProtocol), turnoutProtocolArguments, run_app_set_turnout_protocol,
      turnoutProtocolHelp},
-    {COMMAND(lnSlotServer), lnSlotServerArguments, nullptr, lnSlotServerHelp},
+    {COMMAND(lnSlotServer), lnSlotServerConfigArguments, nullptr, lnSlotServerHelp},
     {}};
 
 static const cliSupport::Argument COMMAND_ARGS(config)[] = {
     {COMMAND(get), COMMAND_ARGS(config_get), nullptr, "Display configuration value."},
-    {COMMAND(set), COMMAND_ARGS(config_set), nullptr},
-    "Modify configuraiton value.",
+    {COMMAND(set), COMMAND_ARGS(config_set), nullptr, "Modify configuraiton value."},
     {}};
 
 // Arguments for lnSlotServer
 static const cliSupport::Argument COMMAND_ARGS(lnSlotServer)[] = {
-    {COMMAND(dump), nullptr, run_ln_slot_server_dump, "Display current slots."},
-    "Modify configuraiton value.",
-    {}};
+    {COMMAND(dump), nullptr, run_ln_slot_server_dump, "Display current slots."}, {}};
 
 // Arguments for flash
 static const cliSupport::Argument COMMAND_ARGS(flash)[] = {
