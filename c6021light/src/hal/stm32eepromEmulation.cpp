@@ -27,8 +27,7 @@ void beginEE() {
 
 DataModel LoadConfig() {
   DataModel model;
-  model.accessoryRailProtocol =
-      static_cast<RR32Can::RailProtocol>(flashFairy.getValue(DataAddresses::accessoryRailProtocol));
+  flashFairy.readValueIfAvailable(DataAddresses::accessoryRailProtocol, model.accessoryRailProtocol);
   model.lnSlotServerState = static_cast<decltype(DataModel::lnSlotServerState)>(
       flashFairy.getValue(DataAddresses::lnSlotServerState));
   return model;
