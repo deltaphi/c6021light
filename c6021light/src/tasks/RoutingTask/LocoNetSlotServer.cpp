@@ -52,10 +52,11 @@ void LocoNetSlotServer::processSlotMove(const slotMoveMsg& msg) {
 }
 
 void LocoNetSlotServer::processLocoRequest(LocoAddr_t locoAddr) {
-  SlotDB_t::iterator slot = findOrAllocateSlotForAddress(locoAddr);
-
-  if (slot != slotDB_.end()) {
-    sendSlotDataRead(slot);
+  if (isActive()) {
+    SlotDB_t::iterator slot = findOrAllocateSlotForAddress(locoAddr);
+    if (slot != slotDB_.end()) {
+      sendSlotDataRead(slot);
+    }
   }
 }
 
