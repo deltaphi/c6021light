@@ -22,12 +22,13 @@ void beginEE() {
   config.pages[0] = &_flashFairyPage0;
   config.pages[1] = &_flashFairyPage1;
 
-  flashFairy.Init(config);
+  flashFairy.initialize(config);
 }
 
 DataModel LoadConfig() {
   DataModel model;
-  flashFairy.readValueIfAvailable(DataAddresses::accessoryRailProtocol, model.accessoryRailProtocol);
+  flashFairy.readValueIfAvailable(DataAddresses::accessoryRailProtocol,
+                                  model.accessoryRailProtocol);
   return model;
 }
 
@@ -57,7 +58,7 @@ int run_app_dump_flash(int, const char* const*, int) {
 
   for (unsigned int i = 0; i < 2; ++i) {
     printf("\nPage %d:\n", i);
-    FlashFairyPP::FlashFairyPP::page_pointer_type page = config.pages[i];
+    FlashFairyPP::FlashFairyPP::PagePtr_t page = config.pages[i];
 
     // 1024 bytes, hex output -> 3 columns per byte -> an 80 column line fits 26 bytes.
     // Rather display only 16 bytes to make navigation easier
