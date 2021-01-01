@@ -92,8 +92,8 @@ void setup() {
   halImpl.begin();
   hal::beginSerial();
   hal::beginEE();
-  hal::beginI2C(dataModel.myAddr, routingTask.getHandle());
-  hal::beginCan(routingTask.getHandle());
+  hal::beginI2C(dataModel.myAddr, routingTask);
+  hal::beginCan(routingTask);
 
   // Setup Serial
   printf("Connect6021Light Initializing...\n");
@@ -132,8 +132,8 @@ void setupOsResources() {
 }
 
 void setupOsTasks() {
-  routingTask.Create(routingTask, "RoutingTask", configMAX_PRIORITIES - 1);
-  consoleTask.Create(consoleTask, "ConsoleTask",
+  routingTask.Create("RoutingTask", configMAX_PRIORITIES - 1);
+  consoleTask.Create("ConsoleTask",
                      0);  // Lowest prio as this task will always run.
 }
 
