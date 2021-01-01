@@ -44,14 +44,12 @@ Hal_t halImpl;
 AccessoryCbk accessoryCbk;
 
 DataModel dataModel;
-tasks::RoutingTask::RoutingTask routingTask;
 freertossupport::StaticOsTask<tasks::RoutingTask::RoutingTask,
                               tasks::RoutingTask::RoutingTask::kStackSize>
-    routingTaskBuffer;
-tasks::ConsoleTask::ConsoleTask consoleTask;
+    routingTask;
 freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
                               tasks::ConsoleTask::ConsoleTask::kStackSize>
-    consoleTaskBuffer;
+    consoleTask;
 
 // ******** Code ********
 extern "C" {
@@ -94,8 +92,8 @@ void setup() {
   halImpl.begin();
   hal::beginSerial();
   hal::beginEE();
-  hal::beginI2C(dataModel.myAddr, routingTaskBuffer.getHandle());
-  hal::beginCan(routingTaskBuffer.getHandle());
+  hal::beginI2C(dataModel.myAddr, routingTask.getHandle());
+  hal::beginCan(routingTask.getHandle());
 
   // Setup Serial
   printf("Connect6021Light Initializing...\n");
@@ -134,9 +132,9 @@ void setupOsResources() {
 }
 
 void setupOsTasks() {
-  routingTaskBuffer.Create(routingTask, "RoutingTask", configMAX_PRIORITIES - 1);
-  consoleTaskBuffer.Create(consoleTask, "ConsoleTask",
-                           0);  // Lowest prio as this task will always run.
+  routingTask.Create(routingTask, "RoutingTask", configMAX_PRIORITIES - 1);
+  consoleTask.Create(consoleTask, "ConsoleTask",
+                     0);  // Lowest prio as this task will always run.
 }
 
 // Main function for non-arduino
@@ -156,7 +154,7 @@ int main(void) {
 
 extern "C" void notifyLnByteReceived() {
   BaseType_t HigherPriorityTaskWoken = pdFALSE;
-  routingTaskBuffer.notifyFromISR(HigherPriorityTaskWoken);
+  routingTask.notifyFromISR(HigherPriorityTaskWoken);
   if (HigherPriorityTaskWoken == pdTRUE) {
     taskYIELD();
   }

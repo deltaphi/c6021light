@@ -1,6 +1,8 @@
 #ifndef __FREERTOSSUPPORT__OSTASK_H__
 #define __FREERTOSSUPPORT__OSTASK_H__
 
+#include <type_traits>
+
 #include "FreeRTOS.h"
 #include "task.h"
 
@@ -23,12 +25,15 @@ class OsTask {
 };
 
 template <typename TaskClass, uint32_t StackSize>
-class StaticOsTask : public OsTask {
+class StaticOsTask : public TaskClass {
  public:
+  static_assert(std::is_base_of<OsTask, TaskClass>::value,
+                "TaskClass must extend freertossupport::OsTask.");
+
   void Create(TaskClass& taskImpl, const char* taskName, UBaseType_t priority) {
-    handle_ = xTaskCreateStatic((void (*)(void*)) & TaskClass::TaskMain, taskName, StackSize,
-                                &taskImpl, priority, stack_, &tcb_);
-    configASSERT(handle_ != NULL);
+    this->handle_ = xTaskCreateStatic((void (*)(void*)) & TaskClass::TaskMain, taskName, StackSize,
+                                      &taskImpl, priority, stack_, &tcb_);
+    configASSERT(this->handle_ != NULL);
   }
 
  private:
