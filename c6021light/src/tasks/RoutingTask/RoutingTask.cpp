@@ -27,7 +27,7 @@ bool sameDecoder(RR32Can::MachineTurnoutAddress left, RR32Can::MachineTurnoutAdd
 
 MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage(hal::I2CBuf& buffer) {
   MarklinI2C::Messages::AccessoryMsg msg;
-  msg.destination_ = dataModel_->myAddr;
+  msg.destination_ = dataModel_->kMyAddr;
   msg.source_ = buffer.msgBytes[0];
   msg.data_ = buffer.msgBytes[1];
   return msg;
@@ -35,7 +35,7 @@ MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage(hal::I2CBuf& buffe
 
 MarklinI2C::Messages::AccessoryMsg RoutingTask::prepareI2cMessage() {
   MarklinI2C::Messages::AccessoryMsg msg;
-  msg.source_ = dataModel_->myAddr;
+  msg.source_ = dataModel_->kMyAddr;
   return msg;
 }
 

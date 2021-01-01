@@ -94,7 +94,7 @@ void setup() {
   halImpl.begin();
   hal::beginSerial();
   hal::beginEE();
-  hal::beginI2C(dataModel.myAddr, routingTaskBuffer.getHandle());
+  hal::beginI2C(dataModel.kMyAddr, routingTaskBuffer.getHandle());
   hal::beginCan(routingTaskBuffer.getHandle());
 
   // Setup Serial

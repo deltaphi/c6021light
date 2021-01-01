@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <type_traits>
+#include <utility>
 
 #include <libopencm3/stm32/flash.h>
 
@@ -22,28 +23,71 @@ void beginEE() {
   config.pages[0] = &_flashFairyPage0;
   config.pages[1] = &_flashFairyPage1;
 
-  flashFairy.Init(config);
+  flashFairy.initialize(config);
 }
 
 DataModel LoadConfig() {
   DataModel model;
-  flashFairy.readValueIfAvailable(DataAddresses::accessoryRailProtocol,
-                                  model.accessoryRailProtocol);
-  flashFairy.readValueIfAvailable(DataAddresses::lnSlotServerState, model.lnSlotServerState);
+  auto loadVisitor = [&model](auto key, auto value) {
+    switch (key) {
+      case DataAddresses::accessoryRailProtocol:
+        model.accessoryRailProtocol = static_cast<decltype(model.accessoryRailProtocol)>(value);
+        break;
+      case DataAddresses::lnSlotServerState:
+        model.lnSlotServerState = static_cast<decltype(model.lnSlotServerState)>(value);
+    }
+  };
+
+  flashFairy.visitEntries(loadVisitor);
+
   return model;
 }
 
+// namespace {
+class DataModelStoreVisitor {
+ public:
+  using size_type = uint32_t;
+  DataModelStoreVisitor(const DataModel& model) : model_(model) {}
+
+  class iterator {
+   public:
+    iterator(const DataModel& model, size_type index) : model_(model), index_(index){};
+
+    bool operator!=(const iterator& other) const {
+      return this->index_ != other.index_ || &(this->model_) != &(other.model_);
+    }
+
+    iterator& operator++() {
+      ++index_;
+      return *this;
+    }
+
+    auto operator*() const {
+      auto result = std::make_pair(
+          index_, model_.getValueForKey<FlashFairyPP::FlashFairyPP::value_type>(index_));
+      return result;
+    }
+
+   private:
+    const DataModel& model_;
+    size_type index_;
+  };
+
+  bool contains(FlashFairyPP::FlashFairyPP::key_type key) const {
+    return key < DataAddresses::kNumAddresses;
+  }
+
+  iterator begin() const { return iterator(model_, 0); }
+  iterator end() const { return iterator(model_, DataAddresses::kNumAddresses); }
+
+ private:
+  const DataModel& model_;
+};
+// }  // anonymous namespace
+
 void SaveConfig(const DataModel& model) {
-  {
-    FlashFairyPP::FlashFairyPP::value_type value =
-        static_cast<std::underlying_type<RR32Can::RailProtocol>::type>(model.accessoryRailProtocol);
-    flashFairy.setValue(DataAddresses::accessoryRailProtocol, value);
-  }
-  {
-    FlashFairyPP::FlashFairyPP::value_type value =
-        static_cast<std::underlying_type<RR32Can::RailProtocol>::type>(model.lnSlotServerState);
-    flashFairy.setValue(DataAddresses::lnSlotServerState, value);
-  }
+  auto storeVisitor = DataModelStoreVisitor(model);
+  flashFairy.storeVisitor(storeVisitor);
 }
 
 extern "C" void FlashFairy_Write_Word(void* pagePtr, uint32_t line) {
@@ -66,7 +110,7 @@ int run_app_dump_flash(int, const char* const*, int) {
 
   for (unsigned int i = 0; i < 2; ++i) {
     printf("\nPage %d:\n", i);
-    FlashFairyPP::FlashFairyPP::page_pointer_type page = config.pages[i];
+    FlashFairyPP::FlashFairyPP::PagePtr_t page = config.pages[i];
 
     // 1024 bytes, hex output -> 3 columns per byte -> an 80 column line fits 26 bytes.
     // Rather display only 16 bytes to make navigation easier
