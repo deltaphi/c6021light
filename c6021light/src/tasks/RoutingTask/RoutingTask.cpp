@@ -20,12 +20,15 @@ namespace RoutingTask {
  * \brief Two addresses are on the same decoder, if they match apart from
  * the lowest two bits.
  */
-bool sameDecoder(RR32Can::MachineTurnoutAddress left, RR32Can::MachineTurnoutAddress right) {
+namespace {
+bool sameDecoder(const RR32Can::MachineTurnoutAddress left,
+                 const RR32Can::MachineTurnoutAddress right) {
   constexpr const uint8_t mask = 0xFC;
   return (left.value() & mask) == (right.value() & mask);
 }
+}  // namespace
 
-MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage(hal::I2CBuf& buffer) {
+MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage(const hal::I2CBuf& buffer) {
   MarklinI2C::Messages::AccessoryMsg msg;
   msg.destination_ = dataModel_->kMyAddr;
   msg.source_ = buffer.msgBytes[0];

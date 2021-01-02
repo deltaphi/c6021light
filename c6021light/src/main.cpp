@@ -53,6 +53,9 @@ freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
                               tasks::ConsoleTask::ConsoleTask::kStackSize>
     consoleTaskBuffer;
 
+// Dummy variable that allows the toolchain to compile static variables that have destructors.
+void* __dso_handle;
+
 // ******** Code ********
 extern "C" {
 void vApplicationStackOverflowHook(xTaskHandle pxTask __attribute((unused)),
@@ -173,6 +176,16 @@ int run_ln_slot_server_dump(int argc, const char* const* argv, int argcMatched) 
 
   routingTask.getLnSlotServer().dump();
 
+  return 0;
+}
+
+int run_app_download_enginedb_can(int, const char* const*, int) {
+  routingTask.getCANEngineDB().fetchEngineDB();
+  return 0;
+}
+
+int run_app_dump_enginedb_can(int, const char* const*, int) {
+  routingTask.getCANEngineDB().dump();
   return 0;
 }
 

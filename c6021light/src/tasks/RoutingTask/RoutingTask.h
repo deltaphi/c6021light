@@ -11,6 +11,7 @@
 
 #include "LocoNet.h"
 
+#include "CanEngineDB.h"
 #include "LocoNetSlotServer.h"
 
 namespace tasks {
@@ -31,10 +32,12 @@ class RoutingTask {
 
   const LocoNetSlotServer& getLnSlotServer() const { return slotServer_; }
 
+  CanEngineDB& getCANEngineDB() { return engineDb_; }
+
  private:
   MarklinI2C::Messages::AccessoryMsg prepareI2cMessage();
   void SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg);
-  MarklinI2C::Messages::AccessoryMsg getI2CMessage(hal::I2CBuf& buffer);
+  MarklinI2C::Messages::AccessoryMsg getI2CMessage(const hal::I2CBuf& buffer);
 
   bool MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id, RR32Can::Data& rr32data);
   bool MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& i2cMsg, RR32Can::Identifier& rr32id,
@@ -46,6 +49,7 @@ class RoutingTask {
   RR32Can::TurnoutDirection lastPowerOnDirection;
   DataModel* dataModel_;
   LocoNetSlotServer slotServer_;
+  CanEngineDB engineDb_;
 };
 
 }  // namespace RoutingTask
