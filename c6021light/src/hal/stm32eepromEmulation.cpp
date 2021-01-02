@@ -35,6 +35,7 @@ DataModel LoadConfig() {
         break;
       case DataAddresses::lnSlotServerState:
         model.lnSlotServerState = static_cast<decltype(model.lnSlotServerState)>(value);
+        break;
     }
   };
 
