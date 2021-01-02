@@ -140,19 +140,17 @@ uint8_t SerialWrite(const char* src, AtomicRingBuffer::AtomicRingBuffer::size_ty
   while (srcBytesConsumed < srcLen) {
     const char* replacePtr = replace;
     {
-      // pointer_type dest;
-
       size_type bytesConsumed = 0;
 
       {
         std::lock_guard<freertossupport::OsMutex> guard{serialWriteMutex_};
-        MemoryRange dest = serialBuffer_.allocate(expectedDestLen, true);
+        const MemoryRange dest = serialBuffer_.allocate(expectedDestLen, true);
 
         if (doReplace) {
           auto replaceResult = AtomicRingBuffer::memcpyCharReplace(
               reinterpret_cast<char*>(dest.ptr), &src[srcBytesConsumed], search, replacePtr,
               dest.len, srcLen);
-          dest.len = reinterpret_cast<uint8_t*>(replaceResult.nextByte) - dest.ptr;
+          bytesConsumed = reinterpret_cast<uint8_t*>(replaceResult.nextByte) - dest.ptr;
         } else {
           memcpy(dest.ptr, &src[srcBytesConsumed], dest.len);
           bytesConsumed = dest.len;
