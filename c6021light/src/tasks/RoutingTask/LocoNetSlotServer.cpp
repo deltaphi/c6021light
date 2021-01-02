@@ -51,7 +51,7 @@ void LocoNetSlotServer::processSlotMove(const slotMoveMsg& msg) {
   }
 }
 
-void LocoNetSlotServer::processLocoRequest(LocoAddr_t locoAddr) {
+void LocoNetSlotServer::processLocoRequest(const LocoAddr_t locoAddr) {
   if (isActive()) {
     SlotDB_t::iterator slot = findOrAllocateSlotForAddress(locoAddr);
     if (slot != slotDB_.end()) {
@@ -60,10 +60,36 @@ void LocoNetSlotServer::processLocoRequest(LocoAddr_t locoAddr) {
   }
 }
 
+LocoNetSlotServer::SlotDB_t::iterator LocoNetSlotServer::findSlot(const uint8_t lnMsgSlot) {
+  SlotDB_t::iterator slotIt = slotDB_.begin();
+  std::advance(slotIt, std::min(lnMsgSlot, kNumSlots));
+  return slotIt;
+}
+
+LocoNetSlotServer::SlotDB_t::iterator LocoNetSlotServer::findOrRequestSlot(
+    const uint8_t lnMsgSlot) {
+  const SlotDB_t::iterator slotIt = findSlot(lnMsgSlot);
+  if (!slotIt->inUse) {
+    requestSlotDataRead(slotIt);
+  }
+  return slotIt;
+}
+
+void LocoNetSlotServer::requestSlotDataRead(
+    const LocoNetSlotServer::SlotDB_t::const_iterator slot) const {
+  if (!isDisabled()) {
+    lnMsg msg;
+    slotReqMsg& reqMsg{msg.sr};
+    reqMsg.command = OPC_RQ_SL_DATA;
+    reqMsg.slot = findSlotIndex(slot);
+    reqMsg.pad = 0;
+    LocoNet.send(&msg);
+  }
+}
+
 void LocoNetSlotServer::processSlotRead(const rwSlotDataMsg& msg) {
   // engine information learned about a slot
-  SlotDB_t::iterator slotIt = slotDB_.begin();
-  std::advance(slotIt, std::min(msg.slot, kNumSlots));
+  SlotDB_t::iterator slotIt = findSlot(msg.slot);
 
   if (slotIt != slotDB_.end()) {
     slotIt->inUse = true;
@@ -76,8 +102,7 @@ void LocoNetSlotServer::processSlotRead(const rwSlotDataMsg& msg) {
 }
 
 void LocoNetSlotServer::processLocoSpeed(const locoSpdMsg& msg) {
-  SlotDB_t::iterator slotIt = slotDB_.begin();
-  std::advance(slotIt, std::min(msg.slot, kNumSlots));
+  const SlotDB_t::iterator slotIt = findOrRequestSlot(msg.slot);
 
   if (slotIt != slotDB_.end()) {
     slotIt->loco.setVelocity(lnSpeedToCanVelocity(msg.spd));
@@ -85,8 +110,7 @@ void LocoNetSlotServer::processLocoSpeed(const locoSpdMsg& msg) {
 }
 
 void LocoNetSlotServer::processLocoDirF(const locoDirfMsg& msg) {
-  SlotDB_t::iterator slotIt = slotDB_.begin();
-  std::advance(slotIt, std::min(msg.slot, kNumSlots));
+  const SlotDB_t::iterator slotIt = findOrRequestSlot(msg.slot);
 
   if (slotIt != slotDB_.end()) {
     dirfToLoco(msg.dirf, slotIt->loco);
@@ -94,8 +118,7 @@ void LocoNetSlotServer::processLocoDirF(const locoDirfMsg& msg) {
 }
 
 void LocoNetSlotServer::processLocoSnd(const locoSndMsg& msg) {
-  SlotDB_t::iterator slotIt = slotDB_.begin();
-  std::advance(slotIt, std::min(msg.slot, kNumSlots));
+  const SlotDB_t::iterator slotIt = findOrRequestSlot(msg.slot);
 
   if (slotIt != slotDB_.end()) {
     sndToLoco(msg.snd, slotIt->loco);

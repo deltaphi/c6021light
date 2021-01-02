@@ -98,10 +98,13 @@ class LocoNetSlotServer {
   static bool isDispatchPut(const slotMoveMsg& msg) { return msg.dest == 0; }
   static bool isNullMove(const slotMoveMsg& msg) { return msg.src == msg.dest; }
 
-  void sendSlotDataRead(SlotDB_t::const_iterator slot) const;
+  SlotDB_t::iterator findOrRequestSlot(const uint8_t lnMsgSlot);
+  SlotDB_t::iterator findSlot(const uint8_t lnMsgSlot);
+  void requestSlotDataRead(const SlotDB_t::const_iterator slot) const;
+  void sendSlotDataRead(const SlotDB_t::const_iterator slot) const;
   void sendNoDispatch() const;
 
-  void processLocoRequest(LocoAddr_t locoAddr);
+  void processLocoRequest(const LocoAddr_t locoAddr);
   void processSlotRead(const rwSlotDataMsg& msg);
 
   void processLocoSpeed(const locoSpdMsg& msg);
@@ -113,6 +116,9 @@ class LocoNetSlotServer {
   bool isActive() const;
 
   bool isSlotInBounds(const SlotDB_t::const_iterator& it) const { return it != slotDB_.end(); }
+  auto findSlotIndex(const SlotDB_t::const_iterator it) const {
+    return std::distance(slotDB_.begin(), it);
+  }
 
   static void clearSlot(SlotDB_t::iterator& slot) { *slot = SlotEntry(); }
 
