@@ -147,6 +147,10 @@ class LocoNetSlotServer {
     return (velocity * kLocoNetMaxVeloctiy) / RR32Can::kMaxEngineVelocity;
   }
 
+  auto shouldSendEngineUpdateForSlot(const SlotDB_t::const_iterator slot) {
+    return slot->inUse && !isDisabled();
+  }
+
   DataModel* dataModel_;
   SlotDB_t slotDB_;
   SlotDB_t::iterator slotInDispatch_;  // slotDB_.end() means no slot.

@@ -1,5 +1,7 @@
 #include "tasks/RoutingTask/LocoNetSlotServer.h"
 
+#include "RR32Can/RR32Can.h"
+
 #include "ConsoleManager.h"
 #include "DataModel.h"
 
@@ -95,6 +97,7 @@ void LocoNetSlotServer::processSlotRead(const rwSlotDataMsg& msg) {
     slotIt->inUse = true;
     slotIt->loco.reset();
     slotIt->loco.setAddress(getLocoAddress(msg));
+    slotIt->loco.setUid(getLocoAddress(msg).value());  // Foce the engine to be MM2.
     slotIt->loco.setVelocity(lnSpeedToCanVelocity(msg.spd));
     dirfToLoco(msg.dirf, slotIt->loco);
     sndToLoco(msg.snd, slotIt->loco);
@@ -104,24 +107,76 @@ void LocoNetSlotServer::processSlotRead(const rwSlotDataMsg& msg) {
 void LocoNetSlotServer::processLocoSpeed(const locoSpdMsg& msg) {
   const SlotDB_t::iterator slotIt = findOrRequestSlot(msg.slot);
 
-  if (slotIt != slotDB_.end()) {
+  if (isSlotInBounds(slotIt)) {
     slotIt->loco.setVelocity(lnSpeedToCanVelocity(msg.spd));
+
+    if (shouldSendEngineUpdateForSlot(slotIt)) {
+      RR32Can::RR32Can.SendEngineVelocity(slotIt->loco, slotIt->loco.getVelocity());
+    }
   }
 }
 
 void LocoNetSlotServer::processLocoDirF(const locoDirfMsg& msg) {
   const SlotDB_t::iterator slotIt = findOrRequestSlot(msg.slot);
 
-  if (slotIt != slotDB_.end()) {
-    dirfToLoco(msg.dirf, slotIt->loco);
+  if (isSlotInBounds(slotIt)) {
+    const auto oldDirf = locoToDirf(slotIt->loco);
+    const auto delta = oldDirf ^ msg.dirf;
+    const bool hasChanged = delta != 0;
+
+    if (hasChanged) {
+      dirfToLoco(msg.dirf, slotIt->loco);
+
+      if (shouldSendEngineUpdateForSlot(slotIt)) {
+        // Just send updates for all transmitted elements
+        if ((delta & kDirfDirMask) != 0) {
+          RR32Can::RR32Can.SendEngineDirection(slotIt->loco, slotIt->loco.getDirection());
+        }
+
+        uint8_t functionMask = 1;
+        for (uint8_t i = 0; i < kFunctionsInDirfMessage; ++i) {
+          uint8_t functionIdx = i + 1;
+          if (functionIdx == kFunctionsInDirfMessage) {
+            functionIdx = 0;
+          }
+          if ((delta & functionMask) != 0) {
+            RR32Can::RR32Can.SendEngineFunction(slotIt->loco, functionIdx,
+                                                slotIt->loco.getFunction(functionIdx));
+          }
+          functionMask <<= 1;
+        }
+      }
+    }
   }
 }
 
 void LocoNetSlotServer::processLocoSnd(const locoSndMsg& msg) {
   const SlotDB_t::iterator slotIt = findOrRequestSlot(msg.slot);
 
-  if (slotIt != slotDB_.end()) {
-    sndToLoco(msg.snd, slotIt->loco);
+  if (isSlotInBounds(slotIt)) {
+    const uint8_t oldDirf = locoToSnd(slotIt->loco);
+    const auto delta = oldDirf ^ msg.snd;
+    const bool hasChanged = delta != 0;
+
+    if (hasChanged) {
+      sndToLoco(msg.snd, slotIt->loco);
+
+      if (shouldSendEngineUpdateForSlot(slotIt)) {
+        uint8_t functionMask = 1;
+        for (uint8_t i = kFunctionsInDirfMessage;
+             i < kFunctionsInDirfMessage + kFunctionsInSndMessage; ++i) {
+          uint8_t functionIdx = i + 1;
+          if (functionIdx == kFunctionsInDirfMessage) {
+            functionIdx = 0;
+          }
+          if ((delta & functionMask) != 0) {
+            RR32Can::RR32Can.SendEngineFunction(slotIt->loco, functionIdx,
+                                                slotIt->loco.getFunction(functionIdx));
+          }
+          functionMask <<= 1;
+        }
+      }
+    }
   }
 }
 
