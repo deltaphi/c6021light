@@ -2,6 +2,8 @@
 #define __HAL__STM32CAN_H__
 
 #include "OsQueue.h"
+#include "OsTask.h"
+
 #include "RR32Can/callback/TxCbk.h"
 #include "RR32Can/messages/Data.h"
 #include "RR32Can/messages/Identifier.h"
@@ -16,7 +18,7 @@ typedef struct {
   RR32Can::Data data;
 } CanMsg;
 
-void beginCan(TaskHandle_t taskToNotify);
+void beginCan(freertossupport::OsTask taskToNotify);
 
 using CanQueueType = freertossupport::OsQueue<CanMsg>;
 

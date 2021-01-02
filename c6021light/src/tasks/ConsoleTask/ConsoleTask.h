@@ -3,8 +3,7 @@
 
 #include <cstdint>
 
-#include "FreeRTOS.h"
-#include "task.h"
+#include "OsTask.h"
 
 namespace tasks {
 namespace ConsoleTask {
@@ -12,7 +11,7 @@ namespace ConsoleTask {
 /*
  * \brief Class ConsoleTask
  */
-class ConsoleTask {
+class ConsoleTask : public freertossupport::OsTask {
  public:
   static constexpr const uint32_t kStackSize = 256;
 

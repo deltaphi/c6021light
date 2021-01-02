@@ -16,7 +16,7 @@ I2CTxBuf i2cTxBuf;
 I2CQueueType i2cRxQueue;
 I2CQueueType i2cTxQueue;
 
-xTaskHandle taskToNotify;
+freertossupport::OsTask taskToNotify;
 
 /**
  * \brief Checks whether the buffer contains a valid message.
@@ -130,12 +130,12 @@ void resumeTxForce() {
   }
 }
 
-void beginI2C(uint8_t newSlaveAddress, xTaskHandle routingTaskHandle) {
+void beginI2C(uint8_t newSlaveAddress, freertossupport::OsTask routingTask) {
   i2c_peripheral_disable(I2C1);
   i2c_reset(I2C1);
 
   slaveAddress = newSlaveAddress;
-  taskToNotify = routingTaskHandle;
+  taskToNotify = routingTask;
 
   gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_OPENDRAIN,
                 GPIO_I2C1_SCL | GPIO_I2C1_SDA);
@@ -179,13 +179,13 @@ void forwardRx(bool fromISR) {
 
     if (fromISR) {
       BaseType_t notifyWokeThread;
-      xTaskNotifyFromISR(taskToNotify, 1, eSetValueWithoutOverwrite, &notifyWokeThread);
+      taskToNotify.notifyFromISR(notifyWokeThread);
 
       if (sendResult.higherPriorityTaskWoken == pdTRUE || notifyWokeThread == pdTRUE) {
         taskYIELD();
       }
     } else {
-      xTaskNotify(taskToNotify, 1, eSetValueWithoutOverwrite);
+      taskToNotify.notify();
     }
     // See if there is something to be sent.
     startTxFromISR();

@@ -192,7 +192,7 @@ void RoutingTask::ForwardToLoconet(const RR32Can::Identifier rr32id,
  */
 void RoutingTask::TaskMain() {
   while (1) {
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);  // Wait until someone sends us a notification.
+    waitForNotify();
 
     // Process CAN
     constexpr const TickType_t ticksToWait = 0;

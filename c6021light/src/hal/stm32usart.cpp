@@ -38,8 +38,7 @@ uint8_t bufferMemory_[bufferSize_];
 
 std::atomic_bool serialDmaBusy_;
 
-AtomicRingBuffer::AtomicRingBuffer::pointer_type serialMem_;
-AtomicRingBuffer::AtomicRingBuffer::size_type serialNumBytes_;
+AtomicRingBuffer::AtomicRingBuffer::MemoryRange serialDmaMemory_;
 
 // Actual Code
 
@@ -103,7 +102,7 @@ void dma1_channel4_isr(void) {
   if ((DMA1_ISR & DMA_ISR_TCIF4) != 0) {
     DMA1_IFCR |= DMA_IFCR_CTCIF4;
 
-    serialBuffer_.consume(serialMem_, serialNumBytes_);
+    serialBuffer_.consume(serialDmaMemory_);
     serialDmaBusy_.store(false, std::memory_order_release);
   }
 
@@ -121,7 +120,7 @@ void dma1_channel4_isr(void) {
 uint8_t SerialWrite(const char* src, AtomicRingBuffer::AtomicRingBuffer::size_type srcLen,
                     bool doReplace) {
   using size_type = AtomicRingBuffer::AtomicRingBuffer::size_type;
-  using pointer_type = AtomicRingBuffer::AtomicRingBuffer::pointer_type;
+  using MemoryRange = AtomicRingBuffer::AtomicRingBuffer::MemoryRange;
 
   // Constants used for memcpyCharReplace
   constexpr static char search = '\n';
@@ -141,28 +140,25 @@ uint8_t SerialWrite(const char* src, AtomicRingBuffer::AtomicRingBuffer::size_ty
   while (srcBytesConsumed < srcLen) {
     const char* replacePtr = replace;
     {
-      pointer_type dest;
+      // pointer_type dest;
 
-      size_type bytesToPublish = 0;
       size_type bytesConsumed = 0;
 
       {
         std::lock_guard<freertossupport::OsMutex> guard{serialWriteMutex_};
-        size_type destLen = serialBuffer_.allocate(dest, expectedDestLen, true);
+        MemoryRange dest = serialBuffer_.allocate(expectedDestLen, true);
 
         if (doReplace) {
-          char* useDest = reinterpret_cast<char*>(dest);
-
-          bytesConsumed = AtomicRingBuffer::memcpyCharReplace(useDest, &src[srcBytesConsumed],
-                                                              search, replacePtr, destLen, srcLen);
-          bytesToPublish = reinterpret_cast<uint8_t*>(useDest) - dest;
+          auto replaceResult = AtomicRingBuffer::memcpyCharReplace(
+              reinterpret_cast<char*>(dest.ptr), &src[srcBytesConsumed], search, replacePtr,
+              dest.len, srcLen);
+          dest.len = reinterpret_cast<uint8_t*>(replaceResult.nextByte) - dest.ptr;
         } else {
-          memcpy(dest, &src[srcBytesConsumed], destLen);
-          bytesConsumed = destLen;
-          bytesToPublish = destLen;
+          memcpy(dest.ptr, &src[srcBytesConsumed], dest.len);
+          bytesConsumed = dest.len;
         }
 
-        serialBuffer_.publish(dest, bytesToPublish);
+        serialBuffer_.publish(dest);
       }
       startSerialTx();
 
@@ -187,15 +183,14 @@ void startSerialTx() {
     // There is data to be transferred.
     bool dmaBusy = false;
     if (serialDmaBusy_.compare_exchange_strong(dmaBusy, true, std::memory_order_acq_rel)) {
-      serialNumBytes_ = serialBuffer_.peek(
-          serialMem_, std::numeric_limits<AtomicRingBuffer::AtomicRingBuffer::size_type>::max(),
-          true);
+      serialDmaMemory_ = serialBuffer_.peek(
+          std::numeric_limits<AtomicRingBuffer::AtomicRingBuffer::size_type>::max(), true);
 
       dma_channel_reset(DMA1, DMA_CHANNEL4);
 
       dma_set_peripheral_address(DMA1, DMA_CHANNEL4, (uint32_t)&USART1_DR);
-      dma_set_memory_address(DMA1, DMA_CHANNEL4, (uint32_t)serialMem_);
-      dma_set_number_of_data(DMA1, DMA_CHANNEL4, serialNumBytes_);
+      dma_set_memory_address(DMA1, DMA_CHANNEL4, (uint32_t)serialDmaMemory_.ptr);
+      dma_set_number_of_data(DMA1, DMA_CHANNEL4, serialDmaMemory_.len);
 
       dma_set_read_from_memory(DMA1, DMA_CHANNEL4);
       dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL4);

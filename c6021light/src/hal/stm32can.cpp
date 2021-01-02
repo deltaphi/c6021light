@@ -6,8 +6,7 @@
 #include <libopencm3/stm32/can.h>
 #include <libopencm3/stm32/gpio.h>
 
-#include "FreeRTOS.h"
-#include "task.h"
+#include "OsTask.h"
 
 #include "RR32Can/RR32Can.h"
 #include "RR32Can/messages/Identifier.h"
@@ -15,9 +14,9 @@
 namespace hal {
 
 freertossupport::OsQueue<CanMsg> canrxq;
-static TaskHandle_t taskToNotify;
+static freertossupport::OsTask taskToNotify;
 
-void beginCan(TaskHandle_t task) {
+void beginCan(freertossupport::OsTask task) {
   taskToNotify = task;
   AFIO_MAPR |= AFIO_MAPR_CAN1_REMAP_PORTB;
 
@@ -78,7 +77,7 @@ void usb_lp_can_rx0_isr(void) {
     }
   }
   BaseType_t taskWoken;
-  xTaskNotifyFromISR(taskToNotify, 1, eSetValueWithoutOverwrite, &taskWoken);
+  taskToNotify.notifyFromISR(taskWoken);
 
   if (anyTaskWoken == pdTRUE || taskWoken == pdTRUE) {
     taskYIELD();

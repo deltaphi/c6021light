@@ -8,6 +8,7 @@
 #include "hal/stm32can.h"
 
 #include "FreeRTOSConfig.h"
+#include "OsTask.h"
 
 #include "LocoNet.h"
 
@@ -17,7 +18,7 @@
 namespace tasks {
 namespace RoutingTask {
 
-class RoutingTask {
+class RoutingTask : public freertossupport::OsTask {
  public:
   static constexpr const uint32_t kStackSize = 256;
 

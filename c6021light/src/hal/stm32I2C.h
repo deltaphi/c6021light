@@ -5,6 +5,7 @@
 #include <cstdint>
 
 #include "OsQueue.h"
+#include "OsTask.h"
 
 #include "MarklinI2C/Constants.h"
 
@@ -26,7 +27,7 @@ using I2CQueueType = freertossupport::OsQueue<hal::I2CBuf>;
 extern I2CQueueType i2cRxQueue;
 extern I2CQueueType i2cTxQueue;
 
-void beginI2C(uint8_t slaveAddress, xTaskHandle routingTaskHandle);
+void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask);
 
 /**
  * Take a message from the Queue and start transmitting.
