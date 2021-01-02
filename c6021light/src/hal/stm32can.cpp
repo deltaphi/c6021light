@@ -88,7 +88,12 @@ void usb_lp_can_rx0_isr(void) {
 
 void CanTxCbk::SendPacket(RR32Can::Identifier const& id, RR32Can::Data const& data) {
   uint32_t packetId = id.makeIdentifier();
-  can_transmit(CAN1, packetId, true, false, data.dlc, const_cast<uint8_t*>(data.data));
+  int txMailbox = -1;
+  while (txMailbox == -1) {
+    // Busy-wait until a mailbox becomes free.
+    txMailbox =
+        can_transmit(CAN1, packetId, true, false, data.dlc, const_cast<uint8_t*>(data.data));
+  }
 }
 
 }  // namespace hal
