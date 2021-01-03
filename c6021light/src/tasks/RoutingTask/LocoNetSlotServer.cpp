@@ -1,11 +1,13 @@
 #include "tasks/RoutingTask/LocoNetSlotServer.h"
 
+#include <algorithm>
+
 #include "RR32Can/RR32Can.h"
 
 #include "ConsoleManager.h"
 #include "DataModel.h"
 
-#include <algorithm>
+#include "RoutingForwarder.h"
 
 namespace tasks {
 namespace RoutingTask {
@@ -111,7 +113,7 @@ void LocoNetSlotServer::processLocoSpeed(const locoSpdMsg& msg) {
     slotIt->loco.setVelocity(lnSpeedToCanVelocity(msg.spd));
 
     if (shouldSendEngineUpdateForSlot(slotIt)) {
-      RR32Can::RR32Can.SendEngineVelocity(slotIt->loco, slotIt->loco.getVelocity());
+      forwarder_.forwardLocoChange(slotIt->loco, true, false, 0);
     }
   }
 }
@@ -128,23 +130,12 @@ void LocoNetSlotServer::processLocoDirF(const locoDirfMsg& msg) {
       dirfToLoco(msg.dirf, slotIt->loco);
 
       if (shouldSendEngineUpdateForSlot(slotIt)) {
-        // Just send updates for all transmitted elements
-        if ((delta & kDirfDirMask) != 0) {
-          RR32Can::RR32Can.SendEngineDirection(slotIt->loco, slotIt->loco.getDirection());
-        }
+        const bool directionChanged = (delta & kDirfDirMask) != 0;
+        const uint16_t f1to4Bits = (hasChanged & 0x0F) << 1;
+        const uint16_t f0bit = (hasChanged >> 4) & 0x01;
+        const uint16_t functionChangeMask = f0bit | f1to4Bits;
 
-        uint8_t functionMask = 1;
-        for (uint8_t i = 0; i < kFunctionsInDirfMessage; ++i) {
-          uint8_t functionIdx = i + 1;
-          if (functionIdx == kFunctionsInDirfMessage) {
-            functionIdx = 0;
-          }
-          if ((delta & functionMask) != 0) {
-            RR32Can::RR32Can.SendEngineFunction(slotIt->loco, functionIdx,
-                                                slotIt->loco.getFunction(functionIdx));
-          }
-          functionMask <<= 1;
-        }
+        forwarder_.forwardLocoChange(slotIt->loco, false, directionChanged, functionChangeMask);
       }
     }
   }

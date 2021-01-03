@@ -10,6 +10,8 @@
 
 #include "LocoNet.h"
 
+#include "RoutingForwarder.h"
+
 class DataModel;
 
 namespace tasks {
@@ -42,6 +44,8 @@ class LocoNetSlotServer {
 
   constexpr static const uint8_t kFunctionsInSndMessage = 4;
   constexpr static const uint8_t kLowestFunctionInSndMessage = 5;
+
+  LocoNetSlotServer(RoutingForwarder& forwarder) : forwarder_(forwarder) {}
 
   void init(DataModel& dataModel) { this->dataModel_ = &dataModel; }
 
@@ -154,6 +158,7 @@ class LocoNetSlotServer {
   DataModel* dataModel_;
   SlotDB_t slotDB_;
   SlotDB_t::iterator slotInDispatch_;  // slotDB_.end() means no slot.
+  RoutingForwarder& forwarder_;
 };
 
 }  // namespace RoutingTask

@@ -10,6 +10,8 @@
 #include "RR32CanEngineDb/util/ConfigDataEndStreamCallback.h"
 #include "RR32CanEngineDb/util/ConfigDataStreamParser.h"
 
+#include "RoutingForwarder.h"
+
 namespace tasks {
 namespace RoutingTask {
 
@@ -20,6 +22,8 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
                     public RR32Can::callback::EngineCbk {
  public:
   constexpr static const uint8_t kMaxNumDbEntries = 40;
+
+  CanEngineDB(RoutingForwarder& forwarder) : forwarder_(forwarder) {}
 
   using DB_t = std::array<RR32Can::Locomotive, kMaxNumDbEntries>;
 
@@ -40,6 +44,7 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
   RR32Can::LocoListConsumer listConsumer_;
   RR32Can::LocoConsumer locoConsumer_;
   DB_t db_;
+  RoutingForwarder& forwarder_;
 
   void fetchEnginesFromOffset(uint8_t offset);
 
