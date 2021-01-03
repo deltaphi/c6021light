@@ -100,13 +100,15 @@ void fillCompletionData(const char** completionBuffer, std::size_t maxNumComplet
       argvToMatch = argv[prefix.level + 1];
     }
 
-    std::size_t completionIt = 0;
-    while ((argumentIt->name != nullptr) && (completionIt < maxNumCompletions)) {
-      if (strstr(argumentIt->name, argvToMatch) == argumentIt->name) {
-        completionBuffer[completionIt] = argumentIt->name;
-        ++completionIt;
+    if (argumentIt != nullptr && argvToMatch != nullptr) {
+      std::size_t completionIt = 0;
+      while ((argumentIt->name != nullptr) && (completionIt < maxNumCompletions)) {
+        if (strstr(argumentIt->name, argvToMatch) == argumentIt->name) {
+          completionBuffer[completionIt] = argumentIt->name;
+          ++completionIt;
+        }
+        ++argumentIt;
       }
-      ++argumentIt;
     }
   }
 }
