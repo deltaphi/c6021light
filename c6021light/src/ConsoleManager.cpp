@@ -48,7 +48,7 @@ void display_help(int argc, const char* const* argv);
 int run_app_dump_flash(int argc, const char* const* argv,
                        int argcMatched);  // implemented in eeprom emulation
 int run_app_format_flash(int argc, const char* const* argv,
-                       int argcMatched);  // implemented in eeprom emulation
+                         int argcMatched);  // implemented in eeprom emulation
 
 // Arguments for config
 static const cliSupport::Argument turnoutProtocolArguments[] = {
