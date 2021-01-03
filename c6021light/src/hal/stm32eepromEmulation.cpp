@@ -136,4 +136,10 @@ int run_app_dump_flash(int, const char* const*, int) {
   return 0;
 }
 
+int run_app_format_flash(int, const char* const*, int) {
+  hal::flashFairy.formatFlash();
+
+  return 0;
+}
+
 }  // namespace ConsoleManager
