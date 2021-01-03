@@ -3,6 +3,7 @@
 
 #include <array>
 #include "RR32Can/Locomotive.h"
+#include "RR32Can/callback/EngineCbk.h"
 #include "RR32CanEngineDb/LocoConsumer.h"
 #include "RR32CanEngineDb/LocoListConsumer.h"
 #include "RR32CanEngineDb/util/ConfigDataConsumer.h"
@@ -15,7 +16,8 @@ namespace RoutingTask {
 /*
  * \brief Class CanEngineDB
  */
-class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback {
+class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
+                    public RR32Can::callback::EngineCbk {
  public:
   constexpr static const uint8_t kMaxNumDbEntries = 40;
 
@@ -27,6 +29,11 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback {
   void streamAborted(RR32Can::ConfigDataConsumer*) override {}
 
   void dump() const;
+
+  // Overrides for EngineCbk
+  RR32Can::Locomotive* getLoco(RR32Can::Locomotive::Uid_t uid) override;
+  void setLocoVelocity(RR32Can::Locomotive::Uid_t engineUid, RR32Can::Velocity_t velocity) override;
+  void setLocoVelocity(RR32Can::Velocity_t velocity) override;
 
  private:
   RR32Can::ConfigDataStreamParser streamParser_;

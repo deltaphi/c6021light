@@ -7,6 +7,31 @@
 namespace tasks {
 namespace RoutingTask {
 
+RR32Can::Locomotive* CanEngineDB::getLoco(RR32Can::Locomotive::Uid_t uid) {
+  for (RR32Can::Locomotive& loco : db_) {
+    if (loco.isFullDetailsKnown() && loco.getUid() == uid) {
+      return &loco;
+    }
+  }
+  return nullptr;
+}
+
+void CanEngineDB::setLocoVelocity(RR32Can::Locomotive::Uid_t engineUid,
+                                  RR32Can::Velocity_t velocity) {
+  auto locoPtr = getLoco(engineUid);
+  if (locoPtr != nullptr) {
+    locoPtr->setVelocity(velocity);
+  }
+}
+
+void CanEngineDB::setLocoVelocity(RR32Can::Velocity_t velocity) {
+  for (RR32Can::Locomotive& loco : db_) {
+    if (loco.isFullDetailsKnown()) {
+      loco.setVelocity(velocity);
+    }
+  }
+}
+
 void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
   listConsumer_.reset();
   streamParser_.reset();

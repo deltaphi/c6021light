@@ -113,6 +113,7 @@ void setup() {
   RR32Can::Station::CallbackStruct callbacks;
   callbacks.tx = &routingTask.canTxCbk_;
   callbacks.system = &accessoryCbk;
+  callbacks.engine = &routingTask.getCANEngineDB();
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
   printf("Ready!\n");
