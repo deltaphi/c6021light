@@ -41,7 +41,7 @@ DataModel LoadConfig() {
   return model;
 }
 
-// namespace {
+namespace {
 class DataModelStoreVisitor {
  public:
   using size_type = uint32_t;
@@ -81,7 +81,7 @@ class DataModelStoreVisitor {
  private:
   const DataModel& model_;
 };
-// }  // anonymous namespace
+}  // anonymous namespace
 
 void SaveConfig(const DataModel& model) {
   auto storeVisitor = DataModelStoreVisitor(model);
