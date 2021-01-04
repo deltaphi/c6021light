@@ -64,6 +64,19 @@ void LocoNetForwarder::forward(const RR32Can::Identifier rr32id, const RR32Can::
 void LocoNetForwarder::forwardLocoChange(
     const RR32Can::LocomotiveData& loco, const bool velocityChange, const bool directionChange,
     const RR32Can::LocomotiveData::FunctionBits_t functionChanges) {
+  // In passive mode:
+
+  // Get a hold of the slot server
+  // Find if there is a slot known for the loco
+  // If so, send messages for that slot.
+
+  // Future TODO: If loco is not known, remember the request in some queue and send out a request
+  // for the Address. Associate a timeout and clean the entry from the queue if the timeout is
+  // exceeded.
+
+  // In active mode:
+  // Allocate a slot for the loco and start sending packets immediately.
+
   (void)loco;
   (void)velocityChange;
   (void)directionChange;

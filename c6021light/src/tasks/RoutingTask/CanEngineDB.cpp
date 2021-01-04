@@ -21,6 +21,7 @@ void CanEngineDB::setLocoVelocity(RR32Can::Locomotive::Uid_t engineUid,
   auto locoPtr = getLoco(engineUid);
   if (locoPtr != nullptr) {
     locoPtr->setVelocity(velocity);
+    forwarder_.forwardLocoChange(*locoPtr, true, false, 0);
   }
 }
 
@@ -28,6 +29,7 @@ void CanEngineDB::setLocoVelocity(RR32Can::Velocity_t velocity) {
   for (RR32Can::Locomotive& loco : db_) {
     if (loco.isFullDetailsKnown()) {
       loco.setVelocity(velocity);
+      forwarder_.forwardLocoChange(loco, true, false, 0);
     }
   }
 }
