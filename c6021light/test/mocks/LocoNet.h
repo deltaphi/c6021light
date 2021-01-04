@@ -1,8 +1,8 @@
 #ifndef __MOCKS__LOCONET_H__
 #define __MOCKS__LOCONET_H__
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 #include "ln_opc.h"
 
@@ -10,11 +10,11 @@ namespace mocks {
 
 /*
  * \brief Class LocoNet
- */    
+ */
 class LocoNetClass {
-  public:
+ public:
   MOCK_METHOD(void, send, (lnMsg*), ())
-  private:
+ private:
 };
 
 }  // namespace mocks

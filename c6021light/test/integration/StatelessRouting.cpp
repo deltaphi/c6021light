@@ -10,8 +10,7 @@ class StatelessRoutingFixture : public ::testing::Test {
  public:
 };
 
-TEST_F(StatelessRoutingFixture, Turnout_I2CtoCAN) {
-}
+TEST_F(StatelessRoutingFixture, Turnout_I2CtoCAN) {}
 
 }  // namespace RoutingTask
 }  // namespace tasks
