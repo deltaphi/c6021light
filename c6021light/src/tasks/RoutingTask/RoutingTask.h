@@ -37,15 +37,15 @@ class RoutingTask : public freertossupport::OsTask {
 
   const LocoNetSlotServer& getLnSlotServer() const { return slotServer_; }
 
-  CANForwarder canForwarder_;
-  I2CForwarder i2cForwarder_;
-  LocoNetForwarder lnForwarder_;
-
   CanEngineDB& getCANEngineDB() { return engineDb_; }
 
  private:
   LocoNetSlotServer slotServer_;
   CanEngineDB engineDb_;
+
+  CANForwarder canForwarder_;
+  I2CForwarder i2cForwarder_;
+  LocoNetForwarder lnForwarder_;
 };
 
 }  // namespace RoutingTask
