@@ -33,12 +33,13 @@ class LocoNetSlotServer {
   struct SlotEntry {
     bool inUse = false;
     LocoData_t loco;
+    LocoDiff_t diff;
+
+    bool hasUpdate() const { return diff.hasDiff(); }
   };
 
   constexpr static const SlotIdx_t kNumSlots = 127;
   using SlotDB_t = std::array<SlotEntry, kNumSlots>;  // note that Slot 0 is not used
-
-  LocoNetSlotServer(RoutingForwarder& forwarder) : forwarder_(forwarder) {}
 
   void init(DataModel& dataModel) { this->dataModel_ = &dataModel; }
 
@@ -97,6 +98,9 @@ class LocoNetSlotServer {
   bool isPassive() const;
   bool isActive() const;
 
+  auto begin() { return slotDB_.begin(); }
+  auto end() { return slotDB_.end(); }
+
  private:
   bool dispatchSlotAvailable() const { return slotInDispatch_ != slotDB_.end(); }
 
@@ -104,7 +108,7 @@ class LocoNetSlotServer {
 
   SlotDB_t::iterator findOrRequestSlot(const uint8_t lnMsgSlot);
   SlotDB_t::iterator findSlot(const uint8_t lnMsgSlot);
-  void requestSlotDataRead(const SlotDB_t::const_iterator slot) const;
+  void requestSlotDataRead(SlotDB_t::iterator slot) const;
   void sendSlotDataRead(const SlotDB_t::const_iterator slot) const;
   void sendNoDispatch() const;
 
@@ -124,7 +128,6 @@ class LocoNetSlotServer {
   DataModel* dataModel_;
   SlotDB_t slotDB_;
   SlotDB_t::iterator slotInDispatch_;  // slotDB_.end() means no slot.
-  RoutingForwarder& forwarder_;
 };
 
 }  // namespace RoutingTask

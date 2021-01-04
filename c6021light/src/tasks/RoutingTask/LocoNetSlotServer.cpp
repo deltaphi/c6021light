@@ -75,20 +75,20 @@ LocoNetSlotServer::SlotDB_t::iterator LocoNetSlotServer::findSlot(const uint8_t 
 
 LocoNetSlotServer::SlotDB_t::iterator LocoNetSlotServer::findOrRequestSlot(
     const uint8_t lnMsgSlot) {
-  const SlotDB_t::iterator slotIt = findSlot(lnMsgSlot);
+  SlotDB_t::iterator slotIt = findSlot(lnMsgSlot);
   if (!slotIt->inUse) {
     requestSlotDataRead(slotIt);
   }
   return slotIt;
 }
 
-void LocoNetSlotServer::requestSlotDataRead(
-    const LocoNetSlotServer::SlotDB_t::const_iterator slot) const {
-  if (!isDisabled()) {
+void LocoNetSlotServer::requestSlotDataRead(LocoNetSlotServer::SlotDB_t::iterator slot) const {
+  if (!this->isDisabled()) {
+    slot->diff = LocoDiff_t{};
     lnMsg msg;
     slotReqMsg& reqMsg{msg.sr};
     reqMsg.command = OPC_RQ_SL_DATA;
-    reqMsg.slot = findSlotIndex(slot);
+    reqMsg.slot = this->findSlotIndex(slot);
     reqMsg.pad = 0;
     LocoNet.send(&msg);
   }
@@ -114,10 +114,7 @@ void LocoNetSlotServer::processLocoSpeed(const locoSpdMsg& msg) {
 
   if (isSlotInBounds(slotIt)) {
     slotIt->loco.setVelocity(lnSpeedToCanVelocity(msg.spd));
-
-    if (shouldSendEngineUpdateForSlot(slotIt)) {
-      forwarder_.forwardLocoChange(slotIt->loco, true, false, 0);
-    }
+    slotIt->diff.velocity = true;
   }
 }
 
@@ -131,15 +128,9 @@ void LocoNetSlotServer::processLocoDirF(const locoDirfMsg& msg) {
 
     if (hasChanged) {
       dirfToLoco(msg.dirf, slotIt->loco);
-
-      if (shouldSendEngineUpdateForSlot(slotIt)) {
-        const bool directionChanged = (delta & kDirfDirMask) != 0;
-        const uint16_t f1to4Bits = (hasChanged & 0x0F) << 1;
-        const uint16_t f0bit = (hasChanged >> 4) & 0x01;
-        const uint16_t functionChangeMask = f0bit | f1to4Bits;
-
-        forwarder_.forwardLocoChange(slotIt->loco, false, directionChanged, functionChangeMask);
-      }
+      slotIt->diff.direction |= (delta & kDirfDirMask) != 0;
+      slotIt->diff.functions |= (delta & 0x10) >> 4;
+      slotIt->diff.functions |= (delta & 0x0F) << 1;
     }
   }
 }
@@ -154,22 +145,7 @@ void LocoNetSlotServer::processLocoSnd(const locoSndMsg& msg) {
 
     if (hasChanged) {
       sndToLoco(msg.snd, slotIt->loco);
-
-      if (shouldSendEngineUpdateForSlot(slotIt)) {
-        uint8_t functionMask = 1;
-        for (uint8_t i = kFunctionsInDirfMessage;
-             i < kFunctionsInDirfMessage + kFunctionsInSndMessage; ++i) {
-          uint8_t functionIdx = i + 1;
-          if (functionIdx == kFunctionsInDirfMessage) {
-            functionIdx = 0;
-          }
-          if ((delta & functionMask) != 0) {
-            RR32Can::RR32Can.SendEngineFunction(slotIt->loco, functionIdx,
-                                                slotIt->loco.getFunction(functionIdx));
-          }
-          functionMask <<= 1;
-        }
-      }
+      slotIt->diff.functions |= (delta & 0x0F << 5);
     }
   }
 }
@@ -200,13 +176,13 @@ void LocoNetSlotServer::process(const lnMsg& LnPacket) {
   }
 }
 
-void LocoNetSlotServer::sendSlotDataRead(SlotDB_t::const_iterator slot) const {
+void LocoNetSlotServer::sendSlotDataRead(const SlotDB_t::const_iterator slot) const {
   lnMsg txMsg;
   rwSlotDataMsg& slotRead = txMsg.sd;
 
   // See https://wiki.rocrail.net/doku.php?id=loconet:lnpe-parms-en for message definition.
 
-  SlotIdx_t slotIdx = findSlotIndex(slot);
+  SlotIdx_t slotIdx = this->findSlotIndex(slot);
 
   slotRead.command = OPC_SL_RD_DATA;
   slotRead.slot = slotIdx;  // Slot Number

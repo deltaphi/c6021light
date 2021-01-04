@@ -42,6 +42,13 @@ void RoutingTask::TaskMain() {
       lnForwarder_.forward(receiveResult.element.id, receiveResult.element.data);
       // Forward to self
       RR32Can::RR32Can.HandlePacket(receiveResult.element.id, receiveResult.element.data);
+
+      // Attempt to forward all updates in the CAN DB
+      for (auto& locoEntry : engineDb_) {
+        if (locoEntry.hasUpdate()) {
+          lnForwarder_.forwardLocoChange(locoEntry.loco, locoEntry.diff);
+        }
+      }
     }
 
     // Process I2C
@@ -80,6 +87,13 @@ void RoutingTask::TaskMain() {
         RR32Can::RR32Can.HandlePacket(rr32id, rr32data);
       }
       slotServer_.process(*LnPacket);
+
+      // Attempt to forward all updates in the Slot server
+      for (auto& locoEntry : slotServer_) {
+        if (locoEntry.hasUpdate()) {
+          canForwarder_.forwardLocoChange(locoEntry.loco, locoEntry.diff);
+        }
+      }
     }
   }
 }

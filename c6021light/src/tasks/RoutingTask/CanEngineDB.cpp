@@ -7,29 +7,45 @@
 namespace tasks {
 namespace RoutingTask {
 
-RR32Can::Locomotive* CanEngineDB::getLoco(RR32Can::Locomotive::Uid_t uid) {
-  for (RR32Can::Locomotive& loco : db_) {
-    if (loco.isFullDetailsKnown() && loco.getUid() == uid) {
-      return &loco;
+CanEngineDB::DB_t::iterator CanEngineDB::getEntry(const RR32Can::Locomotive::Uid_t uid) {
+  auto it = db_.begin();
+  for (; it != db_.end(); ++it) {
+    if (it->loco.isFullDetailsKnown() && it->loco.getUid() == uid) {
+      return it;
     }
   }
-  return nullptr;
+  return it;
+}
+
+RR32Can::Locomotive* CanEngineDB::getLoco(RR32Can::Locomotive::Uid_t uid) {
+  const auto it = getEntry(uid);
+  if (it == db_.end()) {
+    return nullptr;
+  } else {
+    return &it->loco;
+  }
 }
 
 void CanEngineDB::setLocoVelocity(RR32Can::Locomotive::Uid_t engineUid,
                                   RR32Can::Velocity_t velocity) {
-  auto locoPtr = getLoco(engineUid);
-  if (locoPtr != nullptr) {
-    locoPtr->setVelocity(velocity);
-    forwarder_.forwardLocoChange(*locoPtr, true, false, 0);
+  auto entry = getEntry(engineUid);
+  if (entry != db_.end()) {
+    const auto oldVelocity = entry->loco.getVelocity();
+    if (oldVelocity != velocity) {
+      entry->diff.velocity = true;
+      entry->loco.setVelocity(velocity);
+    }
   }
 }
 
 void CanEngineDB::setLocoVelocity(RR32Can::Velocity_t velocity) {
-  for (RR32Can::Locomotive& loco : db_) {
-    if (loco.isFullDetailsKnown()) {
-      loco.setVelocity(velocity);
-      forwarder_.forwardLocoChange(loco, true, false, 0);
+  for (auto& entry : db_) {
+    if (entry.loco.isFullDetailsKnown()) {
+      const auto oldVelocity = entry.loco.getVelocity();
+      if (oldVelocity != velocity) {
+        entry.diff.velocity = true;
+        entry.loco.setVelocity(velocity);
+      }
     }
   }
 }
@@ -46,9 +62,9 @@ void CanEngineDB::fetchEngineDB() { fetchEnginesFromOffset(0); }
 
 void CanEngineDB::fetchNextEngine() {
   auto db_end = std::next(db_.begin(), listConsumer_.getNumEnginesKnownByMaster());
-  RR32Can::Locomotive* incompleteEngine = std::find_if(
-      db_.begin(), db_end, [](const auto& engine) { return engine.isNameOnlyKnown(); });
-  fetchEngine(*incompleteEngine);
+  const auto incompleteEntry = std::find_if(
+      db_.begin(), db_end, [](const auto& entry) { return entry.loco.isNameOnlyKnown(); });
+  fetchEngine(incompleteEntry->loco);
 }
 
 void CanEngineDB::fetchEngine(RR32Can::Locomotive& loco) {
@@ -71,7 +87,7 @@ void CanEngineDB::streamComplete(RR32Can::ConfigDataConsumer* consumer) {
 
     for (const auto& engineShortInfo : engineShortInfos) {
       db_[engineOffset].reset();
-      db_[engineOffset].setName(engineShortInfo.getName());
+      db_[engineOffset].loco.setName(engineShortInfo.getName());
       ++engineOffset;
     }
 
@@ -90,10 +106,10 @@ void CanEngineDB::streamComplete(RR32Can::ConfigDataConsumer* consumer) {
 void CanEngineDB::dump() const {
   puts("CAN Engine DB Status:");
   auto engineIdx = 0;
-  for (auto& engine : db_) {
-    if (!engine.isFree()) {
+  for (auto& entry : db_) {
+    if (!entry.loco.isFree()) {
       printf("Engine %i: ", engineIdx);
-      engine.print();
+      entry.loco.print();
       puts("");
     }
     ++engineIdx;

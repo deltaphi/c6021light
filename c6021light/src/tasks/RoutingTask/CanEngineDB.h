@@ -23,9 +23,19 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
  public:
   constexpr static const uint8_t kMaxNumDbEntries = 40;
 
-  CanEngineDB(RoutingForwarder& forwarder) : forwarder_(forwarder) {}
+  struct DbEntry_t {
+    RR32Can::Locomotive loco;
+    LocoDiff_t diff;
 
-  using DB_t = std::array<RR32Can::Locomotive, kMaxNumDbEntries>;
+    void reset() {
+      loco.reset();
+      diff = LocoDiff_t();
+    }
+
+    bool hasUpdate() const { return diff.hasDiff(); }
+  };
+
+  using DB_t = std::array<DbEntry_t, kMaxNumDbEntries>;
 
   void fetchEngineDB();
 
@@ -39,12 +49,16 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
   void setLocoVelocity(RR32Can::Locomotive::Uid_t engineUid, RR32Can::Velocity_t velocity) override;
   void setLocoVelocity(RR32Can::Velocity_t velocity) override;
 
+  auto begin() { return db_.begin(); }
+  auto end() { return db_.end(); }
+
  private:
   RR32Can::ConfigDataStreamParser streamParser_;
   RR32Can::LocoListConsumer listConsumer_;
   RR32Can::LocoConsumer locoConsumer_;
   DB_t db_;
-  RoutingForwarder& forwarder_;
+
+  DB_t::iterator getEntry(const RR32Can::Locomotive::Uid_t uid);
 
   void fetchEnginesFromOffset(uint8_t offset);
 

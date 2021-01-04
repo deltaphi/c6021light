@@ -63,9 +63,7 @@ void LocoNetForwarder::forward(const RR32Can::Identifier rr32id, const RR32Can::
   }
 }
 
-void LocoNetForwarder::forwardLocoChange(
-    const RR32Can::LocomotiveData& loco, const bool velocityChange, const bool directionChange,
-    const RR32Can::LocomotiveData::FunctionBits_t functionChanges) {
+void LocoNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, LocoDiff_t& diff) {
   // In passive mode:
 
   // Get a hold of the slot server
@@ -83,25 +81,27 @@ void LocoNetForwarder::forwardLocoChange(
     const auto slotIt = slotServer_->findSlotForAddress(loco.getAddress());
     const uint8_t slotIdx = slotServer_->findSlotIndex(slotIt);
     if (slotServer_->isSlotInBounds(slotIt)) {
-      if (velocityChange) {
+      if (diff.velocity) {
         lnMsg msg;
         locoSpdMsg& speedMessage = msg.lsp;
         speedMessage.command = OPC_LOCO_SPD;
         speedMessage.slot = slotIdx;
         speedMessage.spd = canVelocityToLnSpeed(loco.getVelocity());
         LocoNet.send(&msg);
+        diff.velocity = false;
       }
 
-      if (directionChange || ((functionChanges & 0x1F) != 0)) {
+      if (diff.direction || ((diff.functions & 0x1F) != 0)) {
         lnMsg msg;
         locoDirfMsg& dirfMessage = msg.ldf;
         dirfMessage.command = OPC_LOCO_DIRF;
         dirfMessage.slot = slotIdx;
         dirfMessage.dirf = locoToDirf(loco);
         LocoNet.send(&msg);
+        diff.direction = false;
       }
 
-      if (((functionChanges & 0x1E0) != 0)) {
+      if (((diff.functions & 0x1E0) != 0)) {
         lnMsg msg;
         locoSndMsg& sndMessage = msg.ls;
         sndMessage.command = OPC_LOCO_SND;
@@ -109,6 +109,8 @@ void LocoNetForwarder::forwardLocoChange(
         sndMessage.snd = locoToSnd(loco);
         LocoNet.send(&msg);
       }
+
+      diff.functions = 0;
     }
   }
 }

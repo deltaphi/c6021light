@@ -62,8 +62,7 @@ void I2CForwarder::forward(const RR32Can::Identifier rr32id, const RR32Can::Data
   }
 }
 
-void I2CForwarder::forwardLocoChange(const RR32Can::LocomotiveData&, const bool, const bool,
-                                     const RR32Can::LocomotiveData::FunctionBits_t) {
+void I2CForwarder::forwardLocoChange(const RR32Can::LocomotiveData&, LocoDiff_t&) {
   // Currently no loco control on I2C
 }
 

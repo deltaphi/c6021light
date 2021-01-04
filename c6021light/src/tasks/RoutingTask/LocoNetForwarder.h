@@ -25,9 +25,7 @@ class LocoNetForwarder final : public RoutingForwarder {
     this->slotServer_ = &slotServer;
   }
 
-  void forwardLocoChange(const RR32Can::LocomotiveData& loco, const bool velocityChange,
-                         const bool directionChange,
-                         const RR32Can::LocomotiveData::FunctionBits_t functionChanges) override;
+  void forwardLocoChange(const RR32Can::LocomotiveData& loco, LocoDiff_t& diff) override;
   void forward(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data) override;
 
   bool MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id, RR32Can::Data& rr32data);

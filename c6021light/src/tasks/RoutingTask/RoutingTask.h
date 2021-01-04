@@ -44,8 +44,8 @@ class RoutingTask : public freertossupport::OsTask {
   CanEngineDB& getCANEngineDB() { return engineDb_; }
 
  private:
-  LocoNetSlotServer slotServer_{canForwarder_};
-  CanEngineDB engineDb_{lnForwarder_};
+  LocoNetSlotServer slotServer_;
+  CanEngineDB engineDb_;
 };
 
 }  // namespace RoutingTask
