@@ -52,10 +52,13 @@ enable_testing()
 
 # Now simply link against gtest or gtest_main as needed. Eg
 include_directories("test")
+include_directories("test/mocks")
+
 include_directories("src")
 
 add_executable(c6021lightTest
     "test/unit/EmptyTest.cpp"
+    "test/integration/StatelessRouting.cpp"
 )
 target_link_libraries(c6021lightTest gtest_main gmock)
 add_test(NAME gtest_c6021lightTest_test COMMAND c6021lightTest)
