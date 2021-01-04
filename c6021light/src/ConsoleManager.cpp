@@ -40,6 +40,7 @@ DEFINE_COMMAND_STRING(downloadEngines);
 DEFINE_COMMAND_STRING(flash);
 DEFINE_COMMAND_STRING(dump);
 DEFINE_COMMAND_STRING(save);
+DEFINE_COMMAND_STRING(format);
 DEFINE_COMMAND_STRING(help);
 
 static constexpr const char* turnoutProtocolHelp{
@@ -53,6 +54,8 @@ int run_app_save(int argc, const char* const* argv, int argcMatched);
 int run_app_help(int argc, const char* const* argv, int argcMatched);
 int run_app_dump_flash(int argc, const char* const* argv,
                        int argcMatched);  // implemented in eeprom emulation
+int run_app_format_flash(int argc, const char* const* argv,
+                         int argcMatched);  // implemented in eeprom emulation
 
 int run_ln_slot_server_active(int argc, const char* const* argv, int argcMatched);
 int run_ln_slot_server_passive(int argc, const char* const* argv, int argcMatched);
@@ -104,6 +107,7 @@ static const cliSupport::Argument COMMAND_ARGS(canEngineDB)[] = {
 static const cliSupport::Argument COMMAND_ARGS(flash)[] = {
     {COMMAND(dump), nullptr, run_app_dump_flash, "Show contents of EEPROM Emulation Flash."},
     {COMMAND(save), nullptr, run_app_save, "Save configuration across reset."},
+    {COMMAND(format), nullptr, run_app_format_flash, "Erase all settings from flash."},
     {}};
 
 // Top-Level Arguments

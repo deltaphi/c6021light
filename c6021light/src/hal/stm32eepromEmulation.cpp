@@ -44,7 +44,7 @@ DataModel LoadConfig() {
   return model;
 }
 
-// namespace {
+namespace {
 class DataModelStoreVisitor {
  public:
   using size_type = uint32_t;
@@ -84,7 +84,7 @@ class DataModelStoreVisitor {
  private:
   const DataModel& model_;
 };
-// }  // anonymous namespace
+}  // anonymous namespace
 
 void SaveConfig(const DataModel& model) {
   auto storeVisitor = DataModelStoreVisitor(model);
@@ -135,6 +135,12 @@ int run_app_dump_flash(int, const char* const*, int) {
       absoluteByteIdx += bytesPerLine;
     }
   }
+
+  return 0;
+}
+
+int run_app_format_flash(int, const char* const*, int) {
+  hal::flashFairy.formatFlash();
 
   return 0;
 }
