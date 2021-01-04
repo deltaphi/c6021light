@@ -30,10 +30,14 @@ void LocoNetForwarder::forward(const RR32Can::Identifier rr32id, const RR32Can::
       const RR32Can::SystemMessage systemMessage(const_cast<RR32Can::Data&>(rr32data));
       switch (systemMessage.getSubcommand()) {
         case RR32Can::SystemSubcommand::SYSTEM_STOP:
-          LocoNet.reportPower(false);
+          if (!rr32id.isResponse()) {
+            LocoNet.reportPower(false);
+          }
           break;
         case RR32Can::SystemSubcommand::SYSTEM_GO:
-          LocoNet.reportPower(true);
+          if (!rr32id.isResponse()) {
+            LocoNet.reportPower(true);
+          }
           break;
         default:
           // Other messages not forwarded.
