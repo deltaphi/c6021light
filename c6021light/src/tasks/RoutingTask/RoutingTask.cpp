@@ -44,9 +44,11 @@ void RoutingTask::TaskMain() {
       RR32Can::RR32Can.HandlePacket(receiveResult.element.id, receiveResult.element.data);
 
       // Attempt to forward all updates in the CAN DB
-      for (auto& locoEntry : engineDb_) {
-        if (locoEntry.hasUpdate()) {
-          lnForwarder_.forwardLocoChange(locoEntry.loco, locoEntry.diff);
+      if (!slotServer_.isDisabled()) {
+        for (auto& locoEntry : engineDb_) {
+          if (locoEntry.hasUpdate()) {
+            lnForwarder_.forwardLocoChange(locoEntry.loco, locoEntry.diff);
+          }
         }
       }
     }
@@ -88,18 +90,20 @@ void RoutingTask::TaskMain() {
       }
       slotServer_.process(*LnPacket);
 
-      for (auto& locoEntry : slotServer_) {
-        // See if the engine needs a match to CAN
-        if (locoEntry.needsMatchToCAN) {
-          const auto enginePtr = engineDb_.findEngine(locoEntry.loco.getAddress());
-          if (enginePtr != nullptr) {
-            locoEntry.loco.setUid(enginePtr->getUid());
+      if (!slotServer_.isDisabled()) {
+        for (auto& locoEntry : slotServer_) {
+          // See if the engine needs a match to CAN
+          if (locoEntry.needsMatchToCAN) {
+            const auto enginePtr = engineDb_.findEngine(locoEntry.loco.getAddress());
+            if (enginePtr != nullptr) {
+              locoEntry.loco.setUid(enginePtr->getUid());
+            }
           }
-        }
 
-        // Attempt to forward all updates in the Slot server
-        if (locoEntry.hasUpdate()) {
-          canForwarder_.forwardLocoChange(locoEntry.loco, locoEntry.diff);
+          // Attempt to forward all updates in the Slot server
+          if (locoEntry.hasUpdate()) {
+            canForwarder_.forwardLocoChange(locoEntry.loco, locoEntry.diff);
+          }
         }
       }
     }
