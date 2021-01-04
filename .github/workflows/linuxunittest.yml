@@ -35,7 +35,7 @@ jobs:
     - name: Run PlatformIO to fetch libraries for Bluepill
       run: | 
         cd ${{ github.workspace }}/c6021light
-        platformio lib install -e bluepill
+        platformio lib -e bluepill install
 
     # Runs a single command using the runners shell
     - uses: lukka/run-cmake@v2.5
