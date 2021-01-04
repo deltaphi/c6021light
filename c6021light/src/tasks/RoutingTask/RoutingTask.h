@@ -4,7 +4,6 @@
 #include "MarklinI2C/Messages/AccessoryMsg.h"
 
 #include "DataModel.h"
-#include "hal/stm32I2C.h"
 #include "hal/stm32can.h"
 
 #include "FreeRTOSConfig.h"
@@ -45,8 +44,6 @@ class RoutingTask : public freertossupport::OsTask {
   CanEngineDB& getCANEngineDB() { return engineDb_; }
 
  private:
-  MarklinI2C::Messages::AccessoryMsg getI2CMessage(const hal::I2CBuf& buffer);
-
   LocoNetSlotServer slotServer_{canForwarder_};
   CanEngineDB engineDb_{lnForwarder_};
 };

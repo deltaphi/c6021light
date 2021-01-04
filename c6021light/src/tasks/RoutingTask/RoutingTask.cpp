@@ -17,13 +17,15 @@
 namespace tasks {
 namespace RoutingTask {
 
-MarklinI2C::Messages::AccessoryMsg RoutingTask::getI2CMessage(const hal::I2CBuf& buffer) {
+namespace {
+MarklinI2C::Messages::AccessoryMsg getI2CMessage(const hal::I2CBuf& buffer) {
   MarklinI2C::Messages::AccessoryMsg msg;
   msg.destination_ = DataModel::kMyAddr;
   msg.source_ = buffer.msgBytes[0];
   msg.data_ = buffer.msgBytes[1];
   return msg;
 }
+}  // namespace
 
 /**
  * \brief When a message was received, create and send a response message.
