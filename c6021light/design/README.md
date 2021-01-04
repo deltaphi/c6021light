@@ -1,0 +1,1 @@
+This folder contains a variety of design documentation and design ideas. It provides an inutition of the software, but not all of it reflects the state of the Software 1:1.

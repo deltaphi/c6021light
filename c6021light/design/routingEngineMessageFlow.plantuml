@@ -1,0 +1,37 @@
+@startuml
+
+RoutingTask -> hal: getMessage
+hal --> RoutingTask: ingress message
+
+alt stateless message
+  RoutingTask -> RoutingForwarder: forward()
+else stateful message
+  RoutingTask -> IngresBusDB: process()
+  IngresBusDB --> RoutingTask: has state changed? (TBD: What state has changed?)
+  alt state has changed
+    RoutingTask -> EgressBusDB: processEngineChange(engine, change flags);
+    alt changed engine known
+      EgressBusDB -> hal: send changes
+    else
+      EgressBusDB -> hal: fetch engine
+      EgressBusDB --> RoutingTask: forwarding delayed
+      note right
+        TBD how to store
+        delayed information?
+      end note
+    end
+
+  end
+
+else Engine Information message
+  RoutingTask -> IngresBusDB: processEngineInformation(message)
+  IngresBusDB -> RoutingTask: hasDelayedChanges(new engine)?
+  RoutingTask --> IngresBusDB: delayed changes
+  loop change: delayed changes
+    IngresBusDB -> RoutingForwarder: forwardChanges(change)
+  end
+end
+
+
+
+@enduml

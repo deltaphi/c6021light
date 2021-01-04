@@ -1,0 +1,12 @@
+@startuml
+start
+if (Engine known to destination bus database?) then
+    :forward updated message on all but ingress bus;
+else
+    :store change notification;
+    :Request engine from bus;
+    :delay until engine is known;
+    :forward updated message on bus;
+endif
+stop
+@enduml

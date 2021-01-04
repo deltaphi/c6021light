@@ -1,0 +1,28 @@
+@startuml
+class RoutingTask
+
+package "Stateful Forwarding" {
+  class CANEngineDb
+  class LocoNetSlotServer
+}
+
+package "Stateless Forwarding"{
+  interface RoutingForwarder
+
+class CANForwarder
+class I2CForwarder
+class LocoNetForwarder
+}
+
+RoutingForwarder <|-- CANForwarder
+RoutingForwarder <|-- I2CForwarder
+RoutingForwarder <|-- LocoNetForwarder
+
+
+RoutingTask o-- CANForwarder
+RoutingTask o-- I2CForwarder
+RoutingTask o-- LocoNetForwarder
+RoutingTask o-- CANEngineDb
+RoutingTask o-- LocoNetSlotServer
+
+@enduml

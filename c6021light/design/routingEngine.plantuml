@@ -1,0 +1,14 @@
+@startuml
+start
+repeat
+  :get ingress message;
+  :convert to RR32Can message;
+  if (Stateless Message?) then
+    :Forward to all but ingress bus;
+  else
+    :Forward to Engine Database;
+    :Process Engine Modification;
+  endif
+repeat while (more ingress messages)
+stop
+@enduml
