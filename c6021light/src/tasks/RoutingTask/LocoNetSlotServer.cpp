@@ -203,7 +203,7 @@ void LocoNetSlotServer::sendSlotDataRead(SlotDB_t::const_iterator slot) const {
 
   // See https://wiki.rocrail.net/doku.php?id=loconet:lnpe-parms-en for message definition.
 
-  SlotIdx_t slotIdx = std::distance(slotDB_.begin(), slot);
+  SlotIdx_t slotIdx = findSlotIndex(slot);
 
   slotRead.command = OPC_SL_RD_DATA;
   slotRead.slot = slotIdx;  // Slot Number

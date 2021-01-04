@@ -77,11 +77,38 @@ void LocoNetForwarder::forwardLocoChange(
   // In active mode:
   // Allocate a slot for the loco and start sending packets immediately.
 
-  (void)loco;
-  (void)velocityChange;
-  (void)directionChange;
-  (void)functionChanges;
-  // To be implemented
+  if (slotServer_->isPassive()) {
+    const auto slotIt = slotServer_->findSlotForAddress(loco.getAddress());
+    const uint8_t slotIdx = slotServer_->findSlotIndex(slotIt);
+    if (slotServer_->isSlotInBounds(slotIt)) {
+      if (velocityChange) {
+        lnMsg msg;
+        locoSpdMsg& speedMessage = msg.lsp;
+        speedMessage.command = OPC_LOCO_SPD;
+        speedMessage.slot = slotIdx;
+        speedMessage.spd = LocoNetSlotServer::canVelocityToLnSpeed(loco.getVelocity());
+        LocoNet.send(&msg);
+      }
+
+      if (directionChange || ((functionChanges & 0x1F) != 0)) {
+        lnMsg msg;
+        locoDirfMsg& dirfMessage = msg.ldf;
+        dirfMessage.command = OPC_LOCO_DIRF;
+        dirfMessage.slot = slotIdx;
+        dirfMessage.dirf = LocoNetSlotServer::locoToDirf(loco);
+        LocoNet.send(&msg);
+      }
+
+      if (((functionChanges & 0x1E0) != 0)) {
+        lnMsg msg;
+        locoSndMsg& sndMessage = msg.ls;
+        sndMessage.command = OPC_LOCO_SND;
+        sndMessage.slot = slotIdx;
+        sndMessage.snd = LocoNetSlotServer::locoToSnd(loco);
+        LocoNet.send(&msg);
+      }
+    }
+  }
 }
 
 bool LocoNetForwarder::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id,

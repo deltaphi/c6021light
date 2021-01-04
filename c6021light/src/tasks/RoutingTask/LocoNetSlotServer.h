@@ -78,6 +78,10 @@ class LocoNetSlotServer {
     return freeIt;
   }
 
+  uint8_t findSlotIndex(const SlotDB_t::const_iterator& slotIt) const {
+    return std::distance(slotDB_.begin(), slotIt);
+  }
+
   void process(const lnMsg& LnPacket);
 
   static RR32Can::MachineLocomotiveAddress extractLocoAddress(const lnMsg& LnPacket) {
@@ -93,6 +97,26 @@ class LocoNetSlotServer {
    * \brief Write the current slot status to STDOUT.
    */
   void dump() const;
+
+  bool isSlotInBounds(const SlotDB_t::const_iterator& it) const { return it != slotDB_.end(); }
+
+  static RR32Can::Velocity_t lnSpeedToCanVelocity(RR32Can::Velocity_t speed) {
+    return (speed * RR32Can::kMaxEngineVelocity / kLocoNetMaxVeloctiy);
+  }
+
+  static RR32Can::Velocity_t canVelocityToLnSpeed(RR32Can::Velocity_t velocity) {
+    return (velocity * kLocoNetMaxVeloctiy) / RR32Can::kMaxEngineVelocity;
+  }
+
+  static void dirfToLoco(const uint8_t dirf, LocoData_t& loco);
+  static uint8_t locoToDirf(const LocoData_t& loco);
+
+  static void sndToLoco(const uint8_t snd, LocoData_t& loco);
+  static uint8_t locoToSnd(const LocoData_t& loco);
+
+  bool isDisabled() const;
+  bool isPassive() const;
+  bool isActive() const;
 
  private:
   bool dispatchSlotAvailable() const { return slotInDispatch_ != slotDB_.end(); }
@@ -115,15 +139,6 @@ class LocoNetSlotServer {
   void processLocoDirF(const locoDirfMsg& msg);
   void processLocoSnd(const locoSndMsg& msg);
 
-  bool isDisabled() const;
-  bool isPassive() const;
-  bool isActive() const;
-
-  bool isSlotInBounds(const SlotDB_t::const_iterator& it) const { return it != slotDB_.end(); }
-  auto findSlotIndex(const SlotDB_t::const_iterator it) const {
-    return std::distance(slotDB_.begin(), it);
-  }
-
   static void clearSlot(SlotDB_t::iterator& slot) { *slot = SlotEntry(); }
 
   static LocoAddr_t getLocoAddress(const rwSlotDataMsg& slotRead) {
@@ -135,20 +150,6 @@ class LocoNetSlotServer {
   static void putLocoAddress(rwSlotDataMsg& slotRead, const LocoAddr_t address) {
     slotRead.adr = address.value() & 0x7F;  // Loco Address low bits
     slotRead.adr2 = address.value() >> 7;   // Loco Address high bits
-  }
-
-  static void dirfToLoco(const uint8_t dirf, LocoData_t& loco);
-  static uint8_t locoToDirf(const LocoData_t& loco);
-
-  static void sndToLoco(const uint8_t snd, LocoData_t& loco);
-  static uint8_t locoToSnd(const LocoData_t& loco);
-
-  static RR32Can::Velocity_t lnSpeedToCanVelocity(RR32Can::Velocity_t speed) {
-    return (speed * RR32Can::kMaxEngineVelocity / kLocoNetMaxVeloctiy);
-  }
-
-  static RR32Can::Velocity_t canVelocityToLnSpeed(RR32Can::Velocity_t velocity) {
-    return (velocity * kLocoNetMaxVeloctiy) / RR32Can::kMaxEngineVelocity;
   }
 
   auto shouldSendEngineUpdateForSlot(const SlotDB_t::const_iterator slot) {

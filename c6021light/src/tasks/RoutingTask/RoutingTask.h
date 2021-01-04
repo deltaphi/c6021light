@@ -27,7 +27,7 @@ class RoutingTask : public freertossupport::OsTask {
   static constexpr const uint32_t kStackSize = 256;
 
   void begin(DataModel& dataModel) {
-    lnForwarder_.init(dataModel);
+    lnForwarder_.init(dataModel, slotServer_);
     i2cForwarder_.init(dataModel);
     slotServer_.init(dataModel);
   };

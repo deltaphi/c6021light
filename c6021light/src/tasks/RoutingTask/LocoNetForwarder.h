@@ -10,6 +10,7 @@
 #include "ln_opc.h"
 
 #include "DataModel.h"
+#include "tasks/RoutingTask/LocoNetSlotServer.h"
 
 namespace tasks {
 namespace RoutingTask {
@@ -19,7 +20,10 @@ namespace RoutingTask {
  */
 class LocoNetForwarder final : public RoutingForwarder {
  public:
-  void init(DataModel& dataModel) { this->dataModel_ = &dataModel; }
+  void init(DataModel& dataModel, LocoNetSlotServer& slotServer) {
+    this->dataModel_ = &dataModel;
+    this->slotServer_ = &slotServer;
+  }
 
   void forwardLocoChange(const RR32Can::LocomotiveData& loco, const bool velocityChange,
                          const bool directionChange,
@@ -29,7 +33,8 @@ class LocoNetForwarder final : public RoutingForwarder {
   bool MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id, RR32Can::Data& rr32data);
 
  private:
-  DataModel* dataModel_;
+  DataModel* dataModel_ = nullptr;
+  LocoNetSlotServer* slotServer_ = nullptr;
 };
 
 }  // namespace RoutingTask
