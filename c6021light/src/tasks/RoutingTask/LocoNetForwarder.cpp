@@ -7,6 +7,8 @@
 
 #include "LocoNet.h"
 
+#include "tasks/RoutingTask/LocoNetHelpers.h"
+
 namespace tasks {
 namespace RoutingTask {
 
@@ -86,7 +88,7 @@ void LocoNetForwarder::forwardLocoChange(
         locoSpdMsg& speedMessage = msg.lsp;
         speedMessage.command = OPC_LOCO_SPD;
         speedMessage.slot = slotIdx;
-        speedMessage.spd = LocoNetSlotServer::canVelocityToLnSpeed(loco.getVelocity());
+        speedMessage.spd = canVelocityToLnSpeed(loco.getVelocity());
         LocoNet.send(&msg);
       }
 
@@ -95,7 +97,7 @@ void LocoNetForwarder::forwardLocoChange(
         locoDirfMsg& dirfMessage = msg.ldf;
         dirfMessage.command = OPC_LOCO_DIRF;
         dirfMessage.slot = slotIdx;
-        dirfMessage.dirf = LocoNetSlotServer::locoToDirf(loco);
+        dirfMessage.dirf = locoToDirf(loco);
         LocoNet.send(&msg);
       }
 
@@ -104,7 +106,7 @@ void LocoNetForwarder::forwardLocoChange(
         locoSndMsg& sndMessage = msg.ls;
         sndMessage.command = OPC_LOCO_SND;
         sndMessage.slot = slotIdx;
-        sndMessage.snd = LocoNetSlotServer::locoToSnd(loco);
+        sndMessage.snd = locoToSnd(loco);
         LocoNet.send(&msg);
       }
     }

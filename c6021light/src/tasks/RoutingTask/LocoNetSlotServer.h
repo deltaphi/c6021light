@@ -38,13 +38,6 @@ class LocoNetSlotServer {
   constexpr static const SlotIdx_t kNumSlots = 127;
   using SlotDB_t = std::array<SlotEntry, kNumSlots>;  // note that Slot 0 is not used
 
-  constexpr static const RR32Can::Velocity_t kLocoNetMaxVeloctiy = 127;
-  constexpr static const uint8_t kDirfDirMask = 0b00100000;  // mask set == reverse
-  constexpr static const uint8_t kFunctionsInDirfMessage = 5;
-
-  constexpr static const uint8_t kFunctionsInSndMessage = 4;
-  constexpr static const uint8_t kLowestFunctionInSndMessage = 5;
-
   LocoNetSlotServer(RoutingForwarder& forwarder) : forwarder_(forwarder) {}
 
   void init(DataModel& dataModel) { this->dataModel_ = &dataModel; }
@@ -100,20 +93,6 @@ class LocoNetSlotServer {
 
   bool isSlotInBounds(const SlotDB_t::const_iterator& it) const { return it != slotDB_.end(); }
 
-  static RR32Can::Velocity_t lnSpeedToCanVelocity(RR32Can::Velocity_t speed) {
-    return (speed * RR32Can::kMaxEngineVelocity / kLocoNetMaxVeloctiy);
-  }
-
-  static RR32Can::Velocity_t canVelocityToLnSpeed(RR32Can::Velocity_t velocity) {
-    return (velocity * kLocoNetMaxVeloctiy) / RR32Can::kMaxEngineVelocity;
-  }
-
-  static void dirfToLoco(const uint8_t dirf, LocoData_t& loco);
-  static uint8_t locoToDirf(const LocoData_t& loco);
-
-  static void sndToLoco(const uint8_t snd, LocoData_t& loco);
-  static uint8_t locoToSnd(const LocoData_t& loco);
-
   bool isDisabled() const;
   bool isPassive() const;
   bool isActive() const;
@@ -122,9 +101,6 @@ class LocoNetSlotServer {
   bool dispatchSlotAvailable() const { return slotInDispatch_ != slotDB_.end(); }
 
   void processSlotMove(const slotMoveMsg& msg);
-  static bool isDispatchGet(const slotMoveMsg& msg) { return msg.src == 0; }
-  static bool isDispatchPut(const slotMoveMsg& msg) { return msg.dest == 0; }
-  static bool isNullMove(const slotMoveMsg& msg) { return msg.src == msg.dest; }
 
   SlotDB_t::iterator findOrRequestSlot(const uint8_t lnMsgSlot);
   SlotDB_t::iterator findSlot(const uint8_t lnMsgSlot);

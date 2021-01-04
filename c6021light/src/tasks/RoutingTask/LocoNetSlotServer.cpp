@@ -10,6 +10,8 @@
 
 #include "RoutingForwarder.h"
 
+#include "tasks/RoutingTask/LocoNetHelpers.h"
+
 namespace tasks {
 namespace RoutingTask {
 
@@ -231,78 +233,6 @@ void LocoNetSlotServer::sendSlotDataRead(SlotDB_t::const_iterator slot) const {
 }
 
 void LocoNetSlotServer::sendNoDispatch() const { LocoNet.sendLongAck(0); }
-
-void LocoNetSlotServer::dirfToLoco(const uint8_t dirf, LocoData_t& loco) {
-  RR32Can::EngineDirection direction;
-  if ((dirf & kDirfDirMask) == kDirfDirMask) {
-    direction = RR32Can::EngineDirection::REVERSE;
-  } else {
-    direction = RR32Can::EngineDirection::FORWARD;
-  }
-  loco.setDirection(direction);
-
-  uint8_t functionMask = 1;
-  for (uint8_t i = 0; i < kFunctionsInDirfMessage; ++i) {
-    uint8_t functionIdx = i + 1;
-    if (functionIdx == kFunctionsInDirfMessage) {
-      functionIdx = 0;
-    }
-    loco.setFunction(functionIdx, ((dirf & functionMask) != 0));
-    functionMask <<= 1;
-  }
-}
-
-uint8_t LocoNetSlotServer::locoToDirf(const LocoData_t& loco) {
-  uint8_t dirf = 0;
-
-  if (loco.getDirection() == RR32Can::EngineDirection::FORWARD) {
-    dirf &= ~kDirfDirMask;
-  } else {
-    dirf |= kDirfDirMask;
-  }
-
-  uint8_t functionMask = 1;
-  for (uint8_t i = 0; i < kFunctionsInDirfMessage; ++i) {
-    uint8_t functionIdx = i + 1;
-    if (functionIdx == kFunctionsInDirfMessage) {
-      functionIdx = 0;
-    }
-    if (loco.getFunction(functionIdx)) {
-      dirf |= functionMask;
-    } else {
-      dirf &= ~functionMask;
-    }
-    functionMask <<= 1;
-  }
-
-  return dirf;
-}
-
-void LocoNetSlotServer::sndToLoco(const uint8_t snd, LocoData_t& loco) {
-  uint8_t functionMask = 1;
-  for (uint8_t functionIdx = kFunctionsInSndMessage;
-       functionIdx < kLowestFunctionInSndMessage + kFunctionsInSndMessage; ++functionIdx) {
-    loco.setFunction(functionIdx, ((snd & functionMask) != 0));
-    functionMask <<= 1;
-  }
-}
-
-uint8_t LocoNetSlotServer::locoToSnd(const LocoData_t& loco) {
-  uint8_t snd = 0;
-
-  uint8_t functionMask = 1;
-  for (uint8_t i = kFunctionsInSndMessage; i < kLowestFunctionInSndMessage + kFunctionsInSndMessage;
-       ++i) {
-    uint8_t functionIdx = i;
-    if (loco.getFunction(functionIdx)) {
-      snd |= functionMask;
-    } else {
-      snd &= ~functionMask;
-    }
-    functionMask <<= 1;
-  }
-  return snd;
-}
 
 void LocoNetSlotServer::dump() const {
   puts("LocoNet Slot Server Status:");
