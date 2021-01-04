@@ -3,8 +3,6 @@
 
 #include "mocks/RoutingForwarderMock.h"
 
-#include "tasks/RoutingTask/RoutingTask.h"
-
 namespace tasks {
 namespace RoutingTask {
 
