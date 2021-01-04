@@ -1,3 +1,3 @@
-Imported from https://github.com/Helius/microrl/tree/d044bf4300be57b1d6b298a794d5af7c51cf4de8
+https://github.com/deltaphi/microrl/commit/a16e8a5e69b14194f6451f367090c1203f4aa4b3
 
 Removed examples folder to avoid confusing PlatformIO.
