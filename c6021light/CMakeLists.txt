@@ -53,6 +53,8 @@ enable_testing()
 # Now simply link against gtest or gtest_main as needed. Eg
 include_directories("test")
 include_directories("test/mocks")
+include_directories(".pio/libdeps/bluepill/LocoNet/utility")
+include_directories(".pio/libdeps/bluepill/RR32CanLibrary/lib")
 
 include_directories("src")
 
