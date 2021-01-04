@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "LocoNet.h"
 #include "RR32Can/RR32Can.h"
 
 #include "ConsoleManager.h"

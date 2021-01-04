@@ -8,7 +8,7 @@
 #include "RR32Can/Locomotive.h"
 #include "RR32Can/Types.h"
 
-#include "LocoNet.h"
+#include "ln_opc.h"
 
 #include "RoutingForwarder.h"
 
