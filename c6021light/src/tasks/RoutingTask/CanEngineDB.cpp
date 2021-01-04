@@ -64,7 +64,9 @@ void CanEngineDB::fetchNextEngine() {
   auto db_end = std::next(db_.begin(), listConsumer_.getNumEnginesKnownByMaster());
   const auto incompleteEntry = std::find_if(
       db_.begin(), db_end, [](const auto& entry) { return entry.loco.isNameOnlyKnown(); });
-  fetchEngine(incompleteEntry->loco);
+  if (incompleteEntry != db_end) {
+    fetchEngine(incompleteEntry->loco);
+  }
 }
 
 void CanEngineDB::fetchEngine(RR32Can::Locomotive& loco) {
