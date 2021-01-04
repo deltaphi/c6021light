@@ -117,17 +117,6 @@ class LocoNetSlotServer {
 
   static void clearSlot(SlotDB_t::iterator& slot) { *slot = SlotEntry(); }
 
-  static LocoAddr_t getLocoAddress(const rwSlotDataMsg& slotRead) {
-    LocoAddr_t::value_type address = slotRead.adr2 << 7;
-    address |= slotRead.adr & 0x7F;
-    return LocoAddr_t{address};
-  }
-
-  static void putLocoAddress(rwSlotDataMsg& slotRead, const LocoAddr_t address) {
-    slotRead.adr = address.value() & 0x7F;  // Loco Address low bits
-    slotRead.adr2 = address.value() >> 7;   // Loco Address high bits
-  }
-
   auto shouldSendEngineUpdateForSlot(const SlotDB_t::const_iterator slot) {
     return slot->inUse && !isDisabled();
   }

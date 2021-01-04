@@ -30,6 +30,17 @@ uint8_t locoToDirf(const RR32Can::LocomotiveData& loco);
 void sndToLoco(const uint8_t snd, RR32Can::LocomotiveData& loco);
 uint8_t locoToSnd(const RR32Can::LocomotiveData& loco);
 
+inline RR32Can::Locomotive::Address_t getLocoAddress(const rwSlotDataMsg& slotRead) {
+  RR32Can::Locomotive::Address_t::value_type address = slotRead.adr2 << 7;
+  address |= slotRead.adr & 0x7F;
+  return RR32Can::Locomotive::Address_t{address};
+}
+
+inline void putLocoAddress(rwSlotDataMsg& slotRead, const RR32Can::Locomotive::Address_t address) {
+  slotRead.adr = address.value() & 0x7F;  // Loco Address low bits
+  slotRead.adr2 = address.value() >> 7;   // Loco Address high bits
+}
+
 inline bool isDispatchGet(const slotMoveMsg& msg) { return msg.src == 0; }
 inline bool isDispatchPut(const slotMoveMsg& msg) { return msg.dest == 0; }
 inline bool isNullMove(const slotMoveMsg& msg) { return msg.src == msg.dest; }
