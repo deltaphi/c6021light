@@ -52,6 +52,15 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
   auto begin() { return db_.begin(); }
   auto end() { return db_.end(); }
 
+  const RR32Can::Locomotive* findEngine(const RR32Can::Locomotive::Address_t address) const {
+    for (auto& entry : db_) {
+      if (entry.loco.isFullDetailsKnown() && (address == entry.loco.getAddress())) {
+        return &entry.loco;
+      }
+    }
+    return nullptr;
+  }
+
  private:
   RR32Can::ConfigDataStreamParser streamParser_;
   RR32Can::LocoListConsumer listConsumer_;

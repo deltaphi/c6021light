@@ -106,6 +106,7 @@ void LocoNetSlotServer::processSlotRead(const rwSlotDataMsg& msg) {
     slotIt->loco.setVelocity(lnSpeedToCanVelocity(msg.spd));
     dirfToLoco(msg.dirf, slotIt->loco);
     sndToLoco(msg.snd, slotIt->loco);
+    slotIt->needsMatchToCAN = true;
   }
 }
 

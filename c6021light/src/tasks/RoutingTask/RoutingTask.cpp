@@ -88,8 +88,16 @@ void RoutingTask::TaskMain() {
       }
       slotServer_.process(*LnPacket);
 
-      // Attempt to forward all updates in the Slot server
       for (auto& locoEntry : slotServer_) {
+        // See if the engine needs a match to CAN
+        if (locoEntry.needsMatchToCAN) {
+          const auto enginePtr = engineDb_.findEngine(locoEntry.loco.getAddress());
+          if (enginePtr != nullptr) {
+            locoEntry.loco.setUid(enginePtr->getUid());
+          }
+        }
+
+        // Attempt to forward all updates in the Slot server
         if (locoEntry.hasUpdate()) {
           canForwarder_.forwardLocoChange(locoEntry.loco, locoEntry.diff);
         }

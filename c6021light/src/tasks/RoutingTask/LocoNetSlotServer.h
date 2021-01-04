@@ -34,6 +34,7 @@ class LocoNetSlotServer {
     bool inUse = false;
     LocoData_t loco;
     LocoDiff_t diff;
+    bool needsMatchToCAN = false;
 
     bool hasUpdate() const { return diff.hasDiff(); }
   };
