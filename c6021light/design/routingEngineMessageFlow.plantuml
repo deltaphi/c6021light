@@ -8,19 +8,20 @@ alt stateless message
 else stateful message
   RoutingTask -> IngresBusDB: process()
   IngresBusDB --> RoutingTask: has state changed? (TBD: What state has changed?)
-  alt state has changed
-    RoutingTask -> EgressBusDB: processEngineChange(engine, change flags);
-    alt changed engine known
-      EgressBusDB -> hal: send changes
-    else
-      EgressBusDB -> hal: fetch engine
-      EgressBusDB --> RoutingTask: forwarding delayed
-      note right
-        TBD how to store
-        delayed information?
-      end note
-    end
+  loop for all egressBusses to route to
+    alt state has changed
+      RoutingTask -> EgressBusDB: processEngineChange(engine, change flags);
+      alt changed engine known
+        EgressBusDB -> hal: send changes
+      else
+        EgressBusDB -> hal: fetch engine
+        EgressBusDB --> RoutingTask: forwarding delayed
+        note right
+          "Delay" information stored in respective DB entry.
+        end note
+      end
 
+    end
   end
 
 else Engine Information message
