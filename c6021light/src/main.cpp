@@ -69,6 +69,7 @@ void vApplicationGetIdleTaskMemory(StaticTask_t** ppxIdleTaskTCBBuffer,
 
 }  // extern "C"
 
+namespace {
 void setup() {
   // Setup I2C & CAN
   halImpl.begin();
@@ -104,6 +105,7 @@ void setupOsTasks() {
   consoleTask.Create("ConsoleTask",
                      0);  // Lowest prio as this task will always run.
 }
+}  // namespace
 
 // Main function for non-arduino
 int main(void) {
