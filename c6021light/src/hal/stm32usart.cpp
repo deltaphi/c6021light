@@ -21,7 +21,7 @@
 namespace hal {
 
 // Definition of Module-private functions
-
+namespace {
 void startSerialTx();
 void irqSerialTxDMA();
 
@@ -39,7 +39,7 @@ uint8_t bufferMemory_[bufferSize_];
 std::atomic_bool serialDmaBusy_;
 
 AtomicRingBuffer::AtomicRingBuffer::MemoryRange serialDmaMemory_;
-
+}  // namespace
 // Actual Code
 
 void beginSerial() {
@@ -117,6 +117,7 @@ void dma1_channel4_isr(void) {
 }
 }  // extern "C"
 
+namespace {
 uint8_t SerialWrite(const char* src, AtomicRingBuffer::AtomicRingBuffer::size_type srcLen,
                     bool doReplace) {
   using size_type = AtomicRingBuffer::AtomicRingBuffer::size_type;
@@ -208,4 +209,5 @@ void startSerialTx() {
   }
 }
 
+}  // namespace
 }  // namespace hal

@@ -154,12 +154,14 @@ int run_app_help(int, const char* const*, int) {
   return 0;
 }
 
+namespace {
 void printArguments(int argc, const char* const* argv) {
   for (int i = 0; i < argc; ++i) {
     printf(argv[i]);
     printf(" ");
   }
 }
+}  // namespace
 
 void display_help(int argc, const char* const* argv) {
   cliSupport::PrefixResult prefix = cliSupport::findLongestPrefix(argtable, argc, argv);
