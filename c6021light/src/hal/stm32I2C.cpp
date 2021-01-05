@@ -13,6 +13,7 @@
 
 namespace hal {
 
+namespace {
 struct I2CTxBuf : public I2CBuf {
   uint_fast8_t bytesProcessed;
   std::atomic_bool bufferOccupied;
@@ -102,14 +103,44 @@ void finishTx();
  */
 void forwardRx(bool fromISR);
 
+}  // namespace
+
 // ***************************
 // Implementation
 // ***************************
 
-bool messageValid(const I2CTxBuf& buffer) {
-  // Buffer occupied
-  // its 3 bytes long.
-  return bufferOccupied(buffer) && buffer.bytesProcessed == MarklinI2C::kAccessoryMessageLength;
+void beginI2C(uint8_t newSlaveAddress, freertossupport::OsTask routingTask) {
+  i2c_peripheral_disable(I2C1);
+  i2c_reset(I2C1);
+
+  slaveAddress = newSlaveAddress;
+  taskToNotify = routingTask;
+
+  gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_OPENDRAIN,
+                GPIO_I2C1_SCL | GPIO_I2C1_SDA);
+  gpio_set(GPIOB, GPIO_I2C1_SCL | GPIO_I2C1_SDA);
+
+  // Basic I2C configuration
+  // i2c_set_speed(I2C1, i2c_speed_sm_100k, I2C_CR2_FREQ_36MHZ);
+  i2c_set_standard_mode(I2C1);
+  i2c_set_clock_frequency(I2C1, I2C_CR2_FREQ_36MHZ);
+  i2c_set_trise(I2C1, 36);
+  i2c_set_dutycycle(I2C1, I2C_CCR_DUTY_DIV2);
+  i2c_set_ccr(I2C1, 180);
+
+  i2c_set_own_7bit_slave_address(I2C1, slaveAddress);
+
+  // Set I2C IRQ to support slave mode
+  releaseBuffer(i2cRxBuf);
+  releaseBuffer(i2cTxBuf);
+  nvic_enable_irq(NVIC_I2C1_EV_IRQ);
+  nvic_enable_irq(NVIC_I2C1_ER_IRQ);
+  nvic_set_priority(NVIC_I2C1_EV_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
+  nvic_set_priority(NVIC_I2C1_ER_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
+  i2c_enable_interrupt(I2C1, I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN | I2C_CR2_ITERREN);
+
+  i2c_peripheral_enable(I2C1);
+  i2c_enable_ack(I2C1);
 }
 
 OptionalI2CMessage getI2CMessage() {
@@ -127,6 +158,13 @@ OptionalI2CMessage getI2CMessage() {
 void sendI2CMessage(const hal::I2CBuf& msg) {
   hal::i2cTxQueue.Send(msg, 0);  // TODO: Check the result.
   startTx();
+}
+
+namespace {
+bool messageValid(const I2CTxBuf& buffer) {
+  // Buffer occupied
+  // its 3 bytes long.
+  return bufferOccupied(buffer) && buffer.bytesProcessed == MarklinI2C::kAccessoryMessageLength;
 }
 
 void doTriggerTx(const I2CQueueType::ReceiveResult& receiveResult) {
@@ -171,40 +209,6 @@ void resumeTxForce() {
   }
 }
 
-void beginI2C(uint8_t newSlaveAddress, freertossupport::OsTask routingTask) {
-  i2c_peripheral_disable(I2C1);
-  i2c_reset(I2C1);
-
-  slaveAddress = newSlaveAddress;
-  taskToNotify = routingTask;
-
-  gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_OPENDRAIN,
-                GPIO_I2C1_SCL | GPIO_I2C1_SDA);
-  gpio_set(GPIOB, GPIO_I2C1_SCL | GPIO_I2C1_SDA);
-
-  // Basic I2C configuration
-  // i2c_set_speed(I2C1, i2c_speed_sm_100k, I2C_CR2_FREQ_36MHZ);
-  i2c_set_standard_mode(I2C1);
-  i2c_set_clock_frequency(I2C1, I2C_CR2_FREQ_36MHZ);
-  i2c_set_trise(I2C1, 36);
-  i2c_set_dutycycle(I2C1, I2C_CCR_DUTY_DIV2);
-  i2c_set_ccr(I2C1, 180);
-
-  i2c_set_own_7bit_slave_address(I2C1, slaveAddress);
-
-  // Set I2C IRQ to support slave mode
-  releaseBuffer(i2cRxBuf);
-  releaseBuffer(i2cTxBuf);
-  nvic_enable_irq(NVIC_I2C1_EV_IRQ);
-  nvic_enable_irq(NVIC_I2C1_ER_IRQ);
-  nvic_set_priority(NVIC_I2C1_EV_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
-  nvic_set_priority(NVIC_I2C1_ER_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
-  i2c_enable_interrupt(I2C1, I2C_CR2_ITEVTEN | I2C_CR2_ITBUFEN | I2C_CR2_ITERREN);
-
-  i2c_peripheral_enable(I2C1);
-  i2c_enable_ack(I2C1);
-}
-
 void forwardRx(bool fromISR) {
   // Forecefully abort the current transaction
   i2c_peripheral_enable(I2C1);
@@ -240,6 +244,8 @@ void finishTx() {
   // See if there is something to be sent.
   startTxFromISR();
 }
+
+}  // namespace
 
 // i2c1 event ISR
 // Code based on
