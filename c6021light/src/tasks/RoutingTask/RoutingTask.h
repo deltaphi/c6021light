@@ -28,6 +28,7 @@ class RoutingTask : public freertossupport::OsTask {
   };
 
   void TaskMain();
+  void loop();
 
   const LocoNetSlotServer& getLnSlotServer() const { return slotServer_; }
 
@@ -40,6 +41,11 @@ class RoutingTask : public freertossupport::OsTask {
   CANForwarder canForwarder_;
   I2CForwarder i2cForwarder_;
   LocoNetForwarder lnForwarder_;
+
+  void processCAN();
+  void processI2C();
+  void processLocoNet();
+  void matchEnginesFromLocoNetAndCan();
 };
 
 }  // namespace RoutingTask
