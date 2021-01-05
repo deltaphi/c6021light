@@ -1,7 +1,6 @@
 #ifndef __HAL__STM32CAN_H__
 #define __HAL__STM32CAN_H__
 
-#include "OsQueue.h"
 #include "OsTask.h"
 
 #include "RR32Can/callback/TxCbk.h"
@@ -20,9 +19,12 @@ typedef struct {
 
 void beginCan(freertossupport::OsTask taskToNotify);
 
-using CanQueueType = freertossupport::OsQueue<CanMsg>;
+typedef struct {
+  bool messageValid = false;
+  CanMsg msg;
+} OptionalCanMsg;
 
-extern CanQueueType canrxq;
+OptionalCanMsg getCanMessage();
 
 class CanTxCbk : public RR32Can::callback::TxCbk {
   /// Transmit Packet on CAN

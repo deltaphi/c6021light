@@ -36,7 +36,6 @@ extern "C" {
 #include "RR32Can_config.h"
 
 #include <FreeRTOS.h>
-#include "OsQueue.h"
 #include "OsTask.h"
 
 // ******** Variables and Constans********
@@ -50,6 +49,8 @@ freertossupport::StaticOsTask<tasks::RoutingTask::RoutingTask,
 freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
                               tasks::ConsoleTask::ConsoleTask::kStackSize>
     consoleTask;
+
+hal::CanTxCbk canTxCbk;
 
 // Dummy variable that allows the toolchain to compile static variables that have destructors.
 void* __dso_handle;
@@ -111,28 +112,13 @@ void setup() {
   accessoryCbk.begin(halImpl);
 
   RR32Can::Station::CallbackStruct callbacks;
-  callbacks.tx = &routingTask.canTxCbk_;
+  callbacks.tx = &canTxCbk;
   callbacks.system = &accessoryCbk;
   callbacks.engine = &routingTask.getCANEngineDB();
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
   printf("Ready!\n");
   ConsoleManager::begin(&dataModel);
-}
-
-void setupOsResources() {
-  constexpr static const uint8_t canqueuesize = 10;
-
-  static freertossupport::StaticOsQueue<hal::CanQueueType::QueueElement, canqueuesize> canrxqbuffer;
-  hal::canrxq = canrxqbuffer;
-
-  constexpr static const uint8_t i2cqueuesize = canqueuesize;
-
-  static freertossupport::StaticOsQueue<hal::I2CQueueType::QueueElement, i2cqueuesize> i2crxqBuffer;
-  hal::i2cRxQueue = i2crxqBuffer;
-
-  static freertossupport::StaticOsQueue<hal::I2CQueueType::QueueElement, i2cqueuesize> i2ctxqBuffer;
-  hal::i2cTxQueue = i2ctxqBuffer;
 }
 
 void setupOsTasks() {
@@ -143,7 +129,6 @@ void setupOsTasks() {
 
 // Main function for non-arduino
 int main(void) {
-  setupOsResources();
   setupOsTasks();
 
   setup();

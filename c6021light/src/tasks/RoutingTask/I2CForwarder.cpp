@@ -80,8 +80,7 @@ void I2CForwarder::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg)
   buf.msgBytes[0] = msg.destination_ >> 1;
   buf.msgBytes[1] = msg.data_;
 
-  hal::i2cTxQueue.Send(buf, 0);  // TODO: Check the result.
-  hal::startTx();
+  hal::sendI2CMessage(buf);
 }
 
 bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& request,

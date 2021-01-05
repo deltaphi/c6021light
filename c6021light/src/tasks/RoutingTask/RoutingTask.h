@@ -4,12 +4,8 @@
 #include "MarklinI2C/Messages/AccessoryMsg.h"
 
 #include "DataModel.h"
-#include "hal/stm32can.h"
 
-#include "FreeRTOSConfig.h"
 #include "OsTask.h"
-
-#include "LocoNet.h"
 
 #include "CANForwarder.h"
 #include "I2CForwarder.h"
@@ -32,8 +28,6 @@ class RoutingTask : public freertossupport::OsTask {
   };
 
   void TaskMain();
-
-  hal::CanTxCbk canTxCbk_;
 
   const LocoNetSlotServer& getLnSlotServer() const { return slotServer_; }
 

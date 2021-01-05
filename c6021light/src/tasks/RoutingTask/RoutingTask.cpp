@@ -1,7 +1,5 @@
 #include "tasks/RoutingTask/RoutingTask.h"
 
-#include <atomic>
-#include <cstdint>
 #include <cstdio>
 
 #include <LocoNet.h>
@@ -10,22 +8,10 @@
 #include "hal/stm32can.h"
 #include "tasks/RoutingTask/LocoNetPrinter.h"
 
-#include "OsQueue.h"
-
 #include "DataModel.h"
 
 namespace tasks {
 namespace RoutingTask {
-
-namespace {
-MarklinI2C::Messages::AccessoryMsg getI2CMessage(const hal::I2CBuf& buffer) {
-  MarklinI2C::Messages::AccessoryMsg msg;
-  msg.destination_ = DataModel::kMyAddr;
-  msg.source_ = buffer.msgBytes[0];
-  msg.data_ = buffer.msgBytes[1];
-  return msg;
-}
-}  // namespace
 
 /**
  * \brief When a message was received, create and send a response message.
@@ -35,13 +21,12 @@ void RoutingTask::TaskMain() {
     waitForNotify();
 
     // Process CAN
-    constexpr const TickType_t ticksToWait = 0;
-    for (hal::CanQueueType::ReceiveResult receiveResult = hal::canrxq.Receive(ticksToWait);
-         receiveResult.errorCode == pdTRUE; receiveResult = hal::canrxq.Receive(ticksToWait)) {
-      i2cForwarder_.forward(receiveResult.element.id, receiveResult.element.data);
-      lnForwarder_.forward(receiveResult.element.id, receiveResult.element.data);
+    for (auto receiveResult = hal::getCanMessage(); receiveResult.messageValid;
+         receiveResult = hal::getCanMessage()) {
+      i2cForwarder_.forward(receiveResult.msg.id, receiveResult.msg.data);
+      lnForwarder_.forward(receiveResult.msg.id, receiveResult.msg.data);
       // Forward to self
-      RR32Can::RR32Can.HandlePacket(receiveResult.element.id, receiveResult.element.data);
+      RR32Can::RR32Can.HandlePacket(receiveResult.msg.id, receiveResult.msg.data);
 
       // Attempt to forward all updates in the CAN DB
       if (!slotServer_.isDisabled()) {
@@ -54,9 +39,9 @@ void RoutingTask::TaskMain() {
     }
 
     // Process I2C
-    for (hal::I2CQueueType::ReceiveResult receiveResult = hal::i2cRxQueue.Receive(0);
-         receiveResult.errorCode == pdPASS; receiveResult = hal::i2cRxQueue.Receive(0)) {
-      MarklinI2C::Messages::AccessoryMsg request = getI2CMessage(receiveResult.element);
+    for (auto receiveResult = hal::getI2CMessage(); receiveResult.messageValid;
+         receiveResult = hal::getI2CMessage()) {
+      MarklinI2C::Messages::AccessoryMsg& request = receiveResult.msg;
       printf("I2C RX: ");
       request.print();
 

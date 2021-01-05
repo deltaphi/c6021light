@@ -6,18 +6,25 @@
 #include <libopencm3/stm32/can.h>
 #include <libopencm3/stm32/gpio.h>
 
+#include "OsQueue.h"
 #include "OsTask.h"
 
 #include "RR32Can/RR32Can.h"
 #include "RR32Can/messages/Identifier.h"
 
 namespace hal {
+constexpr static const uint8_t canqueuesize = 10;
 
 freertossupport::OsQueue<CanMsg> canrxq;
 static freertossupport::OsTask taskToNotify;
 
+using CanQueueType = freertossupport::OsQueue<CanMsg>;
+
+static freertossupport::StaticOsQueue<hal::CanQueueType::QueueElement, canqueuesize> canrxqbuffer;
+
 void beginCan(freertossupport::OsTask task) {
   taskToNotify = task;
+  hal::canrxq = canrxqbuffer;
   AFIO_MAPR |= AFIO_MAPR_CAN1_REMAP_PORTB;
 
   /* Configure CAN pin: RX (input pull-up) */
@@ -49,6 +56,20 @@ void beginCan(freertossupport::OsTask task) {
                                 0,     /* CAN ID mask */
                                 0,     /* FIFO assignment (here: FIFO0) */
                                 true); /* Enable the filter. */
+}
+
+OptionalCanMsg getCanMessage() {
+  OptionalCanMsg optionalMsg;
+  constexpr const TickType_t ticksToWait = 0;
+
+  auto queueResult = canrxq.Receive(ticksToWait);
+  optionalMsg.messageValid = queueResult.errorCode == pdTRUE;
+
+  if (optionalMsg.messageValid) {
+    optionalMsg.msg = queueResult.element;
+  }
+
+  return optionalMsg;
 }
 
 extern "C" {

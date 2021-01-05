@@ -1,3 +1,4 @@
+#include <atomic>
 #include <cstring>
 
 #include "hal/stm32I2C.h"
@@ -6,15 +7,31 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/i2c.h>
 
+#include "OsQueue.h"
+
+#include "DataModel.h"
+
 namespace hal {
+
+struct I2CTxBuf : public I2CBuf {
+  uint_fast8_t bytesProcessed;
+  std::atomic_bool bufferOccupied;
+};
+
+using I2CQueueType = freertossupport::OsQueue<hal::I2CBuf>;
+
+constexpr static const uint8_t i2cqueuesize = 10;
+
+static freertossupport::StaticOsQueue<hal::I2CQueueType::QueueElement, i2cqueuesize> i2crxqBuffer;
+static freertossupport::StaticOsQueue<hal::I2CQueueType::QueueElement, i2cqueuesize> i2ctxqBuffer;
 
 static uint8_t slaveAddress;
 
 I2CTxBuf i2cRxBuf;
 I2CTxBuf i2cTxBuf;
 
-I2CQueueType i2cRxQueue;
-I2CQueueType i2cTxQueue;
+I2CQueueType i2cRxQueue = i2crxqBuffer;
+I2CQueueType i2cTxQueue = i2ctxqBuffer;
 
 freertossupport::OsTask taskToNotify;
 
@@ -54,6 +71,13 @@ bool i2cBusy() { return (I2C_SR2(I2C1) & I2C_SR2_BUSY) != 0; }
 /**
  * Take a message from the Queue and start transmitting.
  *
+ * Function from Task
+ */
+void startTx();
+
+/**
+ * Take a message from the Queue and start transmitting.
+ *
  * Function from ISR
  */
 void startTxFromISR();
@@ -86,6 +110,23 @@ bool messageValid(const I2CTxBuf& buffer) {
   // Buffer occupied
   // its 3 bytes long.
   return bufferOccupied(buffer) && buffer.bytesProcessed == MarklinI2C::kAccessoryMessageLength;
+}
+
+OptionalI2CMessage getI2CMessage() {
+  const auto receiveResult = hal::i2cRxQueue.Receive(0);
+  OptionalI2CMessage result;
+  result.messageValid = receiveResult.errorCode == pdTRUE;
+  if (result.messageValid) {
+    result.msg.destination_ = DataModel::kMyAddr;
+    result.msg.source_ = receiveResult.element.msgBytes[0];
+    result.msg.data_ = receiveResult.element.msgBytes[1];
+  }
+  return result;
+}
+
+void sendI2CMessage(const hal::I2CBuf& msg) {
+  hal::i2cTxQueue.Send(msg, 0);  // TODO: Check the result.
+  startTx();
 }
 
 void doTriggerTx(const I2CQueueType::ReceiveResult& receiveResult) {
