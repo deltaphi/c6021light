@@ -47,14 +47,14 @@ class OsQueue {
     return result;
   }
 
-  SendResult Send(const QueueElement& element, TickType_t ticksToWait) {
+  SendResult Send(const QueueElement& element, const TickType_t ticksToWait) {
     configASSERT(handle_ != NULL);
     SendResult result;
     result.errorCode = xQueueSend(handle_, &element, ticksToWait);
     return result;
   }
 
-  ReceiveResult Receive(TickType_t ticksToWait) {
+  ReceiveResult Receive(const TickType_t ticksToWait) {
     configASSERT(handle_ != NULL);
     ReceiveResult result;
     result.errorCode = xQueueReceive(handle_, &result.element, ticksToWait);
