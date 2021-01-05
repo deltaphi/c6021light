@@ -15,10 +15,10 @@
 namespace hal {
 constexpr static const uint8_t canqueuesize = 10;
 
-freertossupport::OsQueue<CanMsg> canrxq;
+freertossupport::OsQueue<RR32Can::CanFrame> canrxq;
 static freertossupport::OsTask taskToNotify;
 
-using CanQueueType = freertossupport::OsQueue<CanMsg>;
+using CanQueueType = freertossupport::OsQueue<RR32Can::CanFrame>;
 
 static freertossupport::StaticOsQueue<hal::CanQueueType::QueueElement, canqueuesize> canrxqbuffer;
 
@@ -77,7 +77,7 @@ extern "C" {
 void usb_lp_can_rx0_isr(void) {
   BaseType_t anyTaskWoken = pdFALSE;
   for (uint32_t messageCount = CAN_RF0R(CAN1) & 3; messageCount > 0; --messageCount) {
-    CanMsg canMsg;
+    RR32Can::CanFrame canMsg;
 
     bool ext;
     bool rtr;
@@ -106,13 +106,13 @@ void usb_lp_can_rx0_isr(void) {
 }
 }
 
-void CanTxCbk::SendPacket(RR32Can::Identifier const& id, RR32Can::Data const& data) {
-  uint32_t packetId = id.makeIdentifier();
+void CanTxCbk::SendPacket(const RR32Can::CanFrame& frame) {
+  uint32_t packetId = frame.id.makeIdentifier();
   int txMailbox = -1;
   while (txMailbox == -1) {
     // Busy-wait until a mailbox becomes free.
-    txMailbox =
-        can_transmit(CAN1, packetId, true, false, data.dlc, const_cast<uint8_t*>(data.data));
+    txMailbox = can_transmit(CAN1, packetId, true, false, frame.data.dlc,
+                             const_cast<uint8_t*>(frame.data.data));
   }
 }
 

@@ -4,31 +4,22 @@
 #include "OsTask.h"
 
 #include "RR32Can/callback/TxCbk.h"
-#include "RR32Can/messages/Data.h"
-#include "RR32Can/messages/Identifier.h"
+#include "RR32Can/messages/CanFrame.h"
 
 namespace hal {
-
-/*
- * \brief Class stm32can
- */
-typedef struct {
-  RR32Can::Identifier id;
-  RR32Can::Data data;
-} CanMsg;
 
 void beginCan(freertossupport::OsTask taskToNotify);
 
 typedef struct {
   bool messageValid = false;
-  CanMsg msg;
+  RR32Can::CanFrame msg;
 } OptionalCanMsg;
 
 OptionalCanMsg getCanMessage();
 
 class CanTxCbk : public RR32Can::callback::TxCbk {
   /// Transmit Packet on CAN
-  void SendPacket(const RR32Can::Identifier& id, const RR32Can::Data& data) override;
+  void SendPacket(const RR32Can::CanFrame& frame) override;
 };
 
 }  // namespace hal

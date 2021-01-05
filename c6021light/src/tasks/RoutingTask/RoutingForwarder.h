@@ -2,8 +2,7 @@
 #define __TASKS__ROUTINGTASK__ROUTINGFORWARDER_H__
 
 #include "RR32Can/Locomotive.h"
-#include "RR32Can/messages/Data.h"
-#include "RR32Can/messages/Identifier.h"
+#include "RR32Can/messages/CanFrame.h"
 
 namespace tasks {
 namespace RoutingTask {
@@ -33,7 +32,7 @@ class RoutingForwarder {
   /**
    * Forward a message for stateless forwarding (Power On/Off, Turnout Request/Response, S88 Report)
    */
-  virtual void forward(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data) = 0;
+  virtual void forward(const RR32Can::CanFrame& frame) = 0;
 };
 
 }  // namespace RoutingTask

@@ -14,8 +14,9 @@ namespace RoutingTask {
 class CANForwarder final : public RoutingForwarder {
  public:
   void forwardLocoChange(const RR32Can::LocomotiveData& loco, LocoDiff_t& diff) override;
-  void forward(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data) override {
-    RR32Can::RR32Can.SendPacket(rr32id, rr32data);
+  void forward(const RR32Can::CanFrame& frame) override {
+    RR32Can::CanFrame frameToSend{frame};
+    RR32Can::RR32Can.SendPacket(frameToSend);
   }
 };
 

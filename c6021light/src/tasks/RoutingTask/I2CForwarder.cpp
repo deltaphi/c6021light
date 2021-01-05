@@ -23,11 +23,11 @@ bool sameDecoder(const RR32Can::MachineTurnoutAddress left,
 }
 }  // namespace
 
-void I2CForwarder::forward(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data) {
-  switch (rr32id.getCommand()) {
+void I2CForwarder::forward(const RR32Can::CanFrame& frame) {
+  switch (frame.id.getCommand()) {
     case RR32Can::Command::ACCESSORY_SWITCH: {
-      const RR32Can::TurnoutPacket turnoutPacket(const_cast<RR32Can::Data&>(rr32data));
-      if (rr32id.isResponse()) {
+      const RR32Can::TurnoutPacket turnoutPacket(const_cast<RR32Can::Data&>(frame.data));
+      if (frame.id.isResponse()) {
         // Responses are forwarded to I2C
         printf(" Got an Accessory packet!\n");
 
@@ -84,11 +84,11 @@ void I2CForwarder::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg)
 }
 
 bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& request,
-                                  RR32Can::Identifier& rr32id, RR32Can::Data& rr32data) {
-  rr32id.setCommand(RR32Can::Command::ACCESSORY_SWITCH);
-  rr32id.setResponse(false);
+                                  RR32Can::CanFrame& frame) {
+  frame.id.setCommand(RR32Can::Command::ACCESSORY_SWITCH);
+  frame.id.setResponse(false);
 
-  RR32Can::TurnoutPacket turnoutPacket(rr32data);
+  RR32Can::TurnoutPacket turnoutPacket(frame.data);
   turnoutPacket.initData();
 
   // If this is a power ON packet: Send directly to CAN

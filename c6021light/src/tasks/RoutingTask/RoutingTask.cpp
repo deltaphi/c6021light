@@ -23,10 +23,10 @@ void RoutingTask::TaskMain() {
     // Process CAN
     for (auto receiveResult = hal::getCanMessage(); receiveResult.messageValid;
          receiveResult = hal::getCanMessage()) {
-      i2cForwarder_.forward(receiveResult.msg.id, receiveResult.msg.data);
-      lnForwarder_.forward(receiveResult.msg.id, receiveResult.msg.data);
+      i2cForwarder_.forward(receiveResult.msg);
+      lnForwarder_.forward(receiveResult.msg);
       // Forward to self
-      RR32Can::RR32Can.HandlePacket(receiveResult.msg.id, receiveResult.msg.data);
+      RR32Can::RR32Can.HandlePacket(receiveResult.msg);
 
       // Attempt to forward all updates in the CAN DB
       if (!slotServer_.isDisabled()) {
@@ -45,15 +45,14 @@ void RoutingTask::TaskMain() {
       printf("I2C RX: ");
       request.print();
 
-      RR32Can::Identifier rr32id;
-      RR32Can::Data rr32data;
+      RR32Can::CanFrame frame;
 
       // Convert to generic CAN representation
-      if (i2cForwarder_.MakeRR32CanMsg(request, rr32id, rr32data)) {
-        RR32Can::RR32Can.SendPacket(rr32id, rr32data);
-        lnForwarder_.forward(rr32id, rr32data);
+      if (i2cForwarder_.MakeRR32CanMsg(request, frame)) {
+        RR32Can::RR32Can.SendPacket(frame);
+        lnForwarder_.forward(frame);
         // Forward to self
-        RR32Can::RR32Can.HandlePacket(rr32id, rr32data);
+        RR32Can::RR32Can.HandlePacket(frame);
       }
     }
 
@@ -61,17 +60,16 @@ void RoutingTask::TaskMain() {
     for (lnMsg* LnPacket = LocoNet.receive(); LnPacket; LnPacket = LocoNet.receive()) {
       printLnPacket(*LnPacket);
 
-      RR32Can::Identifier rr32id;
-      RR32Can::Data rr32data;
+      RR32Can::CanFrame frame;
 
       // Convert to generic CAN representation
-      if (lnForwarder_.MakeRR32CanMsg(*LnPacket, rr32id, rr32data)) {
-        i2cForwarder_.forward(rr32id, rr32data);
+      if (lnForwarder_.MakeRR32CanMsg(*LnPacket, frame)) {
+        i2cForwarder_.forward(frame);
         // Forward to CAN
-        RR32Can::RR32Can.SendPacket(rr32id, rr32data);
+        RR32Can::RR32Can.SendPacket(frame);
 
         // Forward to self
-        RR32Can::RR32Can.HandlePacket(rr32id, rr32data);
+        RR32Can::RR32Can.HandlePacket(frame);
       }
       slotServer_.process(*LnPacket);
 

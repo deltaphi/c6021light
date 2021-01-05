@@ -26,9 +26,9 @@ class LocoNetForwarder final : public RoutingForwarder {
   }
 
   void forwardLocoChange(const RR32Can::LocomotiveData& loco, LocoDiff_t& diff) override;
-  void forward(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data) override;
+  void forward(const RR32Can::CanFrame& frame) override;
 
-  bool MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id, RR32Can::Data& rr32data);
+  bool MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::CanFrame& frame);
 
  private:
   DataModel* dataModel_ = nullptr;

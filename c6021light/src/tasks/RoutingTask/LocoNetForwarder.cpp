@@ -12,11 +12,11 @@
 namespace tasks {
 namespace RoutingTask {
 
-void LocoNetForwarder::forward(const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data) {
-  switch (rr32id.getCommand()) {
+void LocoNetForwarder::forward(const RR32Can::CanFrame& frame) {
+  switch (frame.id.getCommand()) {
     case RR32Can::Command::ACCESSORY_SWITCH: {
-      const RR32Can::TurnoutPacket turnoutPacket(const_cast<RR32Can::Data&>(rr32data));
-      if (!rr32id.isResponse()) {
+      const RR32Can::TurnoutPacket turnoutPacket(const_cast<RR32Can::Data&>(frame.data));
+      if (!frame.id.isResponse()) {
         // Send to LocoNet
         LocoNet.requestSwitch(
             RR32Can::HumanTurnoutAddress(turnoutPacket.getLocid().getNumericAddress()).value(),
@@ -27,15 +27,15 @@ void LocoNetForwarder::forward(const RR32Can::Identifier rr32id, const RR32Can::
     }
 
     case RR32Can::Command::SYSTEM_COMMAND: {
-      const RR32Can::SystemMessage systemMessage(const_cast<RR32Can::Data&>(rr32data));
+      const RR32Can::SystemMessage systemMessage(const_cast<RR32Can::Data&>(frame.data));
       switch (systemMessage.getSubcommand()) {
         case RR32Can::SystemSubcommand::SYSTEM_STOP:
-          if (!rr32id.isResponse()) {
+          if (!frame.id.isResponse()) {
             LocoNet.reportPower(false);
           }
           break;
         case RR32Can::SystemSubcommand::SYSTEM_GO:
-          if (!rr32id.isResponse()) {
+          if (!frame.id.isResponse()) {
             LocoNet.reportPower(true);
           }
           break;
@@ -46,7 +46,7 @@ void LocoNetForwarder::forward(const RR32Can::Identifier rr32id, const RR32Can::
       break;
     }
     case RR32Can::Command::S88_EVENT: {
-      const RR32Can::S88Event s88Event(const_cast<RR32Can::Data&>(rr32data));
+      const RR32Can::S88Event s88Event(const_cast<RR32Can::Data&>(frame.data));
       if (s88Event.getSubtype() == RR32Can::S88Event::Subtype::RESPONSE) {
         uint8_t state = 0;
         switch (s88Event.getNewState()) {
@@ -119,14 +119,13 @@ void LocoNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, Lo
   }
 }
 
-bool LocoNetForwarder::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier& rr32id,
-                                      RR32Can::Data& rr32data) {
+bool LocoNetForwarder::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::CanFrame& frame) {
   // Decode the opcode
   switch (LnPacket.data[0]) {
     case OPC_SW_REQ: {
-      rr32id.setCommand(RR32Can::Command::ACCESSORY_SWITCH);
-      rr32id.setResponse(false);
-      RR32Can::TurnoutPacket turnoutPacket(rr32data);
+      frame.id.setCommand(RR32Can::Command::ACCESSORY_SWITCH);
+      frame.id.setResponse(false);
+      RR32Can::TurnoutPacket turnoutPacket(frame.data);
       turnoutPacket.initData();
 
       // Extract the switch address
@@ -147,9 +146,9 @@ bool LocoNetForwarder::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier
     }
     case OPC_GPON:
     case OPC_GPOFF: {
-      rr32id.setCommand(RR32Can::Command::SYSTEM_COMMAND);
-      rr32id.setResponse(false);
-      RR32Can::SystemMessage systemMessage(rr32data);
+      frame.id.setCommand(RR32Can::Command::SYSTEM_COMMAND);
+      frame.id.setResponse(false);
+      RR32Can::SystemMessage systemMessage(frame.data);
       systemMessage.initData();
 
       if (LnPacket.data[0] == OPC_GPON) {
@@ -162,9 +161,9 @@ bool LocoNetForwarder::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::Identifier
       break;
     }
     case OPC_INPUT_REP: {
-      rr32id.setCommand(RR32Can::Command::S88_EVENT);
-      rr32id.setResponse(true);
-      RR32Can::S88Event message(rr32data);
+      frame.id.setCommand(RR32Can::Command::S88_EVENT);
+      frame.id.setResponse(true);
+      RR32Can::S88Event message(frame.data);
       message.initData();
       message.setSubtype(RR32Can::S88Event::Subtype::RESPONSE);
       message.setDeviceId(RR32Can::MachineTurnoutAddress(0));
