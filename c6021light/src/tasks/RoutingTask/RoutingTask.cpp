@@ -22,13 +22,13 @@ void RoutingTask::processCAN() {
 
     hal::freeCanMessage(framePtr);
     framePtr = nullptr;
-
-    // Attempt to forward all updates in the CAN DB
-    if (!slotServer_.isDisabled()) {
-      for (auto& locoEntry : engineDb_) {
-        if (locoEntry.hasUpdate()) {
-          lnForwarder_.forwardLocoChange(locoEntry.loco, locoEntry.diff);
-        }
+  }
+  
+  // Attempt to forward all updates in the CAN DB
+  if (!slotServer_.isDisabled()) {
+    for (auto& locoEntry : engineDb_) {
+      if (locoEntry.hasUpdate()) {
+        lnForwarder_.forwardLocoChange(locoEntry.loco, locoEntry.diff);
       }
     }
   }
