@@ -16,8 +16,7 @@ class RoutingForwarderMock : public tasks::RoutingTask::RoutingForwarder {
  public:
   MOCK_METHOD(void, forwardLocoChange, (const RR32Can::LocomotiveData& loco, LocoDiff_t& diff),
               (override));
-  MOCK_METHOD(void, forward, (const RR32Can::Identifier rr32id, const RR32Can::Data& rr32data),
-              (override));
+  MOCK_METHOD(void, forward, (const RR32Can::CanFrame& frame), (override));
 };
 
 }  // namespace RoutingTask
