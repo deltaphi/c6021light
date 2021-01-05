@@ -1,12 +1,13 @@
 #include "tasks/RoutingTask/I2CForwarder.h"
 
+#include <cstdio>
+
 #include "RR32Can/messages/TurnoutPacket.h"
 
 #include "DataModel.h"
 
 #include "hal/stm32I2C.h"
 
-#include <cstdio>
 
 namespace tasks {
 namespace RoutingTask {
@@ -20,6 +21,12 @@ bool sameDecoder(const RR32Can::MachineTurnoutAddress left,
                  const RR32Can::MachineTurnoutAddress right) {
   constexpr const uint8_t mask = 0xFC;
   return (left.value() & mask) == (right.value() & mask);
+}
+
+MarklinI2C::Messages::AccessoryMsg prepareI2cMessage() {
+  MarklinI2C::Messages::AccessoryMsg msg;
+  msg.source_ = DataModel::kMyAddr;
+  return msg;
 }
 }  // namespace
 
@@ -51,7 +58,9 @@ void I2CForwarder::forward(const RR32Can::CanFrame& frame) {
         i2cMsg.setDirection(turnoutPacket.getDirection());
         i2cMsg.makePowerConsistent();
 
-        SendI2CMessage(i2cMsg);
+        printf("I2C TX: ");
+        i2cMsg.print();
+        hal::sendI2CMessage(i2cMsg);
       }
       break;
     }
@@ -64,23 +73,6 @@ void I2CForwarder::forward(const RR32Can::CanFrame& frame) {
 
 void I2CForwarder::forwardLocoChange(const RR32Can::LocomotiveData&, LocoDiff_t&) {
   // Currently no loco control on I2C
-}
-
-MarklinI2C::Messages::AccessoryMsg I2CForwarder::prepareI2cMessage() {
-  MarklinI2C::Messages::AccessoryMsg msg;
-  msg.source_ = DataModel::kMyAddr;
-  return msg;
-}
-
-void I2CForwarder::SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg) {
-  printf("I2C TX: ");
-  msg.print();
-
-  hal::I2CBuf buf;
-  buf.msgBytes[0] = msg.destination_ >> 1;
-  buf.msgBytes[1] = msg.data_;
-
-  hal::sendI2CMessage(buf);
 }
 
 bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& request,

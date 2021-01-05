@@ -15,6 +15,11 @@
 namespace hal {
 
 namespace {
+struct I2CBuf {
+  constexpr const static uint8_t kMsgBytesLength = 3;
+  uint8_t msgBytes[MarklinI2C::kMessageMaxBytes];
+};
+
 struct I2CTxBuf : public I2CBuf {
   uint_fast8_t bytesProcessed;
   std::atomic_bool bufferOccupied;
@@ -153,8 +158,11 @@ OptionalI2CMessage getI2CMessage() {
   return result;
 }
 
-void sendI2CMessage(const hal::I2CBuf& msg) {
-  hal::i2cTxQueue.Send(msg, 0);  // TODO: Check the result.
+void sendI2CMessage(const I2CMessage_t& msg) {
+  hal::I2CBuf buf;
+  buf.msgBytes[0] = msg.destination_ >> 1;
+  buf.msgBytes[1] = msg.data_;
+  hal::i2cTxQueue.Send(buf, 0);  // TODO: Check the result.
   startTx();
 }
 

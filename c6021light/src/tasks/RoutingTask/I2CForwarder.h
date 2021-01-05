@@ -26,9 +26,6 @@ class I2CForwarder final : public RoutingForwarder {
   RR32Can::MachineTurnoutAddress lastPowerOnTurnoutAddr;
   RR32Can::TurnoutDirection lastPowerOnDirection;
   DataModel* dataModel_;
-
-  static MarklinI2C::Messages::AccessoryMsg prepareI2cMessage();
-  void SendI2CMessage(MarklinI2C::Messages::AccessoryMsg const& msg);
 };
 
 }  // namespace RoutingTask

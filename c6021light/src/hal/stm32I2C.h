@@ -5,7 +5,6 @@
 
 #include "OsTask.h"
 
-#include "MarklinI2C/Constants.h"
 #include "MarklinI2C/Messages/AccessoryMsg.h"
 
 namespace hal {
@@ -13,10 +12,6 @@ namespace hal {
 using I2CMessage_t = MarklinI2C::Messages::AccessoryMsg;
 using I2CMessagePtr_t = I2CMessage_t*;
 
-struct I2CBuf {
-  constexpr const static uint8_t kMsgBytesLength = 3;
-  uint8_t msgBytes[MarklinI2C::kMessageMaxBytes];
-};
 
 struct OptionalI2CMessage {
   bool messageValid;
@@ -30,7 +25,7 @@ void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask);
  *
  * Function from Task
  */
-void sendI2CMessage(const hal::I2CBuf& msg);
+void sendI2CMessage(const I2CMessage_t& msg);
 OptionalI2CMessage getI2CMessage();
 
 }  // namespace hal
