@@ -10,6 +10,9 @@
 
 namespace hal {
 
+using I2CMessage_t = MarklinI2C::Messages::AccessoryMsg;
+using I2CMessagePtr_t = I2CMessage_t*;
+
 struct I2CBuf {
   constexpr const static uint8_t kMsgBytesLength = 3;
   uint8_t msgBytes[MarklinI2C::kMessageMaxBytes];

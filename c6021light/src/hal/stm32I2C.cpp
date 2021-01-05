@@ -7,6 +7,7 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/i2c.h>
 
+#include "AtomicRingBuffer/ObjectRingBuffer.h"
 #include "OsQueue.h"
 
 #include "DataModel.h"
@@ -19,19 +20,19 @@ struct I2CTxBuf : public I2CBuf {
   std::atomic_bool bufferOccupied;
 };
 
+constexpr static const uint8_t kI2CQueueSize = 10;
+
 using I2CQueueType = freertossupport::OsQueue<hal::I2CBuf>;
+using QueueType = AtomicRingBuffer::ObjectRingBuffer<I2CMessage_t, kI2CQueueSize>;
 
-constexpr static const uint8_t i2cqueuesize = 10;
-
-static freertossupport::StaticOsQueue<hal::I2CQueueType::QueueElement, i2cqueuesize> i2crxqBuffer;
-static freertossupport::StaticOsQueue<hal::I2CQueueType::QueueElement, i2cqueuesize> i2ctxqBuffer;
+static freertossupport::StaticOsQueue<hal::I2CQueueType::QueueElement, kI2CQueueSize> i2ctxqBuffer;
 
 static uint8_t slaveAddress;
 
 I2CTxBuf i2cRxBuf;
 I2CTxBuf i2cTxBuf;
 
-I2CQueueType i2cRxQueue = i2crxqBuffer;
+QueueType i2cRxQueue;
 I2CQueueType i2cTxQueue = i2ctxqBuffer;
 
 freertossupport::OsTask taskToNotify;
@@ -144,14 +145,11 @@ void beginI2C(uint8_t newSlaveAddress, freertossupport::OsTask routingTask) {
 }
 
 OptionalI2CMessage getI2CMessage() {
-  const auto receiveResult = hal::i2cRxQueue.Receive(0);
+  const auto receiveResult = i2cRxQueue.peek();
   OptionalI2CMessage result;
-  result.messageValid = receiveResult.errorCode == pdTRUE;
-  if (result.messageValid) {
-    result.msg.destination_ = DataModel::kMyAddr;
-    result.msg.source_ = receiveResult.element.msgBytes[0];
-    result.msg.data_ = receiveResult.element.msgBytes[1];
-  }
+  result.messageValid = receiveResult.ptr != nullptr;
+  result.msg = *receiveResult.ptr;
+  i2cRxQueue.consume(receiveResult);
   return result;
 }
 
@@ -215,18 +213,24 @@ void forwardRx(bool fromISR) {
 
   // If there is a complete message in the buffer, consider it received.
   if (messageValid(i2cRxBuf)) {
-    I2CQueueType::SendResultISR sendResult = i2cRxQueue.SendFromISR(i2cRxBuf);
-    releaseBuffer(i2cRxBuf);
-    if (sendResult.errorCode != pdTRUE) {
+    auto memory = i2cRxQueue.allocate();
+    if (memory.ptr != nullptr) {
+      memory.ptr->destination_ = DataModel::kMyAddr;
+      memory.ptr->source_ = i2cRxBuf.msgBytes[0];
+      memory.ptr->data_ = i2cRxBuf.msgBytes[1];
+      i2cRxQueue.publish(memory);
+    } else {
       // TODO: Queue full. Handle somehow.
       __asm("bkpt 4");
     }
+
+    releaseBuffer(i2cRxBuf);
 
     if (fromISR) {
       BaseType_t notifyWokeThread;
       taskToNotify.notifyFromISR(notifyWokeThread);
 
-      if (sendResult.higherPriorityTaskWoken == pdTRUE || notifyWokeThread == pdTRUE) {
+      if (notifyWokeThread == pdTRUE) {
         taskYIELD();
       }
     } else {
