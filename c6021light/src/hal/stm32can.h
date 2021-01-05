@@ -9,13 +9,8 @@
 namespace hal {
 
 void beginCan(freertossupport::OsTask taskToNotify);
-
-typedef struct {
-  bool messageValid = false;
-  RR32Can::CanFrame msg;
-} OptionalCanMsg;
-
-OptionalCanMsg getCanMessage();
+RR32Can::CanFrame* getCanMessage();
+std::size_t freeCanMessage(RR32Can::CanFrame*);
 
 class CanTxCbk : public RR32Can::callback::TxCbk {
   /// Transmit Packet on CAN

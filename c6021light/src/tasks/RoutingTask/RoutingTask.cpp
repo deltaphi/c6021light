@@ -14,12 +14,14 @@ namespace tasks {
 namespace RoutingTask {
 
 void RoutingTask::processCAN() {
-  for (auto receiveResult = hal::getCanMessage(); receiveResult.messageValid;
-       receiveResult = hal::getCanMessage()) {
-    i2cForwarder_.forward(receiveResult.msg);
-    lnForwarder_.forward(receiveResult.msg);
+  for (auto framePtr = hal::getCanMessage(); framePtr != nullptr; framePtr = hal::getCanMessage()) {
+    i2cForwarder_.forward(*framePtr);
+    lnForwarder_.forward(*framePtr);
     // Forward to self
-    RR32Can::RR32Can.HandlePacket(receiveResult.msg);
+    RR32Can::RR32Can.HandlePacket(*framePtr);
+
+    hal::freeCanMessage(framePtr);
+    framePtr = nullptr;
 
     // Attempt to forward all updates in the CAN DB
     if (!slotServer_.isDisabled()) {

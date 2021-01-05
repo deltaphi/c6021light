@@ -6,7 +6,8 @@
 #include <libopencm3/stm32/can.h>
 #include <libopencm3/stm32/gpio.h>
 
-#include "OsQueue.h"
+#include "AtomicRingBuffer/ObjectRingBuffer.h"
+
 #include "OsTask.h"
 
 #include "RR32Can/RR32Can.h"
@@ -15,16 +16,13 @@
 namespace hal {
 constexpr static const uint8_t canqueuesize = 10;
 
-freertossupport::OsQueue<RR32Can::CanFrame> canrxq;
+using CanQueueType = AtomicRingBuffer::ObjectRingBuffer<RR32Can::CanFrame, canqueuesize>;
+static CanQueueType canRxQueue;
+
 static freertossupport::OsTask taskToNotify;
-
-using CanQueueType = freertossupport::OsQueue<RR32Can::CanFrame>;
-
-static freertossupport::StaticOsQueue<hal::CanQueueType::QueueElement, canqueuesize> canrxqbuffer;
 
 void beginCan(freertossupport::OsTask task) {
   taskToNotify = task;
-  hal::canrxq = canrxqbuffer;
   AFIO_MAPR |= AFIO_MAPR_CAN1_REMAP_PORTB;
 
   /* Configure CAN pin: RX (input pull-up) */
@@ -58,49 +56,35 @@ void beginCan(freertossupport::OsTask task) {
                                 true); /* Enable the filter. */
 }
 
-OptionalCanMsg getCanMessage() {
-  OptionalCanMsg optionalMsg;
-  constexpr const TickType_t ticksToWait = 0;
+RR32Can::CanFrame* getCanMessage() { return canRxQueue.peek().ptr; }
 
-  auto queueResult = canrxq.Receive(ticksToWait);
-  optionalMsg.messageValid = queueResult.errorCode == pdTRUE;
-
-  if (optionalMsg.messageValid) {
-    optionalMsg.msg = queueResult.element;
-  }
-
-  return optionalMsg;
+std::size_t freeCanMessage(RR32Can::CanFrame* ptr) {
+  return canRxQueue.consume(CanQueueType::MemoryRange{ptr, 1});
 }
 
 extern "C" {
-
 void usb_lp_can_rx0_isr(void) {
-  BaseType_t anyTaskWoken = pdFALSE;
   for (uint32_t messageCount = CAN_RF0R(CAN1) & 3; messageCount > 0; --messageCount) {
-    RR32Can::CanFrame canMsg;
+    auto canMsg = canRxQueue.allocate();
 
-    bool ext;
-    bool rtr;
-    uint8_t fmi;
-    uint16_t timestamp;
+    if (canMsg.ptr != nullptr) {
+      bool ext;
+      bool rtr;
+      uint8_t fmi;
+      uint16_t timestamp;
 
-    can_receive(CAN1, 0, true, &(canMsg.id.rawValue()), &ext, &rtr, &fmi, &canMsg.data.dlc,
-                canMsg.data.data, &timestamp);
-    CanQueueType::SendResultISR sendResult = canrxq.SendFromISR(canMsg);
-    if (sendResult.errorCode != pdTRUE) {
+      can_receive(CAN1, 0, true, &(canMsg.ptr->id.rawValue()), &ext, &rtr, &fmi,
+                  &canMsg.ptr->data.dlc, canMsg.ptr->data.data, &timestamp);
+      canRxQueue.publish(canMsg);
+    } else {
       // TODO: Handle Queue full by notifying the user.
       __asm("bkpt 4");
-    } else {
-      if (sendResult.higherPriorityTaskWoken == pdTRUE) {
-        anyTaskWoken = pdTRUE;
-      }
-      break;
     }
   }
   BaseType_t taskWoken;
   taskToNotify.notifyFromISR(taskWoken);
 
-  if (anyTaskWoken == pdTRUE || taskWoken == pdTRUE) {
+  if (taskWoken == pdTRUE) {
     taskYIELD();
   }
 }
