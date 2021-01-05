@@ -28,7 +28,7 @@ OptionalCanMsg getCanMessage();
 
 class CanTxCbk : public RR32Can::callback::TxCbk {
   /// Transmit Packet on CAN
-  void SendPacket(const RR32Can::Identifier& id, const RR32Can::Data& data);
+  void SendPacket(const RR32Can::Identifier& id, const RR32Can::Data& data) override;
 };
 
 }  // namespace hal
