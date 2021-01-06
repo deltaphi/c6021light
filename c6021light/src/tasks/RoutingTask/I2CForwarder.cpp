@@ -8,7 +8,6 @@
 
 #include "hal/stm32I2C.h"
 
-
 namespace tasks {
 namespace RoutingTask {
 

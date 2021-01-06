@@ -12,7 +12,6 @@ namespace hal {
 using I2CMessage_t = MarklinI2C::Messages::AccessoryMsg;
 using I2CMessagePtr_t = I2CMessage_t*;
 
-
 struct OptionalI2CMessage {
   bool messageValid;
   MarklinI2C::Messages::AccessoryMsg msg;
