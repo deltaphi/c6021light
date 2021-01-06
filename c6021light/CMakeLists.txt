@@ -72,16 +72,16 @@ add_executable(c6021lightTest
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     
-    "src/tasks/RoutingTask/CanForwarder.cpp"
+    "src/tasks/RoutingTask/CANForwarder.cpp"
     "src/tasks/RoutingTask/I2CForwarder.cpp"
     "src/tasks/RoutingTask/LocoNetForwarder.cpp"
     "src/tasks/RoutingTask/LocoNetHelpers.cpp"
     "src/tasks/RoutingTask/LocoNetPrinter.cpp"
     "src/tasks/RoutingTask/LocoNetSlotServer.cpp"
-    "src/tasks/RoutingTask/CanEngineDb.cpp"
+    "src/tasks/RoutingTask/CanEngineDB.cpp"
     "src/tasks/RoutingTask/RoutingTask.cpp"
 
-    "src/MarklinI2C/messages/AccessoryMsg.cpp"
+    "src/MarklinI2C/Messages/AccessoryMsg.cpp"
 
     "${RR32CAN_LIB_SRCS}"
     "${RR32CANENGINEDB_LIB_SRCS}"
