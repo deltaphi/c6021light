@@ -35,16 +35,18 @@ void RoutingTask::processCAN() {
 }
 
 void RoutingTask::processI2C() {
-  for (auto receiveResult = hal::getI2CMessage(); receiveResult.messageValid;
-       receiveResult = hal::getI2CMessage()) {
-    MarklinI2C::Messages::AccessoryMsg& request = receiveResult.msg;
+  for (auto messagePtr = hal::getI2CMessage(); messagePtr != nullptr;
+       messagePtr = hal::getI2CMessage()) {
     printf("I2C RX: ");
-    request.print();
+    messagePtr->print();
 
     RR32Can::CanFrame frame;
 
     // Convert to generic CAN representation
-    if (i2cForwarder_.MakeRR32CanMsg(request, frame)) {
+    if (i2cForwarder_.MakeRR32CanMsg(*messagePtr, frame)) {
+      hal::freeI2CMessage(messagePtr);
+      messagePtr = nullptr;
+
       RR32Can::RR32Can.SendPacket(frame);
       lnForwarder_.forward(frame);
       // Forward to self

@@ -159,13 +159,10 @@ void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask) {
   i2c_enable_ack(I2C1);
 }
 
-OptionalI2CMessage getI2CMessage() {
-  const auto receiveResult = i2cRxQueue.peek();
-  OptionalI2CMessage result;
-  result.messageValid = receiveResult.ptr != nullptr;
-  result.msg = *receiveResult.ptr;
-  i2cRxQueue.consume(receiveResult);
-  return result;
+I2CMessagePtr_t getI2CMessage() { return i2cRxQueue.peek().ptr; }
+
+void freeI2CMessage(I2CMessagePtr_t msgPtr) {
+  i2cRxQueue.consume(QueueType::MemoryRange{msgPtr, 1});
 }
 
 void sendI2CMessage(const I2CMessage_t& msg) {

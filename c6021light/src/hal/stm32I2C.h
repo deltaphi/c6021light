@@ -25,7 +25,8 @@ void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask);
  * Function from Task
  */
 void sendI2CMessage(const I2CMessage_t& msg);
-OptionalI2CMessage getI2CMessage();
+I2CMessagePtr_t getI2CMessage();
+void freeI2CMessage(I2CMessagePtr_t msgPtr);
 
 }  // namespace hal
 
