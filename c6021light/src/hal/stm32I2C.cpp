@@ -99,7 +99,7 @@ void finishTx();
 /**
  * Send the message from the RX buffer for forwarding.
  */
-void forwardRx(bool fromISR);
+void forwardRx();
 
 }  // namespace
 
@@ -205,7 +205,7 @@ void resumeTxForce() {
   }
 }
 
-void forwardRx(bool fromISR) {
+void forwardRx() {
   // Forecefully abort the current transaction
   i2c_peripheral_enable(I2C1);
 
@@ -221,18 +221,16 @@ void forwardRx(bool fromISR) {
 
     releaseBuffer(rxControl);
 
-    if (fromISR) {
-      BaseType_t notifyWokeThread;
-      taskToNotify.notifyFromISR(notifyWokeThread);
-
-      if (notifyWokeThread == pdTRUE) {
-        taskYIELD();
-      }
-    } else {
-      taskToNotify.notify();
-    }
     // See if there is something to be sent.
     startTxFromISR();
+
+    // Notify processing thread
+    BaseType_t notifyWokeATask;
+    taskToNotify.notifyFromISR(notifyWokeATask);
+
+    if (notifyWokeATask == pdTRUE) {
+      taskYIELD();
+    }
   }
 }
 
@@ -320,7 +318,7 @@ extern "C" void i2c1_ev_isr(void) {
   // this event happens when slave is in Recv mode at the end of communication
   else if (sr1 & I2C_SR1_STOPF) {
     // Reference Manual: EV3
-    forwardRx(true);
+    forwardRx();
   }
   // this event happens when slave is in transmit mode at the end of communication
   else if (sr1 & I2C_SR1_AF) {
@@ -363,7 +361,7 @@ extern "C" void i2c1_er_isr(void) {
       // In Slave mode: auto-release
       //__asm("bkpt 6");
       // If a valid message was received, this is caused by a misbehaving Memory devide.
-      forwardRx(true);
+      forwardRx();
     }
 
     // Reset the error flag as the error was handled.
