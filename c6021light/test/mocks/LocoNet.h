@@ -18,8 +18,7 @@ class LocoNetClass {
   MOCK_METHOD(void, reportPower, (uint8_t state), ());
   MOCK_METHOD(void, reportSensor, (uint16_t address, uint8_t state), ());
   MOCK_METHOD(void, sendLongAck, (uint8_t ucCode), ());
-
- private:
+  MOCK_METHOD(lnMsg*, receive, (), ());
 };
 
 }  // namespace mocks

@@ -19,9 +19,21 @@ class CanTxMock : public RR32Can::callback::TxCbk {
 class I2CHalMock {
  public:
   MOCK_METHOD(void, sendI2CMessage, (const hal::I2CMessage_t& msg), ());
+  MOCK_METHOD(hal::I2CRxMessagePtr_t, getI2CMessage, (), ());
 };
 
-class CANHalMock {};
+class CANHalMock {
+ public:
+  MOCK_METHOD(hal::CanRxMessagePtr_t, getCanMessage, (), ());
+};
+
+inline void canRxDeleter(RR32Can::CanFrame*) {
+  // Empty deleter
+}
+
+inline void i2cRxDeleter(I2CMessage_t*) {
+  // Empty deleter
+}
 
 extern I2CHalMock* i2cMock;
 extern CANHalMock* canMock;

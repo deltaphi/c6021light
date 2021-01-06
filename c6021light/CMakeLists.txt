@@ -79,6 +79,7 @@ add_executable(c6021lightTest
     "src/tasks/RoutingTask/LocoNetPrinter.cpp"
     "src/tasks/RoutingTask/LocoNetSlotServer.cpp"
     "src/tasks/RoutingTask/CanEngineDb.cpp"
+    "src/tasks/RoutingTask/RoutingTask.cpp"
 
     "src/MarklinI2C/messages/AccessoryMsg.cpp"
 
