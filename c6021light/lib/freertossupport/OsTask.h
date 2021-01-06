@@ -18,13 +18,16 @@ class OsTask {
   void waitForNotify() { ulTaskNotifyTake(pdTRUE, portMAX_DELAY); }
 
   void notify() { xTaskNotify(handle_, 1, eSetValueWithoutOverwrite); }
-  void notifyFromISR(BaseType_t& HigherPriorityTaskWoken) {
-    xTaskNotifyFromISR(handle_, 1, eSetValueWithoutOverwrite, &HigherPriorityTaskWoken);
-  }
-  void notifyFromISRWithWake() {
+
+  BaseType_t notifyFromISR() {
     BaseType_t HigherPriorityTaskWoken;
-    notifyFromISR(HigherPriorityTaskWoken);
-    if (HigherPriorityTaskWoken == pdTRUE) {
+    xTaskNotifyFromISR(handle_, 1, eSetValueWithoutOverwrite, &HigherPriorityTaskWoken);
+    return HigherPriorityTaskWoken;
+  }
+
+  void notifyFromISRWithWake() {
+    bool higherPriorityTaskWoken = notifyFromISR() == pdTRUE;
+    if (higherPriorityTaskWoken) {
       taskYIELD();
     }
   }
