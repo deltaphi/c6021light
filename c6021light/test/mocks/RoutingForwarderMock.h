@@ -5,27 +5,27 @@
 #include "gtest/gtest.h"
 
 #include "RR32Can/callback/TxCbk.h"
-#include "tasks/RoutingTask/RoutingForwarder.h"
 
-namespace tasks {
-namespace RoutingTask {
+#include "hal/stm32can.h"
+#include "hal/stm32i2c.h"
 
-/*
- * \brief Class RoutingForwarderMock
- */
-class RoutingForwarderMock : public tasks::RoutingTask::RoutingForwarder {
- public:
-  MOCK_METHOD(void, forwardLocoChange, (const RR32Can::LocomotiveData& loco, LocoDiff_t& diff),
-              (override));
-  MOCK_METHOD(void, forward, (const RR32Can::CanFrame& frame), (override));
-};
+namespace hal {
 
 class CanTxMock : public RR32Can::callback::TxCbk {
  public:
   MOCK_METHOD(void, SendPacket, (const RR32Can::CanFrame& canFrame), (override));
 };
 
-}  // namespace RoutingTask
-}  // namespace tasks
+class I2CHalMock {
+ public:
+  MOCK_METHOD(void, sendI2CMessage, (const hal::I2CMessage_t& msg), ());
+};
+
+class CANHalMock {};
+
+extern I2CHalMock* i2cMock;
+extern CANHalMock* canMock;
+
+}  // namespace hal
 
 #endif  // __MOCKS__ROUTINGFORWARDERMOCK_H__

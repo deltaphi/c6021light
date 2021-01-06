@@ -62,15 +62,29 @@ include_directories("test")
 include_directories("test/mocks")
 include_directories(".pio/libdeps/bluepill/LocoNet/utility")
 include_directories("${RR32CAN_INCLUDE_DIR}")
+include_directories("lib/microrl/src")
 
 include_directories("src")
 
 add_executable(c6021lightTest
     "test/unit/EmptyTest.cpp"
     "test/integration/StatelessRouting.cpp"
+ 
+    "test/mocks/RoutingForwarderMock.cpp"
     
+    "src/tasks/RoutingTask/CanForwarder.cpp"
+    "src/tasks/RoutingTask/I2CForwarder.cpp"
+    "src/tasks/RoutingTask/LocoNetForwarder.cpp"
+    "src/tasks/RoutingTask/LocoNetHelpers.cpp"
+    "src/tasks/RoutingTask/LocoNetPrinter.cpp"
+    "src/tasks/RoutingTask/LocoNetSlotServer.cpp"
+    "src/tasks/RoutingTask/CanEngineDb.cpp"
+
+    "src/MarklinI2C/messages/AccessoryMsg.cpp"
+
     "${RR32CAN_LIB_SRCS}"
-)
+    "${RR32CANENGINEDB_LIB_SRCS}"
+ )
 target_link_libraries(c6021lightTest gtest_main gmock)
 add_test(NAME gtest_c6021lightTest_test COMMAND c6021lightTest)
 target_compile_features(c6021lightTest PRIVATE cxx_std_14)
