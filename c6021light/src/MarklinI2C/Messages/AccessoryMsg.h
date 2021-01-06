@@ -31,6 +31,11 @@ class AccessoryMsg {
   AccessoryMsg(uint8_t destination, uint8_t source, uint8_t data)
       : destination_(destination), source_(source), data_(data){};
 
+  bool operator==(const AccessoryMsg& other) const {
+    return this->destination_ == other.destination_ && this->source_ == other.source_ &&
+           this->data_ == other.data_;
+  }
+
   uint8_t getSender() const { return (source_ & 0b00011110) >> 1; }
 
   /// Obtian the de-masked decoder output address.

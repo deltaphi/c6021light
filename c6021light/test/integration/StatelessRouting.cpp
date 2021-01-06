@@ -49,16 +49,33 @@ class TurnoutRoutingFixture : public StatelessRoutingFixture,
  public:
   void SetUp() {
     StatelessRoutingFixture::SetUp();
-    { turnout.setProtocol(RR32Can::RailProtocol::MM2); }
+    turnout.setProtocol(RR32Can::RailProtocol::MM2);
+
+    canFrame.id.setCommand(RR32Can::Command::ACCESSORY_SWITCH);
     {
-      canFrame.id.setCommand(RR32Can::Command::ACCESSORY_SWITCH);
       RR32Can::TurnoutPacket pkt(canFrame.data);
       pkt.initData();
       pkt.setDirection(direction);
       pkt.setPower(power);
       pkt.setLocid(turnout);
     }
-    { i2cMessage = mocks::makeReceivedAccessoryMsg(turnout, direction, power); }
+
+    i2cMessage = mocks::makeReceivedAccessoryMsg(turnout, direction, power);
+
+    {
+      RR32Can::MachineTurnoutAddress addr = turnout.getNumericAddress();
+      LnPacket.srq.command = OPC_SW_REQ;
+
+      LnPacket.srq.sw1 = addr.value() & 0x7F;
+      LnPacket.srq.sw2 = (addr.value() >> 7) & 0x0F;
+
+      if (power) {
+        LnPacket.srq.sw2 |= 0x10;
+      }
+      if (direction == RR32Can::TurnoutDirection::GREEN) {
+        LnPacket.srq.sw2 |= 0x20;
+      }
+    }
   }
 
   constexpr static const RR32Can::TurnoutDirection direction = RR32Can::TurnoutDirection::GREEN;
@@ -67,9 +84,10 @@ class TurnoutRoutingFixture : public StatelessRoutingFixture,
   RR32Can::MachineTurnoutAddress turnout{GetParam()};
   RR32Can::CanFrame canFrame;
   hal::I2CMessage_t i2cMessage;
+  lnMsg LnPacket;
 };
 
-TEST_P(TurnoutRoutingFixture, Turnout_I2CtoCANandLocoNet) {
+TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(canFrame));
   EXPECT_CALL(
@@ -89,9 +107,41 @@ TEST_P(TurnoutRoutingFixture, Turnout_I2CtoCANandLocoNet) {
   routingTask.loop();
 }
 
-TEST_P(TurnoutRoutingFixture, Turnout_CANtoI2CandLocoNet) {}
+TEST_P(TurnoutRoutingFixture, TurnoutRequest_CANtoLocoNet) {
+  // Setup expectations
+  EXPECT_CALL(
+      lnHal, requestSwitch(RR32Can::HumanTurnoutAddress(turnout.getNumericAddress()).value(), power,
+                           RR32Can::TurnoutDirectionToIntegral(direction)));
 
-TEST_P(TurnoutRoutingFixture, Turnout_LocoNetToI2CandCAN) {}
+  EXPECT_CALL(i2cHal, getI2CMessage())
+      .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})));
+
+  EXPECT_CALL(lnHal, receive).WillOnce(Return(nullptr));
+
+  // Inject CAN message
+  EXPECT_CALL(canHal, getCanMessage())
+      .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{&canFrame, hal::canRxDeleter})))
+      .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
+
+  // Run!
+  routingTask.loop();
+}
+
+TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCAN) {
+  // Setup expectations
+  EXPECT_CALL(canTx, SendPacket(canFrame));
+
+  EXPECT_CALL(i2cHal, getI2CMessage())
+      .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})));
+  EXPECT_CALL(canHal, getCanMessage())
+      .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
+
+  // Inject LocoNet message
+  EXPECT_CALL(lnHal, receive).WillOnce(Return(&LnPacket)).WillOnce(Return(nullptr));
+
+  // Run!
+  routingTask.loop();
+}
 
 INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture, Values(0, 1, 5, 10, 42, 100, 255));
 
