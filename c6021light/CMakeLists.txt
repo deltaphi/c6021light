@@ -69,7 +69,7 @@ include_directories("src")
 add_executable(c6021lightTest
     "test/unit/EmptyTest.cpp"
     "test/integration/StatelessRouting.cpp"
- 
+    "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     
     "src/tasks/RoutingTask/CanForwarder.cpp"

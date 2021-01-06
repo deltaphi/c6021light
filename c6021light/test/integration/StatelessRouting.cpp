@@ -10,14 +10,13 @@
 
 using namespace ::testing;
 
-mocks::LocoNetClass LocoNet;
-
 namespace tasks {
 namespace RoutingTask {
 
 class StatelessRoutingFixture : public Test {
  public:
   void SetUp() {
+    mocks::LocoNetInstance = &lnHal;
     hal::canMock = &canHal;
     hal::i2cMock = &i2cHal;
 
@@ -31,12 +30,14 @@ class StatelessRoutingFixture : public Test {
   void TearDown() {
     hal::canMock = nullptr;
     hal::i2cMock = nullptr;
+    mocks::LocoNetInstance = nullptr;
   }
 
   DataModel dataModel;
   StrictMock<hal::I2CHalMock> i2cHal;
   StrictMock<hal::CANHalMock> canHal;
   StrictMock<hal::CanTxMock> canTx;
+  mocks::LocoNetClass lnHal;
   RoutingTask routingTask;
 };
 
@@ -73,13 +74,13 @@ class TurnoutRoutingFixture : public StatelessRoutingFixture {
 TEST_F(TurnoutRoutingFixture, Turnout_I2CtoCANandLocoNet) {
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(canFrame));
-  EXPECT_CALL(LocoNet,
-              requestSwitch(RR32Can::HumanTurnoutAddress(turnout.getNumericAddress()).value(),
-                            power, RR32Can::TurnoutDirectionToIntegral(direction)));
+  EXPECT_CALL(
+      lnHal, requestSwitch(RR32Can::HumanTurnoutAddress(turnout.getNumericAddress()).value(), power,
+                           RR32Can::TurnoutDirectionToIntegral(direction)));
 
   EXPECT_CALL(canHal, getCanMessage())
       .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
-  EXPECT_CALL(LocoNet, receive).WillOnce(Return(nullptr));
+  EXPECT_CALL(lnHal, receive).WillOnce(Return(nullptr));
 
   // Inject I2C message
   EXPECT_CALL(i2cHal, getI2CMessage())

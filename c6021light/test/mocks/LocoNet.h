@@ -1,10 +1,14 @@
 #ifndef __MOCKS__LOCONET_H__
 #define __MOCKS__LOCONET_H__
 
+#include <functional>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "ln_opc.h"
+
+#define LocoNet (*mocks::LocoNetInstance)
 
 namespace mocks {
 
@@ -21,15 +25,10 @@ class LocoNetClass {
   MOCK_METHOD(lnMsg*, receive, (), ());
 };
 
+extern LocoNetClass* LocoNetInstance;
+
 }  // namespace mocks
 
-// Copies from LocoNet library for the purpose of stubbing
-inline uint8_t getLnMsgSize(volatile lnMsg* Msg) {
-  return ((Msg->sz.command & (uint8_t)0x60) == (uint8_t)0x60)
-             ? Msg->sz.mesg_size
-             : ((Msg->sz.command & (uint8_t)0x60) >> (uint8_t)4) + 2;
-}
-
-extern mocks::LocoNetClass LocoNet;
+uint8_t getLnMsgSize(volatile lnMsg* Msg);
 
 #endif  // __MOCKS__LOCONET_H__
