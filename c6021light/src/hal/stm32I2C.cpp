@@ -45,13 +45,25 @@ class TransmissionControlBlock {
    * * About to be done.
    */
   bool isOccupied() const { return bufferOccupied.load(std::memory_order_acquire); }
+
   /// A buffer is free if it is not occupied.
   bool isFree() const { return !isOccupied(); }
 
-  void claim() {
-    bytesProcessed = 0;
-    msgMemory = QueueType::MemoryRange{};
-    bufferOccupied.store(true, std::memory_order_release);
+  /**
+   * \brief Try to allocate the buffer for active message operation.
+   *
+   * \return TRUE if the buffer could be claimed, FALSE otherwise.
+   */
+  bool tryClaim() {
+    bool bufferOccupationExpected = false;
+    const bool newBufferOccupation = true;
+    bool claimed = bufferOccupied.compare_exchange_strong(
+        bufferOccupationExpected, newBufferOccupation, std::memory_order_acquire);
+    if (claimed) {
+      bytesProcessed = 0;
+      msgMemory = QueueType::MemoryRange{};
+    }
+    return claimed;
   }
 
   void release() {
@@ -167,27 +179,22 @@ void sendI2CMessage(const I2CMessage_t& msg) {
 
 namespace {
 
-void doTriggerTx(QueueType::MemoryRange memory) {
-  if (memory.ptr != nullptr) {
-    txControl.claim();
-    txControl.msgMemory = memory;
-
-    resumeTx();
-  }
-}
-
 void startTx() {
-  if (txControl.isFree()) {
-    // Non-Blocking receive
-    auto memory = i2cTxQueue.peek();
-    doTriggerTx(memory);
+  const bool txControlClaimed = txControl.tryClaim();
+  if (txControlClaimed) {
+    txControl.msgMemory = i2cTxQueue.peek();
+    const auto messageAvailable = txControl.msgMemory.ptr != nullptr;
+    if (messageAvailable) {
+      resumeTx();
+    } else {
+      txControl.release();
+    }
   }
 }
 
 void startTxFromISR() {
   if (txControl.isFree()) {
-    auto memory = i2cTxQueue.peek();
-    doTriggerTx(memory);
+    startTx();
   } else {
     resumeTx();
   }
@@ -242,7 +249,7 @@ void finishTx() {
   i2c_send_stop(I2C1);
 
   // See if there is something to be sent.
-  startTxFromISR();
+  startTx();
 }
 
 }  // namespace
@@ -270,8 +277,9 @@ extern "C" void i2c1_ev_isr(void) {
 
     if (!(sr2 & I2C_SR2_MSL)) {
       // Reference Manual: EV1
-      rxControl.claim();
-      rxControl.msgMemory = i2cRxQueue.allocate();
+      if (rxControl.tryClaim()) {
+        rxControl.msgMemory = i2cRxQueue.allocate();
+      }
       if (rxControl.msgMemory.ptr != nullptr) {
         rxControl.msgMemory.ptr->destination_ = DataModel::kMyAddr;
       } else {
