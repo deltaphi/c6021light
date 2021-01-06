@@ -14,19 +14,20 @@
 namespace hal {
 
 namespace {
+
+constexpr static const uint8_t kI2CQueueSize = 10;
+
+using QueueType = AtomicRingBuffer::ObjectRingBuffer<I2CMessage_t, kI2CQueueSize>;
+
 struct I2CBuf {
   constexpr const static uint8_t kMsgBytesLength = 3;
-  uint8_t msgBytes[MarklinI2C::kMessageMaxBytes];
+  QueueType::MemoryRange msgMemory;
 };
 
 struct I2CTxBuf : public I2CBuf {
   uint_fast8_t bytesProcessed;
   std::atomic_bool bufferOccupied;
 };
-
-constexpr static const uint8_t kI2CQueueSize = 10;
-
-using QueueType = AtomicRingBuffer::ObjectRingBuffer<I2CMessage_t, kI2CQueueSize>;
 
 static uint8_t slaveAddress;
 
@@ -173,11 +174,7 @@ bool messageValid(const I2CTxBuf& buffer) {
 void doTriggerTx(QueueType::MemoryRange memory) {
   if (memory.ptr != nullptr) {
     claimBuffer(i2cTxBuf);
-
-    i2cTxBuf.msgBytes[0] = memory.ptr->destination_ >> 1;
-    i2cTxBuf.msgBytes[1] = memory.ptr->data_;
-
-    i2cTxQueue.consume(memory);
+    i2cTxBuf.msgMemory = memory;
 
     resumeTx();
   }
@@ -220,15 +217,12 @@ void forwardRx(bool fromISR) {
 
   // If there is a complete message in the buffer, consider it received.
   if (messageValid(i2cRxBuf)) {
-    auto memory = i2cRxQueue.allocate();
-    if (memory.ptr != nullptr) {
-      memory.ptr->destination_ = DataModel::kMyAddr;
-      memory.ptr->source_ = i2cRxBuf.msgBytes[0];
-      memory.ptr->data_ = i2cRxBuf.msgBytes[1];
-      i2cRxQueue.publish(memory);
+    if (i2cRxBuf.msgMemory.ptr != nullptr) {
+      i2cRxQueue.publish(i2cRxBuf.msgMemory);
+      i2cRxBuf.msgMemory = QueueType::MemoryRange{};
     } else {
-      // TODO: Queue full. Handle somehow.
-      __asm("bkpt 4");
+      // Received a message that could not be stored during reception
+      asm("bkpt");
     }
 
     releaseBuffer(i2cRxBuf);
@@ -249,6 +243,7 @@ void forwardRx(bool fromISR) {
 }
 
 void finishTx() {
+  i2cTxQueue.consume(i2cTxBuf.msgMemory);
   releaseBuffer(i2cTxBuf);
   i2c_send_stop(I2C1);
 
@@ -271,7 +266,7 @@ extern "C" void i2c1_ev_isr(void) {
   if (sr1 & I2C_SR1_SB) {
     // Refrence Manual: EV5 (Master)
     i2cTxBuf.bytesProcessed = 1;
-    i2c_send_7bit_address(I2C1, i2cTxBuf.msgBytes[0], I2C_WRITE);
+    i2c_send_7bit_address(I2C1, i2cTxBuf.msgMemory.ptr->destination_ >> 1, I2C_WRITE);
   } else if (sr1 & I2C_SR1_ADDR) {
     // Address matched (Slave)
     // Refrence Manual: EV6 (Master)/EV1 (Slave)
@@ -282,15 +277,29 @@ extern "C" void i2c1_ev_isr(void) {
     if (!(sr2 & I2C_SR2_MSL)) {
       // Reference Manual: EV1
       claimBuffer(i2cRxBuf);
+      i2cRxBuf.msgMemory = i2cRxQueue.allocate();
+      if (i2cRxBuf.msgMemory.ptr != nullptr) {
+        i2cRxBuf.msgMemory.ptr->destination_ = DataModel::kMyAddr;
+      } else {
+        // TODO: Queue full. Handle somehow.
+        __asm("bkpt 4");
+      }
       i2cRxBuf.bytesProcessed = 1;
     }
   }
   // Receive buffer not empty
   else if (sr1 & I2C_SR1_RxNE) {
     // Reference Manual: EV2
-    if (bufferOccupied(i2cRxBuf)) {
+    if (bufferOccupied(i2cRxBuf) && i2cRxBuf.msgMemory.ptr != nullptr) {
       if (i2cRxBuf.bytesProcessed < 3) {
-        i2cRxBuf.msgBytes[i2cRxBuf.bytesProcessed - 1] = i2c_get_data(I2C1);
+        switch (i2cRxBuf.bytesProcessed) {
+          case 1:
+            i2cRxBuf.msgMemory.ptr->destination_ = i2c_get_data(I2C1);
+            break;
+          case 2:
+            i2cRxBuf.msgMemory.ptr->data_ = i2c_get_data(I2C1);
+            break;
+        }
         ++i2cRxBuf.bytesProcessed;
       }
     }
@@ -300,11 +309,11 @@ extern "C" void i2c1_ev_isr(void) {
     // EV8, 8_1
     switch (i2cTxBuf.bytesProcessed) {
       case 1:
-        i2c_send_data(I2C1, slaveAddress << 1);
+        i2c_send_data(I2C1, slaveAddress << 1);  // TODO: Replace by i2cTxBuf.msgMemory.ptr->source_
         ++i2cTxBuf.bytesProcessed;
         break;
       case 2:
-        i2c_send_data(I2C1, i2cTxBuf.msgBytes[1]);
+        i2c_send_data(I2C1, i2cTxBuf.msgMemory.ptr->data_);
         ++i2cTxBuf.bytesProcessed;
         break;
       default:
