@@ -1,6 +1,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+#include "mocks/KeyboardMock.h"
 #include "mocks/LocoNet.h"
 #include "mocks/RoutingForwarderMock.h"
 
@@ -41,7 +42,10 @@ class StatelessRoutingFixture : public Test {
   RoutingTask routingTask;
 };
 
-class TurnoutRoutingFixture : public StatelessRoutingFixture {
+using TurnoutTestParam_t = uint32_t;
+
+class TurnoutRoutingFixture : public StatelessRoutingFixture,
+                              public WithParamInterface<TurnoutTestParam_t> {
  public:
   void SetUp() {
     StatelessRoutingFixture::SetUp();
@@ -54,24 +58,18 @@ class TurnoutRoutingFixture : public StatelessRoutingFixture {
       pkt.setPower(power);
       pkt.setLocid(turnout);
     }
-    {
-      i2cMessage.destination_ = MarklinI2C::kCentralAddr;
-      i2cMessage.setTurnoutAddr(turnout.getNumericAddress());
-      i2cMessage.setDirection(direction);
-      i2cMessage.setPower(power);
-      i2cMessage.makePowerConsistent();
-    }
+    { i2cMessage = mocks::makeReceivedAccessoryMsg(turnout, direction, power); }
   }
 
   constexpr static const RR32Can::TurnoutDirection direction = RR32Can::TurnoutDirection::GREEN;
   constexpr static const bool power = true;
 
-  RR32Can::MachineTurnoutAddress turnout{0x02};
+  RR32Can::MachineTurnoutAddress turnout{GetParam()};
   RR32Can::CanFrame canFrame;
   hal::I2CMessage_t i2cMessage;
 };
 
-TEST_F(TurnoutRoutingFixture, Turnout_I2CtoCANandLocoNet) {
+TEST_P(TurnoutRoutingFixture, Turnout_I2CtoCANandLocoNet) {
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(canFrame));
   EXPECT_CALL(
@@ -91,9 +89,11 @@ TEST_F(TurnoutRoutingFixture, Turnout_I2CtoCANandLocoNet) {
   routingTask.loop();
 }
 
-TEST_F(TurnoutRoutingFixture, Turnout_CANtoI2CandLocoNet) {}
+TEST_P(TurnoutRoutingFixture, Turnout_CANtoI2CandLocoNet) {}
 
-TEST_F(TurnoutRoutingFixture, Turnout_LocoNetToI2CandCAN) {}
+TEST_P(TurnoutRoutingFixture, Turnout_LocoNetToI2CandCAN) {}
+
+INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture, Values(0, 1, 5, 10, 42, 100, 255));
 
 }  // namespace RoutingTask
 }  // namespace tasks
