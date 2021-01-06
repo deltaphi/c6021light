@@ -19,10 +19,48 @@ constexpr static const uint8_t kI2CQueueSize = 10;
 
 using QueueType = AtomicRingBuffer::ObjectRingBuffer<I2CMessage_t, kI2CQueueSize>;
 
-struct TransmissionControlBlock {
+class TransmissionControlBlock {
+ public:
   constexpr const static uint8_t kMsgBytesLength = 3;
   QueueType::MemoryRange msgMemory;
   uint_fast8_t bytesProcessed;
+
+  /**
+   * \brief Checks whether the buffer contains a valid message.
+   *
+   * \return true if the message is valid, false otherwise.
+   */
+  bool messageValid() const {
+    // Buffer occupied
+    // its 3 bytes long.
+    return isOccupied() && bytesProcessed == MarklinI2C::kAccessoryMessageLength;
+  }
+
+  /**
+   * \brief A buffer is occupied if the transmission ISR has access to it.
+   *
+   * This means: A transmission is...
+   * * ongoing,
+   * * pending,
+   * * About to be done.
+   */
+  bool isOccupied() const { return bufferOccupied.load(std::memory_order_acquire); }
+  /// A buffer is free if it is not occupied.
+  bool isFree() const { return !isOccupied(); }
+
+  void claim() {
+    bytesProcessed = 0;
+    msgMemory = QueueType::MemoryRange{};
+    bufferOccupied.store(true, std::memory_order_release);
+  }
+
+  void release() {
+    bytesProcessed = 0;
+    msgMemory = QueueType::MemoryRange{};
+    bufferOccupied.store(false, std::memory_order_release);
+  }
+
+ private:
   std::atomic_bool bufferOccupied;
 };
 
@@ -33,37 +71,6 @@ QueueType i2cRxQueue;
 QueueType i2cTxQueue;
 
 freertossupport::OsTask taskToNotify;
-
-/**
- * \brief Checks whether the buffer contains a valid message.
- *
- * \return true if the message is valid, false otherwise.
- */
-bool messageValid(const TransmissionControlBlock& buffer);
-
-/**
- * \brief A buffer is occupied if the transmission ISR has access to it.
- *
- * This means: A transmission is...
- * * ongoing,
- * * pending,
- * * About to be done.
- */
-bool bufferOccupied(const TransmissionControlBlock& buffer) {
-  return buffer.bufferOccupied.load(std::memory_order_acquire);
-}
-/// A buffer is free if it is not occupied.
-bool bufferFree(const TransmissionControlBlock& buffer) { return !bufferOccupied(buffer); }
-
-void claimBuffer(TransmissionControlBlock& buffer) {
-  txControl.bytesProcessed = 0;
-  buffer.bufferOccupied.store(true, std::memory_order_release);
-}
-
-void releaseBuffer(TransmissionControlBlock& buffer) {
-  txControl.bytesProcessed = 0;
-  buffer.bufferOccupied.store(false, std::memory_order_release);
-}
 
 bool i2cBusy() { return (I2C_SR2(I2C1) & I2C_SR2_BUSY) != 0; }
 
@@ -128,8 +135,8 @@ void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask) {
   i2c_set_own_7bit_slave_address(I2C1, slaveAddress);
 
   // Set I2C IRQ to support slave mode
-  releaseBuffer(rxControl);
-  releaseBuffer(txControl);
+  rxControl.release();
+  txControl.release();
   nvic_enable_irq(NVIC_I2C1_EV_IRQ);
   nvic_enable_irq(NVIC_I2C1_ER_IRQ);
   nvic_set_priority(NVIC_I2C1_EV_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
@@ -159,15 +166,10 @@ void sendI2CMessage(const I2CMessage_t& msg) {
 }
 
 namespace {
-bool messageValid(const TransmissionControlBlock& buffer) {
-  // Buffer occupied
-  // its 3 bytes long.
-  return bufferOccupied(buffer) && buffer.bytesProcessed == MarklinI2C::kAccessoryMessageLength;
-}
 
 void doTriggerTx(QueueType::MemoryRange memory) {
   if (memory.ptr != nullptr) {
-    claimBuffer(txControl);
+    txControl.claim();
     txControl.msgMemory = memory;
 
     resumeTx();
@@ -175,7 +177,7 @@ void doTriggerTx(QueueType::MemoryRange memory) {
 }
 
 void startTx() {
-  if (bufferFree(txControl)) {
+  if (txControl.isFree()) {
     // Non-Blocking receive
     auto memory = i2cTxQueue.peek();
     doTriggerTx(memory);
@@ -183,7 +185,7 @@ void startTx() {
 }
 
 void startTxFromISR() {
-  if (bufferFree(txControl)) {
+  if (txControl.isFree()) {
     auto memory = i2cTxQueue.peek();
     doTriggerTx(memory);
   } else {
@@ -192,14 +194,14 @@ void startTxFromISR() {
 }
 
 void resumeTx() {
-  if (bufferOccupied(txControl) && !i2cBusy()) {
+  if (txControl.isOccupied() && !i2cBusy()) {
     // If bus is idle, send a start condition.
     i2c_send_start(I2C1);
   }
 }
 
 void resumeTxForce() {
-  if (bufferOccupied(txControl)) {
+  if (txControl.isOccupied()) {
     // If there is data, send a start condition.
     i2c_send_start(I2C1);
   }
@@ -210,7 +212,7 @@ void forwardRx() {
   i2c_peripheral_enable(I2C1);
 
   // If there is a complete message in the buffer, consider it received.
-  if (messageValid(rxControl)) {
+  if (rxControl.messageValid()) {
     if (rxControl.msgMemory.ptr != nullptr) {
       i2cRxQueue.publish(rxControl.msgMemory);
       rxControl.msgMemory = QueueType::MemoryRange{};
@@ -219,7 +221,7 @@ void forwardRx() {
       asm("bkpt");
     }
 
-    releaseBuffer(rxControl);
+    rxControl.release();
 
     // See if there is something to be sent.
     startTxFromISR();
@@ -236,7 +238,7 @@ void forwardRx() {
 
 void finishTx() {
   i2cTxQueue.consume(txControl.msgMemory);
-  releaseBuffer(txControl);
+  txControl.release();
   i2c_send_stop(I2C1);
 
   // See if there is something to be sent.
@@ -268,7 +270,7 @@ extern "C" void i2c1_ev_isr(void) {
 
     if (!(sr2 & I2C_SR2_MSL)) {
       // Reference Manual: EV1
-      claimBuffer(rxControl);
+      rxControl.claim();
       rxControl.msgMemory = i2cRxQueue.allocate();
       if (rxControl.msgMemory.ptr != nullptr) {
         rxControl.msgMemory.ptr->destination_ = DataModel::kMyAddr;
@@ -282,7 +284,7 @@ extern "C" void i2c1_ev_isr(void) {
   // Receive buffer not empty
   else if (sr1 & I2C_SR1_RxNE) {
     // Reference Manual: EV2
-    if (bufferOccupied(rxControl) && rxControl.msgMemory.ptr != nullptr) {
+    if (rxControl.isOccupied() && rxControl.msgMemory.ptr != nullptr) {
       if (rxControl.bytesProcessed < 3) {
         switch (rxControl.bytesProcessed) {
           case 1:
