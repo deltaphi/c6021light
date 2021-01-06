@@ -51,16 +51,25 @@ endif()
 enable_testing()
 
 # Now simply link against gtest or gtest_main as needed. Eg
+set(RR32CAN_INCLUDE_DIR ".pio/libdeps/bluepill/RR32CanLibrary/lib")
+set(RR32CAN_LIB_DIR "${RR32CAN_INCLUDE_DIR}/RR32Can")
+file(GLOB_RECURSE RR32CAN_LIB_SRCS "${RR32CAN_LIB_DIR}/*.cpp")
+
+set(RR32CANENGINEDB_LIB_DIR "${RR32CAN_INCLUDE_DIR}/RR32CanEngineDb")
+file(GLOB_RECURSE RR32CANENGINEDB_LIB_SRCS "${RR32CANENGINEDB_LIB_DIR}/*.cpp")
+
 include_directories("test")
 include_directories("test/mocks")
 include_directories(".pio/libdeps/bluepill/LocoNet/utility")
-include_directories(".pio/libdeps/bluepill/RR32CanLibrary/lib")
+include_directories("${RR32CAN_INCLUDE_DIR}")
 
 include_directories("src")
 
 add_executable(c6021lightTest
     "test/unit/EmptyTest.cpp"
     "test/integration/StatelessRouting.cpp"
+    
+    "${RR32CAN_LIB_SRCS}"
 )
 target_link_libraries(c6021lightTest gtest_main gmock)
 add_test(NAME gtest_c6021lightTest_test COMMAND c6021lightTest)
