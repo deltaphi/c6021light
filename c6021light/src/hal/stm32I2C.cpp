@@ -8,7 +8,6 @@
 #include <libopencm3/stm32/i2c.h>
 
 #include "AtomicRingBuffer/ObjectRingBuffer.h"
-#include "OsQueue.h"
 
 #include "DataModel.h"
 
@@ -27,10 +26,7 @@ struct I2CTxBuf : public I2CBuf {
 
 constexpr static const uint8_t kI2CQueueSize = 10;
 
-using I2CQueueType = freertossupport::OsQueue<hal::I2CBuf>;
 using QueueType = AtomicRingBuffer::ObjectRingBuffer<I2CMessage_t, kI2CQueueSize>;
-
-static freertossupport::StaticOsQueue<hal::I2CQueueType::QueueElement, kI2CQueueSize> i2ctxqBuffer;
 
 static uint8_t slaveAddress;
 
@@ -38,7 +34,7 @@ I2CTxBuf i2cRxBuf;
 I2CTxBuf i2cTxBuf;
 
 QueueType i2cRxQueue;
-I2CQueueType i2cTxQueue = i2ctxqBuffer;
+QueueType i2cTxQueue;
 
 freertossupport::OsTask taskToNotify;
 
@@ -159,10 +155,11 @@ OptionalI2CMessage getI2CMessage() {
 }
 
 void sendI2CMessage(const I2CMessage_t& msg) {
-  hal::I2CBuf buf;
-  buf.msgBytes[0] = msg.destination_ >> 1;
-  buf.msgBytes[1] = msg.data_;
-  hal::i2cTxQueue.Send(buf, 0);  // TODO: Check the result.
+  auto memory = i2cTxQueue.allocate();
+  if (memory.ptr != nullptr) {
+    *memory.ptr = msg;
+    i2cTxQueue.publish(memory);
+  }
   startTx();
 }
 
@@ -173,10 +170,15 @@ bool messageValid(const I2CTxBuf& buffer) {
   return bufferOccupied(buffer) && buffer.bytesProcessed == MarklinI2C::kAccessoryMessageLength;
 }
 
-void doTriggerTx(const I2CQueueType::ReceiveResult& receiveResult) {
-  if (receiveResult.errorCode == pdPASS) {
+void doTriggerTx(QueueType::MemoryRange memory) {
+  if (memory.ptr != nullptr) {
     claimBuffer(i2cTxBuf);
-    memcpy(i2cTxBuf.msgBytes, receiveResult.element.msgBytes, sizeof(I2CBuf::msgBytes));
+
+    i2cTxBuf.msgBytes[0] = memory.ptr->destination_ >> 1;
+    i2cTxBuf.msgBytes[1] = memory.ptr->data_;
+
+    i2cTxQueue.consume(memory);
+
     resumeTx();
   }
 }
@@ -184,18 +186,15 @@ void doTriggerTx(const I2CQueueType::ReceiveResult& receiveResult) {
 void startTx() {
   if (bufferFree(i2cTxBuf)) {
     // Non-Blocking receive
-    I2CQueueType::ReceiveResult receiveResult = i2cTxQueue.Receive(0);
-    doTriggerTx(receiveResult);
+    auto memory = i2cTxQueue.peek();
+    doTriggerTx(memory);
   }
 }
 
 void startTxFromISR() {
   if (bufferFree(i2cTxBuf)) {
-    I2CQueueType::ReceiveResultISR receiveResult = i2cTxQueue.ReceiveFromISR();
-    doTriggerTx(receiveResult);
-    if (receiveResult.higherPriorityTaskWoken == pdTRUE) {
-      taskYIELD();
-    }
+    auto memory = i2cTxQueue.peek();
+    doTriggerTx(memory);
   } else {
     resumeTx();
   }
