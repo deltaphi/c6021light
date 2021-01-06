@@ -6,8 +6,8 @@
 
 #include "RR32Can/callback/TxCbk.h"
 
+#include "hal/stm32I2C.h"
 #include "hal/stm32can.h"
-#include "hal/stm32i2c.h"
 
 namespace hal {
 
