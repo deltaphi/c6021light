@@ -19,9 +19,6 @@ void RoutingTask::processCAN() {
     lnForwarder_.forward(*framePtr);
     // Forward to self
     RR32Can::RR32Can.HandlePacket(*framePtr);
-
-    hal::freeCanMessage(framePtr);
-    framePtr = nullptr;
   }
 
   // Attempt to forward all updates in the CAN DB
@@ -44,8 +41,7 @@ void RoutingTask::processI2C() {
 
     // Convert to generic CAN representation
     if (i2cForwarder_.MakeRR32CanMsg(*messagePtr, frame)) {
-      hal::freeI2CMessage(messagePtr);
-      messagePtr = nullptr;
+      messagePtr.reset();
 
       RR32Can::RR32Can.SendPacket(frame);
       lnForwarder_.forward(frame);

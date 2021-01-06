@@ -14,12 +14,19 @@
 #include "RR32Can/messages/Identifier.h"
 
 namespace hal {
+
+namespace {
 constexpr static const uint8_t canqueuesize = 10;
 
 using CanQueueType = AtomicRingBuffer::ObjectRingBuffer<RR32Can::CanFrame, canqueuesize>;
 static CanQueueType canRxQueue;
 
 static freertossupport::OsTask taskToNotify;
+
+void freeCanRXMessage(RR32Can::CanFrame* ptr) {
+  canRxQueue.consume(CanQueueType::MemoryRange{ptr, 1});
+}
+}  // namespace
 
 void beginCan(freertossupport::OsTask task) {
   taskToNotify = task;
@@ -56,10 +63,8 @@ void beginCan(freertossupport::OsTask task) {
                                 true); /* Enable the filter. */
 }
 
-RR32Can::CanFrame* getCanMessage() { return canRxQueue.peek().ptr; }
-
-std::size_t freeCanMessage(RR32Can::CanFrame* ptr) {
-  return canRxQueue.consume(CanQueueType::MemoryRange{ptr, 1});
+CanRxMessagePtr_t getCanMessage() {
+  return CanRxMessagePtr_t{canRxQueue.peek().ptr, freeCanRXMessage};
 }
 
 extern "C" {

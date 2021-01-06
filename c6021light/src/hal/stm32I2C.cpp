@@ -15,6 +15,8 @@ namespace hal {
 
 namespace {
 
+using I2CMessagePtr_t = I2CMessage_t*;
+
 constexpr static const uint8_t kI2CQueueSize = 10;
 
 using QueueType = AtomicRingBuffer::ObjectRingBuffer<I2CMessage_t, kI2CQueueSize>;
@@ -120,6 +122,11 @@ void finishTx();
  */
 void forwardRx();
 
+/**
+ * Release RX Buffer memory for an I2C RX Message.
+ */
+void freeI2CRXMessage(I2CMessagePtr_t msgPtr);
+
 }  // namespace
 
 // ***************************
@@ -159,10 +166,8 @@ void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask) {
   i2c_enable_ack(I2C1);
 }
 
-I2CMessagePtr_t getI2CMessage() { return i2cRxQueue.peek().ptr; }
-
-void freeI2CMessage(I2CMessagePtr_t msgPtr) {
-  i2cRxQueue.consume(QueueType::MemoryRange{msgPtr, 1});
+I2CRxMessagePtr_t getI2CMessage() {
+  return I2CRxMessagePtr_t{i2cRxQueue.peek().ptr, freeI2CRXMessage};
 }
 
 void sendI2CMessage(const I2CMessage_t& msg) {
@@ -175,6 +180,10 @@ void sendI2CMessage(const I2CMessage_t& msg) {
 }
 
 namespace {
+
+void freeI2CRXMessage(I2CMessagePtr_t msgPtr) {
+  i2cRxQueue.consume(QueueType::MemoryRange{msgPtr, 1});
+}
 
 void startTx() {
   const bool txControlClaimed = txControl.tryClaim();
