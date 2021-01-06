@@ -21,6 +21,13 @@ class OsTask {
   void notifyFromISR(BaseType_t& HigherPriorityTaskWoken) {
     xTaskNotifyFromISR(handle_, 1, eSetValueWithoutOverwrite, &HigherPriorityTaskWoken);
   }
+  void notifyFromISRWithWake() {
+    BaseType_t HigherPriorityTaskWoken;
+    notifyFromISR(HigherPriorityTaskWoken);
+    if (HigherPriorityTaskWoken == pdTRUE) {
+      taskYIELD();
+    }
+  }
 
  protected:
   TaskHandle_t handle_;

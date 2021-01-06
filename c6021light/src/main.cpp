@@ -121,13 +121,7 @@ int main(void) {
   return 0;
 }
 
-extern "C" void notifyLnByteReceived() {
-  BaseType_t HigherPriorityTaskWoken = pdFALSE;
-  routingTask.notifyFromISR(HigherPriorityTaskWoken);
-  if (HigherPriorityTaskWoken == pdTRUE) {
-    taskYIELD();
-  }
-}
+extern "C" void notifyLnByteReceived() { routingTask.notifyFromISRWithWake(); }
 
 namespace ConsoleManager {
 

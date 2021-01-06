@@ -81,12 +81,7 @@ void usb_lp_can_rx0_isr(void) {
       __asm("bkpt 4");
     }
   }
-  BaseType_t taskWoken;
-  taskToNotify.notifyFromISR(taskWoken);
-
-  if (taskWoken == pdTRUE) {
-    taskYIELD();
-  }
+  taskToNotify.notifyFromISRWithWake();
 }
 }
 

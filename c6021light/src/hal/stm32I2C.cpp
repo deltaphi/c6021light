@@ -234,12 +234,7 @@ void forwardRx() {
     startTxFromISR();
 
     // Notify processing thread
-    BaseType_t notifyWokeATask;
-    taskToNotify.notifyFromISR(notifyWokeATask);
-
-    if (notifyWokeATask == pdTRUE) {
-      taskYIELD();
-    }
+    taskToNotify.notifyFromISRWithWake();
   }
 }
 
