@@ -29,6 +29,7 @@ constexpr const uint8_t kMsgTypeFunction = 0b01000000;
 constexpr const uint8_t kDataDirMask = 0x01;
 constexpr const uint8_t kDataDirRed = 0x00;
 constexpr const uint8_t kDataDirGreen = 0x01;
+constexpr const uint8_t kDataPowerConsistentMask = 0xF0;
 
 /// Accessory Data: The power on/off bit.
 constexpr const uint8_t kDataPowerMask = 0b00001000;

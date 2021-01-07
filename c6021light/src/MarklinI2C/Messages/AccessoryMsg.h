@@ -48,23 +48,24 @@ class AccessoryMsg {
     return (((data_ & kDataDirMask) == 0) ? RR32Can::TurnoutDirection::RED
                                           : RR32Can::TurnoutDirection::GREEN);
   }
+
   constexpr uint8_t getPower() const { return (data_ & kDataPowerMask) >> 3; }
 
   constexpr void makePowerConsistent() {
     if ((this->data_ & kDataPowerMask) == 0) {
-      this->data_ &= 0xF0;
+      this->data_ &= kDataPowerConsistentMask;
     }
   }
 
   /**
    * Create a message to be sent from the central to a Keyboard.
-   * 
+   *
    * Mostly interesting for Testcases.
    */
   constexpr static AccessoryMsg makeInbound(const RR32Can::MachineTurnoutAddress& address,
                                             const RR32Can::TurnoutDirection direction, bool power) {
     AccessoryMsg msg;
-    msg.destination_ = 0x7f;
+    msg.destination_ = MarklinI2C::kCentralAddr;
     msg.source_ = makeAddressField(address);
     msg.data_ = makeDataField(address, direction, power);
     msg.makePowerConsistent();
@@ -79,7 +80,7 @@ class AccessoryMsg {
                                              bool power) {
     AccessoryMsg msg;
     msg.destination_ = makeAddressField(address);
-    msg.source_ = 0x7f;
+    msg.source_ = MarklinI2C::kCentralAddr;
     msg.data_ = makeDataField(address, direction, power);
     msg.makePowerConsistent();
     return msg;
@@ -95,24 +96,24 @@ class AccessoryMsg {
   /// Obtian the de-masked decoder output address.
   uint8_t getDecoderOutput() const;
 
-  constexpr uint8_t getSender() const { return (source_ & 0b00011110) >> 1; }
+  constexpr uint8_t getSender() const { return (source_ & kSenderAddrMask) >> 1; }
 
   constexpr static uint8_t makeAddressField(const RR32Can::MachineTurnoutAddress& address) {
-    return 0x20 | ((address.value() & 0xF0) >> 3);
+    return 0x20 | ((address.value() & (kSenderAddrMask << 3)) >> 3);
   }
 
   constexpr static uint8_t makeDataField(const RR32Can::MachineTurnoutAddress& address,
                                          const RR32Can::TurnoutDirection direction, bool power) {
     uint8_t data = 0;
 
-    data |= ((address.value() & 0b00001100) << 2);
-    data |= ((address.value() & 0b00000011) << 1);
+    data |= ((address.value() & (kDataUpperAddrMask >> 2)) << 2);
+    data |= ((address.value() & (kDataLowerAddrMask >> 1)) << 1);
 
     if (power) {
-      data |= 0x08;
+      data |= kDataPowerMask;
     }
     if (direction == RR32Can::TurnoutDirection::GREEN) {
-      data |= 1;
+      data |= kDataDirMask;
     }
     return data;
   }
