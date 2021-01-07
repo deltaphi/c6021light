@@ -56,6 +56,11 @@ class AccessoryMsg {
     }
   }
 
+  /**
+   * Create a message to be sent from the central to a Keyboard.
+   * 
+   * Mostly interesting for Testcases.
+   */
   constexpr static AccessoryMsg makeInbound(const RR32Can::MachineTurnoutAddress& address,
                                             const RR32Can::TurnoutDirection direction, bool power) {
     AccessoryMsg msg;
@@ -66,6 +71,9 @@ class AccessoryMsg {
     return msg;
   }
 
+  /**
+   * Create a message to be received by the Keyboard.
+   */
   constexpr static AccessoryMsg makeOutbound(const RR32Can::MachineTurnoutAddress& address,
                                              const RR32Can::TurnoutDirection direction,
                                              bool power) {
