@@ -46,14 +46,6 @@ void AccessoryMsg::setTurnoutAddr(RR32Can::MachineTurnoutAddress addr) {
   }
 }
 
-AccessoryMsg AccessoryMsg::makeResponse() const {
-  AccessoryMsg response;
-  response.destination_ = source_ >> 1;  // Shift Source address to destination space.
-  response.source_ = destination_ << 1;  // Shift destination address to source space.
-  response.data_ = data_;
-  return response;
-}
-
 void AccessoryMsg::print() const {
 #ifdef ARDUINO
   // Actual output currently available on Arduino only.

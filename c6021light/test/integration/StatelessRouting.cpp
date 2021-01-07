@@ -9,10 +9,33 @@
 
 #include "tasks/RoutingTask/RoutingTask.h"
 
+#include "RR32Can/messages/S88Event.h"
+#include "RR32Can/util/constexpr.h"
+
 using namespace ::testing;
+using namespace ::RR32Can::util;
 
 namespace tasks {
 namespace RoutingTask {
+
+constexpr lnMsg make_LnMsg(RR32Can::MachineTurnoutAddress address,
+                           RR32Can::TurnoutDirection direction, bool power) {
+  const RR32Can::MachineTurnoutAddress addr = address.getNumericAddress();
+  lnMsg LnPacket{};
+  LnPacket.srq.command = OPC_SW_REQ;
+
+  LnPacket.srq.sw1 = addr.value() & 0x7F;
+  LnPacket.srq.sw2 = (addr.value() >> 7) & 0x0F;
+
+  if (power) {
+    LnPacket.srq.sw2 |= 0x10;
+  }
+  if (direction == RR32Can::TurnoutDirection::GREEN) {
+    LnPacket.srq.sw2 |= 0x20;
+  }
+
+  return LnPacket;
+}
 
 class StatelessRoutingFixture : public Test {
  public:
@@ -42,49 +65,19 @@ class StatelessRoutingFixture : public Test {
   RoutingTask routingTask;
 };
 
-using TurnoutTestParam_t = uint32_t;
+using TurnoutTestParam_t = RR32Can::MachineTurnoutAddress;
 
 class TurnoutRoutingFixture : public StatelessRoutingFixture,
                               public WithParamInterface<TurnoutTestParam_t> {
  public:
-  void SetUp() {
-    StatelessRoutingFixture::SetUp();
-    turnout.setProtocol(RR32Can::RailProtocol::MM2);
-
-    canFrame.id.setCommand(RR32Can::Command::ACCESSORY_SWITCH);
-    {
-      RR32Can::TurnoutPacket pkt(canFrame.data);
-      pkt.initData();
-      pkt.setDirection(direction);
-      pkt.setPower(power);
-      pkt.setLocid(turnout);
-    }
-
-    i2cMessage = mocks::makeReceivedAccessoryMsg(turnout, direction, power);
-
-    {
-      RR32Can::MachineTurnoutAddress addr = turnout.getNumericAddress();
-      LnPacket.srq.command = OPC_SW_REQ;
-
-      LnPacket.srq.sw1 = addr.value() & 0x7F;
-      LnPacket.srq.sw2 = (addr.value() >> 7) & 0x0F;
-
-      if (power) {
-        LnPacket.srq.sw2 |= 0x10;
-      }
-      if (direction == RR32Can::TurnoutDirection::GREEN) {
-        LnPacket.srq.sw2 |= 0x20;
-      }
-    }
-  }
-
   constexpr static const RR32Can::TurnoutDirection direction = RR32Can::TurnoutDirection::GREEN;
   constexpr static const bool power = true;
 
   RR32Can::MachineTurnoutAddress turnout{GetParam()};
-  RR32Can::CanFrame canFrame;
-  hal::I2CMessage_t i2cMessage;
-  lnMsg LnPacket;
+  RR32Can::CanFrame canFrame{Turnout(false, turnout, direction, power)};
+  hal::I2CMessage_t i2cMessage{
+      MarklinI2C::Messages::makeInboundAccessoryMsg(turnout, direction, power)};
+  lnMsg LnPacket{make_LnMsg(turnout, direction, power)};
 };
 
 TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
@@ -143,7 +136,11 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCAN) {
   routingTask.loop();
 }
 
-INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture, Values(0, 1, 5, 10, 42, 100, 255));
+using namespace RR32Can;
+
+INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture,
+                         Values(MM2_Turnout(0u), MM2_Turnout(1u), MM2_Turnout(5u), MM2_Turnout(10u),
+                                MM2_Turnout(42u), MM2_Turnout(100u), MM2_Turnout(255u)));
 
 }  // namespace RoutingTask
 }  // namespace tasks

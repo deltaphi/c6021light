@@ -20,23 +20,23 @@ class AccessoryMsg {
  public:
   constexpr static const uint8_t kAccesoryMessageBytes = 3;
 
-  AccessoryMsg(){};
+  constexpr AccessoryMsg(){};
 
-  AccessoryMsg(const AccessoryMsg&) = default;
-  AccessoryMsg& operator=(const AccessoryMsg&) = default;
+  constexpr AccessoryMsg(const AccessoryMsg&) = default;
+  constexpr AccessoryMsg& operator=(const AccessoryMsg&) = default;
 
-  AccessoryMsg(AccessoryMsg&&) = default;
-  AccessoryMsg& operator=(AccessoryMsg&&) = default;
+  constexpr AccessoryMsg(AccessoryMsg&&) = default;
+  constexpr AccessoryMsg& operator=(AccessoryMsg&&) = default;
 
-  AccessoryMsg(uint8_t destination, uint8_t source, uint8_t data)
+  constexpr AccessoryMsg(uint8_t destination, uint8_t source, uint8_t data)
       : destination_(destination), source_(source), data_(data){};
 
-  bool operator==(const AccessoryMsg& other) const {
+  constexpr bool operator==(const AccessoryMsg& other) const {
     return this->destination_ == other.destination_ && this->source_ == other.source_ &&
            this->data_ == other.data_;
   }
 
-  uint8_t getSender() const { return (source_ & 0b00011110) >> 1; }
+  constexpr uint8_t getSender() const { return (source_ & 0b00011110) >> 1; }
 
   /// Obtian the de-masked decoder output address.
   uint8_t getDecoderOutput() const;
@@ -49,13 +49,13 @@ class AccessoryMsg {
    */
   RR32Can::MachineTurnoutAddress getTurnoutAddr() const;
 
-  RR32Can::TurnoutDirection getDirection() const {
+  constexpr RR32Can::TurnoutDirection getDirection() const {
     return (((data_ & kDataDirMask) == 0) ? RR32Can::TurnoutDirection::RED
                                           : RR32Can::TurnoutDirection::GREEN);
   }
-  uint8_t getPower() const { return (data_ & kDataPowerMask) >> 3; }
+  constexpr uint8_t getPower() const { return (data_ & kDataPowerMask) >> 3; }
 
-  void setDirection(RR32Can::TurnoutDirection direction) {
+  constexpr void setDirection(RR32Can::TurnoutDirection direction) {
     if (direction == RR32Can::TurnoutDirection::RED) {
       this->data_ &= 0xFE;
     } else {
@@ -63,13 +63,13 @@ class AccessoryMsg {
     }
   }
 
-  void setPower(uint8_t power) {
+  constexpr void setPower(uint8_t power) {
     power <<= 3;
     power &= kDataPowerMask;
     this->data_ |= power;
   }
 
-  void makePowerConsistent() {
+  constexpr void makePowerConsistent() {
     if ((this->data_ & kDataPowerMask) == 0) {
       this->data_ &= 0xF0;
     }
@@ -83,12 +83,60 @@ class AccessoryMsg {
    * \brief Assume that this message is a request message from a keyboard and
    * create a response message for the keyboard.
    */
-  AccessoryMsg makeResponse() const;
+  constexpr AccessoryMsg makeResponse() {
+    AccessoryMsg response;
+    response.destination_ = source_ >> 1;  // Shift Source address to destination space.
+    response.source_ = destination_ << 1;  // Shift destination address to source space.
+    response.data_ = data_;
+    return response;
+  }
 
   uint8_t destination_ = 0;
   uint8_t source_ = 0;
   uint8_t data_ = 0;
 };
+
+inline constexpr MarklinI2C::Messages::AccessoryMsg makeInboundAccessoryMsg(
+    const RR32Can::MachineTurnoutAddress& address, const RR32Can::TurnoutDirection direction,
+    bool power) {
+  MarklinI2C::Messages::AccessoryMsg msg;
+  msg.destination_ = 0x7f;
+  msg.source_ = 0x20 | ((address.value() & 0xF0) >> 3);
+
+  msg.data_ |= ((address.value() & 0b00001100) << 2);
+  msg.data_ |= ((address.value() & 0b00000011) << 1);
+
+  if (power) {
+    msg.data_ |= 0x08;
+  }
+  if (direction == RR32Can::TurnoutDirection::GREEN) {
+    msg.data_ |= 1;
+  }
+  msg.makePowerConsistent();
+
+  return msg;
+}
+
+inline constexpr MarklinI2C::Messages::AccessoryMsg makeOutboundAccessoryMsg(
+    const RR32Can::MachineTurnoutAddress& address, const RR32Can::TurnoutDirection direction,
+    bool power) {
+  MarklinI2C::Messages::AccessoryMsg msg;
+  msg.source_ = 0x7f;
+  msg.destination_ = 0x20 | ((address.value() & 0xF0) >> 3);
+
+  msg.data_ |= ((address.value() & 0b00001100) << 2);
+  msg.data_ |= ((address.value() & 0b00000011) << 1);
+
+  if (power) {
+    msg.data_ |= 0x08;
+  }
+  if (direction == RR32Can::TurnoutDirection::GREEN) {
+    msg.data_ |= 1;
+  }
+  msg.makePowerConsistent();
+
+  return msg;
+}
 
 }  // namespace Messages
 }  // namespace MarklinI2C
