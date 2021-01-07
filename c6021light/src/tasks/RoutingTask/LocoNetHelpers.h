@@ -46,6 +46,25 @@ constexpr bool isDispatchGet(const slotMoveMsg& msg) { return msg.src == 0; }
 constexpr bool isDispatchPut(const slotMoveMsg& msg) { return msg.dest == 0; }
 constexpr bool isNullMove(const slotMoveMsg& msg) { return msg.src == msg.dest; }
 
+constexpr lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address, RR32Can::TurnoutDirection direction,
+                        bool power) {
+  const RR32Can::MachineTurnoutAddress addr = address.getNumericAddress();
+  lnMsg LnPacket{};
+  LnPacket.srq.command = OPC_SW_REQ;
+
+  LnPacket.srq.sw1 = addr.value() & 0x7F;
+  LnPacket.srq.sw2 = (addr.value() >> 7) & 0x0F;
+
+  if (power) {
+    LnPacket.srq.sw2 |= 0x10;
+  }
+  if (direction == RR32Can::TurnoutDirection::GREEN) {
+    LnPacket.srq.sw2 |= 0x20;
+  }
+
+  return LnPacket;
+}
+
 }  // namespace RoutingTask
 }  // namespace tasks
 

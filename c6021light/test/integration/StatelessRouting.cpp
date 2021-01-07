@@ -7,6 +7,7 @@
 #include "RR32Can/RR32Can.h"
 
 #include "tasks/RoutingTask/RoutingTask.h"
+#include "tasks/RoutingTask/LocoNetHelpers.h"
 
 #include "RR32Can/messages/S88Event.h"
 #include "RR32Can/util/constexpr.h"
@@ -16,25 +17,6 @@ using namespace ::RR32Can::util;
 
 namespace tasks {
 namespace RoutingTask {
-
-constexpr lnMsg make_LnMsg(RR32Can::MachineTurnoutAddress address,
-                           RR32Can::TurnoutDirection direction, bool power) {
-  const RR32Can::MachineTurnoutAddress addr = address.getNumericAddress();
-  lnMsg LnPacket{};
-  LnPacket.srq.command = OPC_SW_REQ;
-
-  LnPacket.srq.sw1 = addr.value() & 0x7F;
-  LnPacket.srq.sw2 = (addr.value() >> 7) & 0x0F;
-
-  if (power) {
-    LnPacket.srq.sw2 |= 0x10;
-  }
-  if (direction == RR32Can::TurnoutDirection::GREEN) {
-    LnPacket.srq.sw2 |= 0x20;
-  }
-
-  return LnPacket;
-}
 
 class StatelessRoutingFixture : public Test {
  public:
@@ -76,7 +58,7 @@ class TurnoutRoutingFixture : public StatelessRoutingFixture,
   RR32Can::CanFrame canFrame{Turnout(false, turnout, direction, power)};
   hal::I2CMessage_t i2cMessage{
       MarklinI2C::Messages::AccessoryMsg::makeInbound(turnout, direction, power)};
-  lnMsg LnPacket{make_LnMsg(turnout, direction, power)};
+  lnMsg LnPacket{Ln_Turnout(turnout, direction, power)};
 };
 
 TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
