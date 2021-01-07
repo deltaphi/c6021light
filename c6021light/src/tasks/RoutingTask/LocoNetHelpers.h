@@ -46,8 +46,8 @@ constexpr bool isDispatchGet(const slotMoveMsg& msg) { return msg.src == 0; }
 constexpr bool isDispatchPut(const slotMoveMsg& msg) { return msg.dest == 0; }
 constexpr bool isNullMove(const slotMoveMsg& msg) { return msg.src == msg.dest; }
 
-constexpr lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address, RR32Can::TurnoutDirection direction,
-                        bool power) {
+constexpr lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address,
+                           RR32Can::TurnoutDirection direction, bool power) {
   const RR32Can::MachineTurnoutAddress addr = address.getNumericAddress();
   lnMsg LnPacket{};
   LnPacket.srq.command = OPC_SW_REQ;

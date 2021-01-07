@@ -6,8 +6,8 @@
 
 #include "RR32Can/RR32Can.h"
 
-#include "tasks/RoutingTask/RoutingTask.h"
 #include "tasks/RoutingTask/LocoNetHelpers.h"
+#include "tasks/RoutingTask/RoutingTask.h"
 
 #include "RR32Can/messages/S88Event.h"
 #include "RR32Can/util/constexpr.h"
@@ -64,9 +64,7 @@ class TurnoutRoutingFixture : public StatelessRoutingFixture,
 TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(canFrame));
-  EXPECT_CALL(
-      lnHal, requestSwitch(RR32Can::HumanTurnoutAddress(turnout.getNumericAddress()).value(), power,
-                           RR32Can::TurnoutDirectionToIntegral(direction)));
+  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
 
   EXPECT_CALL(canHal, getCanMessage())
       .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
@@ -83,9 +81,7 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
 
 TEST_P(TurnoutRoutingFixture, TurnoutRequest_CANtoLocoNet) {
   // Setup expectations
-  EXPECT_CALL(
-      lnHal, requestSwitch(RR32Can::HumanTurnoutAddress(turnout.getNumericAddress()).value(), power,
-                           RR32Can::TurnoutDirectionToIntegral(direction)));
+  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
 
   EXPECT_CALL(i2cHal, getI2CMessage())
       .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})));
