@@ -1,7 +1,6 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "mocks/KeyboardMock.h"
 #include "mocks/LocoNet.h"
 #include "mocks/RoutingForwarderMock.h"
 
@@ -76,7 +75,7 @@ class TurnoutRoutingFixture : public StatelessRoutingFixture,
   RR32Can::MachineTurnoutAddress turnout{GetParam()};
   RR32Can::CanFrame canFrame{Turnout(false, turnout, direction, power)};
   hal::I2CMessage_t i2cMessage{
-      MarklinI2C::Messages::makeInboundAccessoryMsg(turnout, direction, power)};
+      MarklinI2C::Messages::AccessoryMsg::makeInbound(turnout, direction, power)};
   lnMsg LnPacket{make_LnMsg(turnout, direction, power)};
 };
 

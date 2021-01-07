@@ -21,12 +21,6 @@ bool sameDecoder(const RR32Can::MachineTurnoutAddress left,
   constexpr const uint8_t mask = 0xFC;
   return (left.value() & mask) == (right.value() & mask);
 }
-
-MarklinI2C::Messages::AccessoryMsg prepareI2cMessage() {
-  MarklinI2C::Messages::AccessoryMsg msg;
-  msg.source_ = DataModel::kMyAddr;
-  return msg;
-}
 }  // namespace
 
 void I2CForwarder::forward(const RR32Can::CanFrame& frame) {
@@ -49,13 +43,8 @@ void I2CForwarder::forward(const RR32Can::CanFrame& frame) {
         }
 
         // Convert to i2c confirmation packet
-        MarklinI2C::Messages::AccessoryMsg i2cMsg = prepareI2cMessage();
-
-        i2cMsg.setTurnoutAddr(turnoutAddr);
-        i2cMsg.setPower(turnoutPacket.getPower());
-        // Direction is not transmitted on Response.
-        i2cMsg.setDirection(turnoutPacket.getDirection());
-        i2cMsg.makePowerConsistent();
+        auto i2cMsg = MarklinI2C::Messages::AccessoryMsg::makeOutbound(
+            turnoutAddr, turnoutPacket.getDirection(), turnoutPacket.getPower());
 
         printf("I2C TX: ");
         i2cMsg.print();

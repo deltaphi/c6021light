@@ -26,26 +26,6 @@ RR32Can::MachineTurnoutAddress AccessoryMsg::getTurnoutAddr() const {
   return RR32Can::MachineTurnoutAddress(addr);
 }
 
-void AccessoryMsg::setTurnoutAddr(RR32Can::MachineTurnoutAddress addr) {
-  {
-    this->destination_ = addr.value() & 0xF0;
-    this->destination_ >>= 3;
-    this->destination_ |= 0b00100000;
-  }
-  {
-    uint8_t decoderAddrPart = addr.value() & 0x0C;
-    decoderAddrPart <<= 2;
-    decoderAddrPart &= kDataUpperAddrMask;
-    this->data_ |= decoderAddrPart;
-  }
-  {
-    uint8_t decoderOutput = addr.value() & 0x03;
-    decoderOutput <<= 1;
-    decoderOutput &= kDataLowerAddrMask;
-    this->data_ |= decoderOutput;
-  }
-}
-
 void AccessoryMsg::print() const {
 #ifdef ARDUINO
   // Actual output currently available on Arduino only.
