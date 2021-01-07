@@ -18,10 +18,8 @@ void LocoNetForwarder::forward(const RR32Can::CanFrame& frame) {
       const RR32Can::TurnoutPacket turnoutPacket(const_cast<RR32Can::Data&>(frame.data));
       if (!frame.id.isResponse()) {
         // Send to LocoNet
-        LocoNet.requestSwitch(
-            RR32Can::HumanTurnoutAddress(turnoutPacket.getLocid().getNumericAddress()).value(),
-            turnoutPacket.getPower(),
-            RR32Can::TurnoutDirectionToIntegral(turnoutPacket.getDirection()));
+        auto msg = Ln_Turnout(turnoutPacket.getLocid(), turnoutPacket.getDirection(), turnoutPacket.getPower());
+        LocoNet.send(&msg);
       }
       break;
     }
