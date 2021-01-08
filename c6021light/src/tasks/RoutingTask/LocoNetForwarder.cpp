@@ -47,8 +47,8 @@ void LocoNetForwarder::forward(const RR32Can::CanFrame& frame) {
     case RR32Can::Command::S88_EVENT: {
       const RR32Can::S88Event s88Event(const_cast<RR32Can::Data&>(frame.data));
       if (s88Event.getSubtype() == RR32Can::S88Event::Subtype::RESPONSE) {
-        uint8_t state = static_cast<uint8_t>(s88Event.getNewState());
-        LocoNet.reportSensor(RR32Can::HumanTurnoutAddress(s88Event.getContactId()).value(), state);
+        auto msg = Ln_Sensor(s88Event.getContactId(), s88Event.getNewState());
+        LocoNet.send(&msg);
       }
       break;
     }
