@@ -5,6 +5,8 @@ connect6021 light für Keyboard 6040
 
 Project to connect one or several Keyboard 6040s to CAN. This project replaces the 6021 in your system.
 
+To find out more about how to use the c6021light, take a look at the [User Manual](c6021light/doc/c6021light_UserManual.md).
+
 ## Safety Notes
 
 When a button on the Keyboard is released, the Keyboard generates a "Power Off" command.
