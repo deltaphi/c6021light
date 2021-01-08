@@ -69,11 +69,10 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
   EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
 
   mocks::makeSequence(canHal);
-  EXPECT_CALL(lnHal, receive).WillOnce(Return(nullptr));
+  mocks::makeSequence(lnHal);
 
   // Inject I2C message
-  hal::I2CMessage_t i2cMessages[] = {i2cMessage};
-  mocks::makeSequence(i2cHal, i2cMessages);
+  mocks::makeSequence(i2cHal, i2cMessage);
 
   // Run!
   routingTask.loop();
@@ -84,12 +83,10 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_CANtoLocoNetAndI2C) {
   EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
 
   mocks::makeSequence(i2cHal);
-
-  EXPECT_CALL(lnHal, receive).WillOnce(Return(nullptr));
+  mocks::makeSequence(lnHal);
 
   // Inject CAN message
-  RR32Can::CanFrame canFrames[] = {canFrame};
-  mocks::makeSequence(canHal, canFrames);
+  mocks::makeSequence(canHal, canFrame);
 
   // Run!
   routingTask.loop();
@@ -99,12 +96,11 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCANandI2C) {
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(canFrame));
 
-  EXPECT_CALL(i2cHal, getI2CMessage())
-      .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})));
+  mocks::makeSequence(i2cHal);
   mocks::makeSequence(canHal);
 
   // Inject LocoNet message
-  EXPECT_CALL(lnHal, receive).WillOnce(Return(&LnPacket)).WillOnce(Return(nullptr));
+  mocks::makeSequence(lnHal, LnPacket);
 
   // Run!
   routingTask.loop();
@@ -133,12 +129,10 @@ TEST_P(SenorRoutingFixture, SensorRequest_CANtoLocoNet) {
   EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
 
   mocks::makeSequence(i2cHal);
-
-  EXPECT_CALL(lnHal, receive).WillOnce(Return(nullptr));
+  mocks::makeSequence(lnHal);
 
   // Inject CAN message
-  RR32Can::CanFrame canFrames[] = {canFrame};
-  mocks::makeSequence(canHal, canFrames);
+  mocks::makeSequence(canHal, canFrame);
 
   // Run!
   routingTask.loop();
@@ -153,7 +147,7 @@ TEST_P(SenorRoutingFixture, SensorRequest_LocoNetToCAN) {
   mocks::makeSequence(canHal);
 
   // Inject LocoNet message
-  EXPECT_CALL(lnHal, receive).WillOnce(Return(&LnPacket)).WillOnce(Return(nullptr));
+  mocks::makeSequence(lnHal, LnPacket);
 
   // Run!
   routingTask.loop();
