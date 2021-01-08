@@ -12,6 +12,8 @@
 #include "RR32Can/messages/S88Event.h"
 #include "RR32Can/util/constexpr.h"
 
+#include "mocks/SequenceMaker.h"
+
 using namespace ::testing;
 using namespace ::RR32Can::util;
 
@@ -66,8 +68,7 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
   EXPECT_CALL(canTx, SendPacket(canFrame));
   EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
 
-  EXPECT_CALL(canHal, getCanMessage())
-      .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
+  mocks::NullCanSequence nullSequence(canHal);
   EXPECT_CALL(lnHal, receive).WillOnce(Return(nullptr));
 
   // Inject I2C message
@@ -89,9 +90,8 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_CANtoLocoNet) {
   EXPECT_CALL(lnHal, receive).WillOnce(Return(nullptr));
 
   // Inject CAN message
-  EXPECT_CALL(canHal, getCanMessage())
-      .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{&canFrame, hal::canRxDeleter})))
-      .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
+  RR32Can::CanFrame canFrames[] = {canFrame};
+  auto canSequence = mocks::CanSequence<1>{canHal, canFrames};
 
   // Run!
   routingTask.loop();
@@ -103,8 +103,7 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCAN) {
 
   EXPECT_CALL(i2cHal, getI2CMessage())
       .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})));
-  EXPECT_CALL(canHal, getCanMessage())
-      .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
+  mocks::NullCanSequence nullSequence(canHal);
 
   // Inject LocoNet message
   EXPECT_CALL(lnHal, receive).WillOnce(Return(&LnPacket)).WillOnce(Return(nullptr));
