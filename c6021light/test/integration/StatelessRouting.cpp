@@ -68,7 +68,7 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
   EXPECT_CALL(canTx, SendPacket(canFrame));
   EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
 
-  mocks::NullCanSequence nullSequence(canHal);
+  mocks::makeSequence(canHal);
   EXPECT_CALL(lnHal, receive).WillOnce(Return(nullptr));
 
   // Inject I2C message
@@ -91,7 +91,7 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_CANtoLocoNet) {
 
   // Inject CAN message
   RR32Can::CanFrame canFrames[] = {canFrame};
-  auto canSequence = mocks::CanSequence<1>{canHal, canFrames};
+  mocks::makeSequence(canHal, canFrames);
 
   // Run!
   routingTask.loop();
@@ -103,7 +103,7 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCAN) {
 
   EXPECT_CALL(i2cHal, getI2CMessage())
       .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})));
-  mocks::NullCanSequence nullSequence(canHal);
+  mocks::makeSequence(canHal);
 
   // Inject LocoNet message
   EXPECT_CALL(lnHal, receive).WillOnce(Return(&LnPacket)).WillOnce(Return(nullptr));
