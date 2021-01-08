@@ -56,10 +56,15 @@ constexpr lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address,
   LnPacket.srq.sw2 = (addr.value() >> 7) & 0x0F;
 
   if (power) {
-    LnPacket.srq.sw2 |= 0x10;
+    LnPacket.srq.sw2 |= OPC_SW_REQ_OUT;
   }
   if (direction == RR32Can::TurnoutDirection::GREEN) {
-    LnPacket.srq.sw2 |= 0x20;
+    LnPacket.srq.sw2 |= OPC_SW_REQ_DIR;
+  }
+
+  return LnPacket;
+}
+
   }
 
   return LnPacket;

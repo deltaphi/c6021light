@@ -47,15 +47,7 @@ void LocoNetForwarder::forward(const RR32Can::CanFrame& frame) {
     case RR32Can::Command::S88_EVENT: {
       const RR32Can::S88Event s88Event(const_cast<RR32Can::Data&>(frame.data));
       if (s88Event.getSubtype() == RR32Can::S88Event::Subtype::RESPONSE) {
-        uint8_t state = 0;
-        switch (s88Event.getNewState()) {
-          case RR32Can::S88Event::State::OPEN:
-            state = 0;
-            break;
-          case RR32Can::S88Event::State::CLOSED:
-            state = 1;
-            break;
-        }
+        uint8_t state = static_cast<uint8_t>(s88Event.getNewState());
         LocoNet.reportSensor(RR32Can::HumanTurnoutAddress(s88Event.getContactId()).value(), state);
       }
       break;
@@ -176,14 +168,14 @@ bool LocoNetForwarder::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::CanFrame& 
         message.setContactId(lnAddr);
       }
       {
-        RR32Can::S88Event::State newState;
-        RR32Can::S88Event::State oldState;
+        RR32Can::SensorState newState;
+        RR32Can::SensorState oldState;
         if (((LnPacket.ir.in2 & 0x10) >> 4) == 0) {
-          newState = RR32Can::S88Event::State::OPEN;
-          oldState = RR32Can::S88Event::State::CLOSED;
+          newState = RR32Can::SensorState::OPEN;
+          oldState = RR32Can::SensorState::CLOSED;
         } else {
-          newState = RR32Can::S88Event::State::CLOSED;
-          oldState = RR32Can::S88Event::State::OPEN;
+          newState = RR32Can::SensorState::CLOSED;
+          oldState = RR32Can::SensorState::OPEN;
         }
 
         message.setStates(oldState, newState);
