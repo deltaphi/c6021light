@@ -75,7 +75,7 @@ In the reverse direction, i.e., CAN to LocoNet, no information is transmitted un
 
 Various settings of the c6021light can be adjusted at runtime using the serial interface. To connect to the serial interface of the c6021light, simply hook up a USB-to-Serial adapter *capable of operating at 3.3V* to J52 on the c6021light. A USB-to-Serial adapter operating at a higher voltage may cause permanent damage to the c6021light or to other devices of your railroad layout!
 
-*Note [Issue #7](issues/7): On some versions of the c6021light PCB, the RX and TX lines on J52 are swapped. If your PCB is affected by this bug, use jumper cables to cross over RX and TX.*
+*Note [Issue #7](https://github.com/deltaphi/c6021light/issues/7): On some versions of the c6021light PCB, the RX and TX lines on J52 are swapped. If your PCB is affected by this bug, use jumper cables to cross over RX and TX.*
 
 Populating the on-board USB-to-Serial converter will also let you access the serial console, but is a somewhat difficult soldering task.
 
