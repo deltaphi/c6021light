@@ -30,12 +30,14 @@ void LocoNetForwarder::forward(const RR32Can::CanFrame& frame) {
       switch (systemMessage.getSubcommand()) {
         case RR32Can::SystemSubcommand::SYSTEM_STOP:
           if (!frame.id.isResponse()) {
-            LocoNet.reportPower(false);
+            auto msg = Ln_Off();
+            LocoNet.send(&msg);
           }
           break;
         case RR32Can::SystemSubcommand::SYSTEM_GO:
           if (!frame.id.isResponse()) {
-            LocoNet.reportPower(true);
+            auto msg = Ln_On();
+            LocoNet.send(&msg);
           }
           break;
         default:

@@ -160,5 +160,68 @@ INSTANTIATE_TEST_SUITE_P(SensorTest, SenorRoutingFixture,
                                         Addr(100), Addr(255), Addr(0x7FF)),
                                  Values(RR32Can::SensorState::OPEN, RR32Can::SensorState::CLOSED)));
 
+using PowerTestParam_t = bool;
+
+class PowerRoutingFixture : public StatelessRoutingFixture,
+                            public WithParamInterface<PowerTestParam_t> {
+ public:
+  void SetUp() {
+    StatelessRoutingFixture::SetUp();
+    if (power) {
+      canFrame = RR32Can::util::System_Go(false);
+      LnPacket = Ln_On();
+    } else {
+      canFrame = RR32Can::util::System_Stop(false);
+      LnPacket = Ln_Off();
+    }
+  }
+  const bool power{GetParam()};
+  RR32Can::CanFrame canFrame{};
+  lnMsg LnPacket{};
+};
+
+TEST_P(PowerRoutingFixture, PowerRequest_CANtoLocoNet) {
+  // Setup expectations
+  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
+
+  mocks::makeSequence(i2cHal);
+  mocks::makeSequence(lnHal);
+
+  // Inject CAN message
+  mocks::makeSequence(canHal, canFrame);
+
+  // Run!
+  routingTask.loop();
+}
+
+TEST_P(PowerRoutingFixture, PowerResponse_CANtoLocoNet) {
+  // Setup expectations
+  mocks::makeSequence(i2cHal);
+  mocks::makeSequence(lnHal);
+
+  // Inject CAN message
+  canFrame.id.setResponse(true);
+  mocks::makeSequence(canHal, canFrame);
+
+  // Run!
+  routingTask.loop();
+}
+
+TEST_P(PowerRoutingFixture, PowerRequest_LocoNetToCAN) {
+  // Setup expectations
+  EXPECT_CALL(canTx, SendPacket(canFrame));
+
+  mocks::makeSequence(i2cHal);
+  mocks::makeSequence(canHal);
+
+  // Inject LocoNet message
+  mocks::makeSequence(lnHal, LnPacket);
+
+  // Run!
+  routingTask.loop();
+}
+
+INSTANTIATE_TEST_SUITE_P(PowerTest, PowerRoutingFixture, Values(true, false));
+
 }  // namespace RoutingTask
 }  // namespace tasks

@@ -82,6 +82,20 @@ constexpr lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::Senso
   return LnPacket;
 }
 
+constexpr lnMsg Ln_On() {
+  lnMsg LnPacket{};
+  LnPacket.ir.command = OPC_GPON;
+
+  return LnPacket;
+}
+
+constexpr lnMsg Ln_Off() {
+  lnMsg LnPacket{};
+  LnPacket.ir.command = OPC_GPOFF;
+
+  return LnPacket;
+}
+
 }  // namespace RoutingTask
 }  // namespace tasks
 
