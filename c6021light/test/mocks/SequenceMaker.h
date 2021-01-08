@@ -14,8 +14,8 @@ void makeSequence(hal::CANHalMock& mock) {
       .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
 }
 
-template <typename Message_t, size_t numMessages>
-void makeSequence(hal::CANHalMock& mock, Message_t (&messages)[numMessages]) {
+template <size_t numMessages>
+void makeSequence(hal::CANHalMock& mock, RR32Can::CanFrame (&messages)[numMessages]) {
   Sequence s_;
 
   for (size_t i = 0; i < numMessages; ++i) {
