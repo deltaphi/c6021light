@@ -56,10 +56,27 @@ constexpr lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address,
   LnPacket.srq.sw2 = (addr.value() >> 7) & 0x0F;
 
   if (power) {
-    LnPacket.srq.sw2 |= 0x10;
+    LnPacket.srq.sw2 |= OPC_SW_REQ_OUT;
   }
   if (direction == RR32Can::TurnoutDirection::GREEN) {
-    LnPacket.srq.sw2 |= 0x20;
+    LnPacket.srq.sw2 |= OPC_SW_REQ_DIR;
+  }
+
+  return LnPacket;
+}
+
+constexpr lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::SensorState state) {
+  lnMsg LnPacket{};
+  LnPacket.ir.command = OPC_INPUT_REP;
+
+  const uint8_t bit0 = address.value() & 1;
+  const uint8_t bits1to7 = (address.value() >> 1) & 0x7F;
+  const uint8_t bits8to11 = (address.value() >> 8) & 0x0F;
+  LnPacket.ir.in1 = bits1to7;
+  LnPacket.ir.in2 = (bit0 << 5) | bits8to11;
+
+  if (state == RR32Can::SensorState::CLOSED) {
+    LnPacket.ir.in2 |= OPC_INPUT_REP_HI;
   }
 
   return LnPacket;
