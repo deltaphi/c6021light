@@ -74,7 +74,7 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
   // Inject I2C message
   hal::I2CMessage_t i2cMessages[] = {i2cMessage};
   mocks::makeSequence(i2cHal, i2cMessages);
-  
+
   // Run!
   routingTask.loop();
 }
@@ -113,11 +113,26 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCANandI2C) {
 INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture,
                          Values(MM2_Turnout(0u), MM2_Turnout(1u), MM2_Turnout(5u), MM2_Turnout(10u),
                                 MM2_Turnout(42u), MM2_Turnout(100u), MM2_Turnout(255u)));
+
+using SenorTestParam_t = std::tuple<RR32Can::MachineTurnoutAddress, RR32Can::SensorState>;
+
+class SenorRoutingFixture : public StatelessRoutingFixture,
+                            public WithParamInterface<SenorTestParam_t> {
+ public:
+  constexpr static const RR32Can::MachineTurnoutAddress ZeroAddress{0};
+  const RR32Can::MachineTurnoutAddress sensor{std::get<0>(GetParam())};
+  const RR32Can::SensorState newState{std::get<1>(GetParam())};
+  RR32Can::CanFrame canFrame{RR32Can::util::S88Event(ZeroAddress, sensor, newState)};
+  lnMsg LnPacket{Ln_Sensor(sensor, newState)};
+};
+
+const RR32Can::MachineTurnoutAddress SenorRoutingFixture::ZeroAddress;
+
+TEST_P(SenorRoutingFixture, SensorRequest_CANtoLocoNet) {
   // Setup expectations
   EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
 
-  EXPECT_CALL(i2cHal, getI2CMessage())
-      .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})));
+  mocks::makeSequence(i2cHal);
 
   EXPECT_CALL(lnHal, receive).WillOnce(Return(nullptr));
 
@@ -129,12 +144,12 @@ INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture,
   routingTask.loop();
 }
 
-TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCAN) {
+TEST_P(SenorRoutingFixture, SensorRequest_LocoNetToCAN) {
   // Setup expectations
+  canFrame.id.setResponse(true);
   EXPECT_CALL(canTx, SendPacket(canFrame));
 
-  EXPECT_CALL(i2cHal, getI2CMessage())
-      .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})));
+  mocks::makeSequence(i2cHal);
   mocks::makeSequence(canHal);
 
   // Inject LocoNet message
@@ -144,11 +159,12 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCAN) {
   routingTask.loop();
 }
 
-using namespace RR32Can;
+using Addr = RR32Can::MachineTurnoutAddress;
 
-INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture,
-                         Values(MM2_Turnout(0u), MM2_Turnout(1u), MM2_Turnout(5u), MM2_Turnout(10u),
-                                MM2_Turnout(42u), MM2_Turnout(100u), MM2_Turnout(255u)));
+INSTANTIATE_TEST_SUITE_P(SensorTest, SenorRoutingFixture,
+                         Combine(Values(Addr(0), Addr(1), Addr(2), Addr(3), Addr(4), Addr(10),
+                                        Addr(100), Addr(255), Addr(0x7FF)),
+                                 Values(RR32Can::SensorState::OPEN, RR32Can::SensorState::CLOSED)));
 
 }  // namespace RoutingTask
 }  // namespace tasks
