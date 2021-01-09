@@ -1,6 +1,6 @@
 # Runtime Configuration
 
-Various settings of the c6021light can be adjusted at runtime using the serial interface. To connect to the serial interface of the c6021light, follow the instructions on the project Wiki for [Connectiong to the serial console](https://github.com/deltaphi/c6021light/wiki/ConnectToSerialConsole). Make sure that you can see the command prompt `c6021light > ` before continuing.
+Various settings of the c6021light can be adjusted at runtime using the serial interface. To connect to the serial interface of the c6021light, follow the instructions on the project Wiki for [Connecting to the serial console](https://github.com/deltaphi/c6021light/wiki/ConnectToSerialConsole). Make sure that you can see the command prompt `c6021light > ` before continuing.
 
 ## Interacting with the Serial Console
 
