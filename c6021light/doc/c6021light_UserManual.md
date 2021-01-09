@@ -11,37 +11,8 @@ It also transfers sensor commands (e.g., from an S88 Bus or LocoNet track sensor
 
 *Please be aware of the following safety note: When controlling turnouts from the Marklin Digital devices on an I2C bus, there is no reliable way to translate a "Turnout Power Off" event to other bus systems. c6021light employs a heuristic to guess which turnout output should be powered off. However, a power off command still may not be sent to the correct tunrout, possibly causing permanent damage, e.g., by burning out a turnout actuator coil. Make sure to use additional measures to limit the on-time of sensitive devices attached as a turnout.*
 
-## Getting Started
+**As a new user, you should begin setting up your c6021light with the [Getting Started Guide](GettingStarted.md).**
 
-This section assumes that you have a fully equpped c6021light PCB with a programmed BluePill board on top. 
-Instructions for uploading new (or initial) software versions to the BluePill board are [available on the Project Wiki](https://github.com/deltaphi/c6021light/wiki/Build-&-Upload).
-
-To start using the c6021light, connect it to all control bus systems that you plan to use. For example, plug the c6021light into your Keyboard, connect the CAN bus to a Marklin Systems device (e.g.,) and connect the LocoNet port to an Intellibox. As soon as you power on the c6021light as well as the devices on all busses, the c6021light is operational under its default settings. If the default settings match the configuration of your layout, you can now try out, e.g., setting turnouts from the Keyboard. The default settings of the c6021light are as follows.
-
-| Setting | Possible Values | Default Value | Description |
-|---------|-----------------|---------------|-------------|
-| `turnoutProtocol` | `MM2`, `DCC`, `SX1` | `MM2` | Protocol to address turnouts on the Rail. Only affects forwarding of messages on CAN. |
-| `lnSlotServer` | `disabled`, `passive`, `active` | `disabled` | Forwarding of Locomotive control commands between CAN and LocoNet. Disabled completely disables forwarding of Locomotive control messages. Passive requires a LocoNet Central on LocoNet. Active (not implemented) simulates a LocoNet Central for other control terminals on LocoNet. |
-
-If turnout control does not work or works only partially, this can be due to a number of reasons. Check the following:
-* Is a master device available on the CAN bus and is the Device in "Go" mode (rather than in "STOP" mode)? Make sure to put the master device in "Go" mode. If no master is available on the CAN bus or the master is in a "STOP" state, the master does not respond to turnout requests. As the c6021light only forwards requests between the bus systems, the Keyboard never receives a response to the button press. In this state, the Keyboard will not produce any visible feedback.
-* Are there any lights glowing on any of the devices on the I2C bus? If none of the LEDs light up, the I2C bus may not be powered. Verify that you have the c6021light firmly plugged in and that 8V power is available to the I2C devices. Try to run only a single device on the I2C off of the c6021light.
-* Is `turnoutProtocol` set to the protocol that you are using to control your turnouts? See the [Section on runtime configuration](#runtime-configuration) for instructions how to adjust the protocol.
-
-### A look at the hardware
-
-* CAN port
-* I2C port -> Where to attach to a Keyboard?
-* LocoNet port
-* Power Supply
-* The USB port you can not use (the one on the BluePill!)
-* Serial Header J52
-* LEDs
-  * BluePill, red LED: Power
-  * BluePill, yellow LED: System STOP (if known)
-  * c6021light PCB D1 (Red LED): as-of-yet unused status LED
-  * c6021light D20 TX/D21 RX (Yellow/Green LED): Message transmission/reception on LocoNet.
-* SW1: As-of-yet unused input button
 
 ## General Operation
 
@@ -151,6 +122,17 @@ Available commands:
 Neither of these commands have dots. That means that these are complete commands. If you were to type them in, they will immediately be executed.
 
 Note that when you use the serial console to change a configuration value, the change takes effect immediately. However, the change will be forgotten by the next reset (e.g., power cycle of your layout) unless you [persist the configuration](#persistent-storage-of-configuration-options).
+
+## Serial Configuration Options
+
+This is an incomplete description of runtime configuation options. Refer to the command line help of your c6021light to find out what options your firmware version of the c6021light offers.
+
+| Setting | Possible Values | Default Value | Description |
+|---------|-----------------|---------------|-------------|
+| `turnoutProtocol` | `MM2`, `DCC`, `SX1` | `MM2` | Protocol to address turnouts on the Rail. Only affects forwarding of messages on CAN. |
+| `lnSlotServer` | `disabled`, `passive`, `active` | `disabled` | Forwarding of Locomotive control commands between CAN and LocoNet. Disabled completely disables forwarding of Locomotive control messages. Passive requires a LocoNet Central on LocoNet. Active (not implemented) simulates a LocoNet Central for other control terminals on LocoNet. |
+
+
 
 ## Convenience Features of the Serial Console
 
