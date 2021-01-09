@@ -24,6 +24,11 @@ The PCB of the c6021light looks roughly as shown in the image below. Depending o
 ![Overview of the c6021light](images/c6021light_pcb_v1_0_small.jpg)
 
 At the center of the board, we can first see the BluePill board containing an STM32 Microprocessor - the heart and brain of the c6021light. On and around the PCB, we can see a bunch of connectors, LEDs and a button. We will first take a look at the connectors and then examine the LEDs and Button.
+All elements described in the following are labelled in this picture:
+
+![Overview of the c6021light](images/c6021light_pcb_v1_0_labeled.jpg)
+
+
 
 ### Connectors
 
