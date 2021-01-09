@@ -10,7 +10,11 @@ Devices on the I2C bus send out turnout control request messages and expect turn
 
 ## Sensor Messages
 
-Sensor messages are forwarded as-is. No configuration is required or, in fact, possible.
+Sensor messages are forwarded as-is between CAN and LocoNet in both directions. No configuration is required or possible.
+
+## System Power Status (Stop/Go)
+
+Stop and Go messages are forwarded as-is between CAN and LocoNet in both directions. No configuration is required or possible.
 
 ## Locomotive Control
 
