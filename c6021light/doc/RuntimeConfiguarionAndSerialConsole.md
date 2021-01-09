@@ -1,43 +1,6 @@
 # Runtime Configuration
 
-Various settings of the c6021light can be adjusted at runtime using the serial interface. To connect to the serial interface of the c6021light, simply hook up a USB-to-Serial adapter *capable of operating at 3.3V* to J52 on the c6021light. A USB-to-Serial adapter operating at a higher voltage may cause permanent damage to the c6021light or to other devices of your railroad layout!
-
-*Note [Issue #7](https://github.com/deltaphi/c6021light/issues/7): On some versions of the c6021light PCB, the RX and TX lines on J52 are swapped. If your PCB is affected by this bug, use jumper cables to cross over RX and TX.*
-
-Populating the on-board USB-to-Serial converter will also let you access the serial console, but is a somewhat difficult soldering task.
-
-## Connecting to the Serial Console
-
-Once you have connected a USB-to-Serial converter to the c6021light and to your computer, you can use a terminal program to open the serial port and talk to the c6021light. The connection runs at `115200 8N1`, i.e., 115200 Baud, 8 Bits, no Parity, 1 Stop bit. If you have the PlatformIO IDE installed, e.g., to be able to update the software of the c6021light, the PlatformIO IDE has a serial terminal built in. With the PlatformIO IDE open on the c6021light software project, simply press the "upwards-facing plug" icon in the bottom left of the window. This will start a serial terminal to the c6021light. While this terminal works perfectly well to edit the configuration of the c6021light, note that it does not offer acces to all convenience features of the command line interface, such as the command history.
-
-If you do not have the PlatformIO IDE installed or want a more feature-complete serial terminal experience, [PuTTY](https://www.chiark.greenend.org.uk/~sgtatham/putty/) has been tested to work well.
-
-If the serial terminal opens successfully (regardless of the program), you will likely see a screen that is empty, aside from status messages of your serial program. Right after connecting from the PlatformIO IDE, the screen appears as follows:
-
-```
-> Executing task in folder c6021light: C:\Users\Damian\.platformio\penv\Scripts\pio.exe device monitor <
-
---- Available filters and text transformations: colorize, debug, default, direct, hexlify, log2file, nocontrol, printable, send_on_enter, time
---- More details at http://bit.ly/pio-monitor-filters
---- Miniterm on COM4  115200,8,N,1 ---
---- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H ---
-
-
-```
-
-To bring up the command prompt, press `Enter` on your computers' keyboard. You will be greeted as follows:
-
-```
-> Executing task in folder c6021light: C:\Users\Damian\.platformio\penv\Scripts\pio.exe device monitor <
-
---- Available filters and text transformations: colorize, debug, default, direct, hexlify, log2file, nocontrol, printable, send_on_enter, time
---- More details at http://bit.ly/pio-monitor-filters
---- Miniterm on COM4  115200,8,N,1 ---
---- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H ---
-c6021light > 
-```
-
-`c6021light > ` is the command prompt that indicates that the c6021light now accepts your serial commands.
+Various settings of the c6021light can be adjusted at runtime using the serial interface. To connect to the serial interface of the c6021light, follow the instructions on the project Wiki for [Connectiong to the serial console](https://github.com/deltaphi/c6021light/wiki/ConnectToSerialConsole). Make sure that you can see the command prompt `c6021light > ` before continuing.
 
 ## Interacting with the Serial Console
 
