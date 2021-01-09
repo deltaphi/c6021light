@@ -7,20 +7,21 @@ So you have just soldered up your c6021light and now want to connect it to your 
 To follow this guide, you will need the following:
 
 * A c6021light loaded with firmware. If you need to update or install the firmware on your c6021light, please follow the [Instructions for Build & Upload](https://github.com/deltaphi/c6021light/wiki/Build-&-Upload) from the project Wiki. Continue reading here once you have the firmware installed on your c6021light.
-* Power Supply for the c6021light.
-* A Märklin Mobile Station 2 and Märklin Gleisbox.
+* Power Supply for the c6021light. ([Example](images/c6021light_with_PSU.jpg))
+* A Märklin Mobile Station 2 and Märklin Gleisbox. ([Example](images/ms2_gleisbox_srseii.jpg)))
 * An RJ45 CAN breakoutport built into the Märklin Gleisbox or an Adapter cable to connect the Märklin Gleisbox to the RJ45 CAN port on the c6021light.
-* A Märklin 6040 Keyboard.
+* A Märklin 6040 Keyboard. ([Example](images/Keyboard6040.jpg))
 
-In our example setup, we will use a Märklin Gleisbox that has been modded with a [SRSEII](http://lnxpps.de/can2udp/srseII/) to get access to the CAN bus and a c6021light with the optional on-board USB-to-serial converter. For the purpose of the example, we run with no railway layout connected to the Gleisbox. However, we assume that turnouts on the railway layout are controlled using the MM2 protocol. Finally, we assume that the Märklin Keyboard is configured to address 0 (all DIP switches on the back set to the "Off" position).
+In our example setup, we will use a Märklin Gleisbox that has been modded with a [SRSEII](http://lnxpps.de/can2udp/srseII/) to get access to the CAN bus and a c6021light with the optional on-board USB-to-serial converter. For the purpose of the example, we run with no railway layout connected to the Gleisbox. However, we assume that turnouts on the railway layout are controlled using the MM2 protocol. Finally, we assume that the Märklin Keyboard is configured to address 0 (all DIP switches on the back set to the "Off" position). See an overview of our example system:
 
-TBD: Photos
+![Overview of the example system](images/fullSystem_example.jpg)
+
 
 ## First look at the c6021light
 
 The PCB of the c6021light looks roughly as shown in the image below. Depending on your specific setup and PCB revision, the details may be slightly different. Let's take a closer look at what we are seeing here.
 
-TBD: Photo
+![Overview of the c6021light](images/c6021light_pcb_v1_0_small.jpg)
 
 At the center of the board, we can first see the BluePill board containing an STM32 Microprocessor - the heart and brain of the c6021light. On and around the PCB, we can see a bunch of connectors, LEDs and a button. We will first take a look at the connectors and then examine the LEDs and Button.
 
@@ -71,6 +72,9 @@ To power up the system, apply power to the Gleisbox and plug in the power supply
 
 * Note that in the current software version, the order in which you power up the devices does not matter. However, later software versions may make assumptions about whether other devices have already been powered up. We recommend to plug the Gleisbox and the c6021light into a common switchable power strip and thereby switch both devices on and off at the same time.*
 
+The powered-up system should look roughly as follows:
+![Overview of the example system](images/fullSystem_example.jpg)
+
 Ensure that the Display of the Mobile Station 2 lights up and the Mobile Station 2 goes to its regular operating state, that the Power LED on the BluePill board turns on and that at least one LED on the Keyboard lights up.
 
 ### Troubleshooting
@@ -87,11 +91,16 @@ If the display of the Mobile Station 2 lights up but the Mobile Station 2 does n
 
 A freshly installed c6021light runs at its default settings. This means that it will transfer turout control commands, S88 sensor reports and the Stop/Go state between all attached busses. Turnout Control commands on the CAN bus are sent to turnout decoders using the MM2 protocol by default.
 
-If your turnout decoders are using the MM2 protocol, you are now ready to test out the c6021light. Start by ensuring that system is in the "Go" state (track power is on, even if no track is connected). To this end, verify that the "STOP" button on the Mobile Station 2 is *not* lit. If it is lit, press the "STOP" button to put the system in the "Go" state. Next, bring up the turnout screen on the Mobile Station 2 by pressing the turnout button. You should see two turnouts presented in the screen. The label at the top indicates that you are seeing turnouts 1 and 2.
+If your turnout decoders are using the MM2 protocol, you are now ready to test out the c6021light. Start by ensuring that system is in the "Go" state (track power is on, even if no track is connected). To this end, verify that the display of the Mobile Station 2 does *not* say "STOP". If it does, press the "STOP" button to put the system in the "Go" state. For reference, see images of the Mobile Station 2 on the default locomotive control screen in the [Stop mode](images/ms2_loco_stop.jpg) and the [Go mode](images/ms2_loco_go.jpg), as well as on the turnout control screen in the [Stop mode](images/ms2_turnout_stop.jpg) and the [Go mode](images/ms2_turnout_go.jpg). Next, bring up the turnout screen on the Mobile Station 2 by pressing the turnout button. You should see two turnouts presented in the screen. The label at the top indicates that you are seeing turnouts 1 and 2.
 
 Now start switching Turnouts 1 and 2 back and forth on the Keyboard. You should now see the screen on the Mobile Station 2 reflect your turnout changes. If you happen to have a railroad layout connected to your Gleisbox, turnouts 1 and 2 will be switching.
 
 Next, start switching Turnouts 1 and 2 back and forth on the Mobile Station 2. You should now see the indicator LED on the Keyboard reflect your turnout changes. If you happen to have a railroad layout connected to your Gleisbox, turnouts 1 and 2 will be switching.
+
+ For reference, see the two following images showing an identical system, save for turnout 2 being switched to green in the second picture:
+
+ ![Example System, Turnout 2 red](images/fullSystem_example.jpg)
+ ![Example System, Turnout 2 green](images/fullSystem_example_T2switched.jpg)
 
 If everything worked: Congratulations, you are now ready to use the c6021light!
 
