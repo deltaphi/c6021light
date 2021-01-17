@@ -182,14 +182,14 @@ void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask) {
   nvic_enable_irq(NVIC_EXTI4_IRQ);
   nvic_set_priority(NVIC_EXTI4_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
   exti_select_source(EXTI4, hal::MarklinBusGPIOMap::STOP.port);
-  exti_set_trigger(EXTI4, EXTI_TRIGGER_FALLING);
+  exti_set_trigger(EXTI4, EXTI_TRIGGER_RISING);
   exti_enable_request(EXTI4);
 
   // GO IRQ
   nvic_enable_irq(NVIC_EXTI15_10_IRQ);
   nvic_set_priority(NVIC_EXTI15_10_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
   exti_select_source(EXTI15, hal::MarklinBusGPIOMap::GO.port);
-  exti_set_trigger(EXTI15, EXTI_TRIGGER_FALLING);
+  exti_set_trigger(EXTI15, EXTI_TRIGGER_RISING);
   exti_enable_request(EXTI15);
 }
 
