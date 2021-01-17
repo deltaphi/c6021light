@@ -106,6 +106,27 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCANandI2C) {
   routingTask.loop();
 }
 
+TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet_WithGeneratedResponse) {
+  // Configure data model
+  dataModel.generateI2CTurnoutResponse = true;
+
+  // Setup expectations
+  EXPECT_CALL(canTx, SendPacket(canFrame));
+  hal::I2CMessage_t i2cResponseMessage =
+      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnout, direction, power);
+  EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessage));
+  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
+
+  mocks::makeSequence(canHal);
+  mocks::makeSequence(lnHal);
+
+  // Inject I2C message
+  mocks::makeSequence(i2cHal, i2cMessage);
+
+  // Run!
+  routingTask.loop();
+}
+
 INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture,
                          Values(MM2_Turnout(0u), MM2_Turnout(1u), MM2_Turnout(5u), MM2_Turnout(10u),
                                 MM2_Turnout(42u), MM2_Turnout(100u), MM2_Turnout(255u)));

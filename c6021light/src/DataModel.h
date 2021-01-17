@@ -16,6 +16,7 @@ struct DataAddresses {
   constexpr static const uint8_t startAddr = 0;
   constexpr static const uint8_t accessoryRailProtocol = startAddr + 0;
   constexpr static const uint8_t lnSlotServerState = accessoryRailProtocol + 1;
+  constexpr static const uint8_t generateI2CTurnoutResponse = lnSlotServerState + 1;
 };
 
 /*
@@ -28,6 +29,7 @@ struct DataModel {
   constexpr static const uint8_t kMyAddr = MarklinI2C::kCentralAddr;
   tasks::RoutingTask::LocoNetSlotServer::SlotServerState lnSlotServerState =
       tasks::RoutingTask::LocoNetSlotServer::SlotServerState::DISABLED;
+  bool generateI2CTurnoutResponse = false;
 
   template <typename T>
   T getValueForKey(uint8_t key) const {
@@ -36,6 +38,8 @@ struct DataModel {
         return static_cast<T>(accessoryRailProtocol);
       case DataAddresses::lnSlotServerState:
         return static_cast<T>(lnSlotServerState);
+      case DataAddresses::generateI2CTurnoutResponse:
+        return generateI2CTurnoutResponse;
     }
     return 0xDEAD;
   }

@@ -105,5 +105,12 @@ bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& requ
   return true;
 }
 
+void I2CForwarder::sendI2CResponseIfEnabled(const MarklinI2C::Messages::AccessoryMsg& i2cMsg) {
+  if (dataModel_->generateI2CTurnoutResponse) {
+    const auto response = MarklinI2C::Messages::AccessoryMsg::makeOutbound(i2cMsg);
+    hal::sendI2CMessage(response);
+  }
+}
+
 }  // namespace RoutingTask
 }  // namespace tasks

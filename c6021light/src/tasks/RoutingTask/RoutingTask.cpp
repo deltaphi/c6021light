@@ -43,14 +43,16 @@ void RoutingTask::processI2C() {
 
     // Convert to generic CAN representation
     if (i2cForwarder_.MakeRR32CanMsg(*messagePtr, frame)) {
-      // Explicitly reset messagePtr so that getCanMessage can produce a new message
-      messagePtr.reset();
-
       RR32Can::RR32Can.SendPacket(frame);
       lnForwarder_.forward(frame);
       // Forward to self
       RR32Can::RR32Can.HandlePacket(frame);
     }
+
+    i2cForwarder_.sendI2CResponseIfEnabled(*messagePtr);
+
+    // Explicitly reset messagePtr so that getI2CMessage can produce a new message
+    messagePtr.reset();
   }
 }
 

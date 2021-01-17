@@ -86,6 +86,12 @@ class AccessoryMsg {
     return msg;
   }
 
+  static AccessoryMsg makeOutbound(const AccessoryMsg& inboundMsg) {
+    AccessoryMsg msg =
+        makeOutbound(inboundMsg.getTurnoutAddr(), inboundMsg.getDirection(), inboundMsg.getPower());
+    return msg;
+  }
+
   void print() const;
 
   uint8_t destination_ = 0;
