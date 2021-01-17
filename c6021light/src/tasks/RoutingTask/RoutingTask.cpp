@@ -33,7 +33,7 @@ void RoutingTask::processCAN() {
   }
 }
 
-void RoutingTask::processI2C() {
+void RoutingTask::processI2CMessages() {
   for (auto messagePtr = hal::getI2CMessage(); messagePtr != nullptr;
        messagePtr = hal::getI2CMessage()) {
     printf("I2C RX: ");
@@ -53,6 +53,16 @@ void RoutingTask::processI2C() {
 
     // Explicitly reset messagePtr so that getI2CMessage can produce a new message
     messagePtr.reset();
+  }
+}
+
+void RoutingTask::processI2CStopGo() {
+  RR32Can::CanFrame frame;
+  if (i2cForwarder_.MakeRR32CanPowerMsg(hal::getStopGoRequest(), frame)) {
+    RR32Can::RR32Can.SendPacket(frame);
+    lnForwarder_.forward(frame);
+    // Forward to self
+    RR32Can::RR32Can.HandlePacket(frame);
   }
 }
 
@@ -95,8 +105,9 @@ void RoutingTask::matchEnginesFromLocoNetAndCan() {
 }
 
 void RoutingTask::loop() {
+  processI2CStopGo();
   processCAN();
-  processI2C();
+  processI2CMessages();
   processLocoNet();
   matchEnginesFromLocoNetAndCan();
 }

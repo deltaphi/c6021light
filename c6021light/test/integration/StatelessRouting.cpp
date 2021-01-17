@@ -56,6 +56,11 @@ class TurnoutRoutingFixture : public StatelessRoutingFixture,
   constexpr static const RR32Can::TurnoutDirection direction = RR32Can::TurnoutDirection::GREEN;
   constexpr static const bool power = true;
 
+  void SetUp() {
+    StatelessRoutingFixture::SetUp();
+    EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
+  }
+
   RR32Can::MachineTurnoutAddress turnout{GetParam()};
   RR32Can::CanFrame canFrame{Turnout(false, turnout, direction, power)};
   hal::I2CMessage_t i2cMessage{
@@ -136,6 +141,11 @@ using SenorTestParam_t = std::tuple<RR32Can::MachineTurnoutAddress, RR32Can::Sen
 class SenorRoutingFixture : public StatelessRoutingFixture,
                             public WithParamInterface<SenorTestParam_t> {
  public:
+  void SetUp() {
+    StatelessRoutingFixture::SetUp();
+    EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
+  }
+
   constexpr static const RR32Can::MachineTurnoutAddress ZeroAddress{0};
   const RR32Can::MachineTurnoutAddress sensor{std::get<0>(GetParam())};
   const RR32Can::SensorState newState{std::get<1>(GetParam())};
@@ -191,14 +201,17 @@ class PowerRoutingFixture : public StatelessRoutingFixture,
     if (power) {
       canFrame = RR32Can::util::System_Go(false);
       LnPacket = Ln_On();
+      stopGoRequest.goRequest = true;
     } else {
       canFrame = RR32Can::util::System_Stop(false);
       LnPacket = Ln_Off();
+      stopGoRequest.stopRequest = true;
     }
   }
   const bool power{GetParam()};
   RR32Can::CanFrame canFrame{};
   lnMsg LnPacket{};
+  hal::StopGoRequest stopGoRequest;
 };
 
 TEST_P(PowerRoutingFixture, PowerRequest_CANtoLocoNet) {
@@ -207,6 +220,7 @@ TEST_P(PowerRoutingFixture, PowerRequest_CANtoLocoNet) {
 
   mocks::makeSequence(i2cHal);
   mocks::makeSequence(lnHal);
+  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
 
   // Inject CAN message
   mocks::makeSequence(canHal, canFrame);
@@ -217,6 +231,7 @@ TEST_P(PowerRoutingFixture, PowerRequest_CANtoLocoNet) {
 
 TEST_P(PowerRoutingFixture, PowerResponse_CANtoLocoNet) {
   // Setup expectations
+  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(i2cHal);
   mocks::makeSequence(lnHal);
 
@@ -234,9 +249,26 @@ TEST_P(PowerRoutingFixture, PowerRequest_LocoNetToCAN) {
 
   mocks::makeSequence(i2cHal);
   mocks::makeSequence(canHal);
+  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
 
   // Inject LocoNet message
   mocks::makeSequence(lnHal, LnPacket);
+
+  // Run!
+  routingTask.loop();
+}
+
+TEST_P(PowerRoutingFixture, PowerRequest_FromI2C) {
+  // Expoected output packets
+  EXPECT_CALL(canTx, SendPacket(canFrame));
+  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
+
+  // Expected input packets
+  mocks::makeSequence(i2cHal);
+  mocks::makeSequence(canHal);
+  mocks::makeSequence(lnHal);
+
+  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(stopGoRequest));
 
   // Run!
   routingTask.loop();

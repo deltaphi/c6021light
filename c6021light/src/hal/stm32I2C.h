@@ -17,6 +17,11 @@ struct OptionalI2CMessage {
   MarklinI2C::Messages::AccessoryMsg msg;
 };
 
+struct StopGoRequest {
+  bool stopRequest = false;
+  bool goRequest = false;
+};
+
 void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask);
 
 /**
@@ -38,6 +43,15 @@ void sendI2CMessage(const I2CMessage_t& msg);
  * \return a pointer to the next message or a null pointer, if no message was available.
  */
 I2CRxMessagePtr_t getI2CMessage();
+
+/**
+ * Get flags that indicate whether a user pressed the STOP or GO buttons on a device.
+ *
+ * Resets the flags when called.
+ *
+ * \return A struct contianing two flags.
+ */
+StopGoRequest getStopGoRequest();
 
 }  // namespace hal
 

@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "RR32Can/messages/TurnoutPacket.h"
+#include "RR32Can/util/constexpr.h"
 
 #include "DataModel.h"
 
@@ -103,6 +104,19 @@ bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& requ
     }
   }
   return true;
+}
+
+bool I2CForwarder::MakeRR32CanPowerMsg(const hal::StopGoRequest& stopGoRequest,
+                                       RR32Can::CanFrame& frame) {
+  if (stopGoRequest.stopRequest) {
+    frame = RR32Can::util::System_Stop(false);
+    return true;
+  } else if (stopGoRequest.goRequest) {
+    frame = RR32Can::util::System_Go(false);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void I2CForwarder::sendI2CResponseIfEnabled(const MarklinI2C::Messages::AccessoryMsg& i2cMsg) {

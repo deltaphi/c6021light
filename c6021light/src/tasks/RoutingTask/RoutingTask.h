@@ -43,7 +43,8 @@ class RoutingTask : public freertossupport::OsTask {
   LocoNetForwarder lnForwarder_;
 
   void processCAN();
-  void processI2C();
+  void processI2CMessages();
+  void processI2CStopGo();
   void processLocoNet();
   void matchEnginesFromLocoNetAndCan();
 };

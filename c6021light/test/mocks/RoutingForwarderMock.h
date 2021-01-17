@@ -20,6 +20,7 @@ class I2CHalMock {
  public:
   MOCK_METHOD(void, sendI2CMessage, (const hal::I2CMessage_t& msg), ());
   MOCK_METHOD(hal::I2CRxMessagePtr_t, getI2CMessage, (), ());
+  MOCK_METHOD(hal::StopGoRequest, getStopGoRequest, (), ());
 };
 
 class CANHalMock {

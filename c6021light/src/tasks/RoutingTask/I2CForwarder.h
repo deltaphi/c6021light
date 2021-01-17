@@ -4,6 +4,7 @@
 #include "RoutingForwarder.h"
 
 #include "MarklinI2C/Messages/AccessoryMsg.h"
+#include "hal/stm32I2C.h"
 
 #include "DataModel.h"
 
@@ -21,6 +22,7 @@ class I2CForwarder final : public RoutingForwarder {
   void forward(const RR32Can::CanFrame& frame) override;
 
   bool MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& i2cMsg, RR32Can::CanFrame& frame);
+  bool MakeRR32CanPowerMsg(const hal::StopGoRequest& stopGoRequest, RR32Can::CanFrame& frame);
 
   void sendI2CResponseIfEnabled(const MarklinI2C::Messages::AccessoryMsg& i2cMsg);
 
