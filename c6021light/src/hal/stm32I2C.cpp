@@ -1,9 +1,11 @@
 #include <atomic>
 #include <cstring>
 
+#include "hal/MarklinBusGPIOMap.h"
 #include "hal/stm32I2C.h"
 
 #include <libopencm3/cm3/nvic.h>
+#include <libopencm3/stm32/exti.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/i2c.h>
 
@@ -86,6 +88,8 @@ QueueType i2cTxQueue;
 
 freertossupport::OsTask taskToNotify;
 
+StopGoRequest stopGoRequest;
+
 bool i2cBusy() { return (I2C_SR2(I2C1) & I2C_SR2_BUSY) != 0; }
 
 /**
@@ -164,6 +168,23 @@ void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask) {
 
   i2c_peripheral_enable(I2C1);
   i2c_enable_ack(I2C1);
+
+  // Setup GPIO for Stop/Go
+  gpio_set_mode(hal::MarklinBusGPIOMap::STOP.port, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN,
+                hal::MarklinBusGPIOMap::STOP.bits);
+  gpio_set_mode(hal::MarklinBusGPIOMap::GO.port, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN,
+                hal::MarklinBusGPIOMap::GO.bits);
+
+  gpio_clear(hal::MarklinBusGPIOMap::STOP.port, hal::MarklinBusGPIOMap::STOP.bits);
+  gpio_clear(hal::MarklinBusGPIOMap::GO.port, hal::MarklinBusGPIOMap::GO.bits);
+
+  nvic_enable_irq(NVIC_EXTI4_IRQ);
+  nvic_set_priority(NVIC_EXTI4_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
+  exti_select_source(EXTI4, hal::MarklinBusGPIOMap::STOP.port);
+  exti_set_trigger(EXTI4, EXTI_TRIGGER_FALLING);
+  exti_enable_request(EXTI4);
+
+  // TODO: IRQ for Go
 }
 
 I2CRxMessagePtr_t getI2CMessage() {
@@ -177,6 +198,12 @@ void sendI2CMessage(const I2CMessage_t& msg) {
     i2cTxQueue.publish(memory);
   }
   startTx();
+}
+
+StopGoRequest getStopGoRequest() {
+  StopGoRequest currentRequest = stopGoRequest;
+  stopGoRequest = StopGoRequest{};
+  return currentRequest;
 }
 
 namespace {
@@ -387,6 +414,12 @@ extern "C" void i2c1_er_isr(void) {
   } else {
     __asm("bkpt 6");
   }
+}
+
+extern "C" void exti4_isr() {
+  stopGoRequest.stopRequest = true;
+  taskToNotify.notifyFromISRWithWake();
+  exti_reset_request(EXTI4);
 }
 
 }  // namespace hal
