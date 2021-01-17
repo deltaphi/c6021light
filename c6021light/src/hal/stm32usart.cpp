@@ -23,7 +23,6 @@ namespace hal {
 // Definition of Module-private functions
 namespace {
 void startSerialTx();
-void irqSerialTxDMA();
 
 uint8_t SerialWrite(const char* ptr, AtomicRingBuffer::AtomicRingBuffer::size_type len,
                     bool doReplace);

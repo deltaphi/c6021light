@@ -28,7 +28,7 @@ The I2C bus operates at 5V.
 
 Belegung der Buchse (Keyboard 6040 links)
 ```
-SDA  SCL                      8V   8V
+SDA  SCL  STOP GO        INIT 8V   8V
  2b   4b   6b   8b  10b  12b  14b  16b
  2a   4a   6a   8a  10a  12a  14a  16a
 GND  GND  GND  GND  GND  GND  GND  GND
