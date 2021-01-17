@@ -36,6 +36,10 @@ DataModel LoadConfig() {
       case DataAddresses::lnSlotServerState:
         model.lnSlotServerState = static_cast<decltype(model.lnSlotServerState)>(value);
         break;
+      case DataAddresses::generateI2CTurnoutResponse:
+        model.generateI2CTurnoutResponse =
+            static_cast<decltype(model.generateI2CTurnoutResponse)>(value);
+        break;
     }
   };
 

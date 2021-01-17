@@ -11,7 +11,7 @@
  * Contains EEPROM addresses for the respective configuration data.
  */
 struct DataAddresses {
-  constexpr static const uint8_t kNumAddresses = 2;
+  constexpr static const uint8_t kNumAddresses = 3;
 
   constexpr static const uint8_t startAddr = 0;
   constexpr static const uint8_t accessoryRailProtocol = startAddr + 0;
