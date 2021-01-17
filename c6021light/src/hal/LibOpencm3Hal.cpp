@@ -60,4 +60,17 @@ void LibOpencm3Hal::beginLocoNet() { LocoNet.init(PinNames::PB15); }
 
 void LibOpencm3Hal::toggleLed() { gpio_toggle(GPIOC, GPIO13); }
 
+extern "C" {
+void exti14_isr();
+void exti15_isr();
+
+void exti15_10_isr() {
+  if (exti_get_flag_status(EXTI14)) {
+    exti14_isr();
+  } else if (exti_get_flag_status(EXTI15)) {
+    exti15_isr();
+  }
+}
+}
+
 }  // namespace hal

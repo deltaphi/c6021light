@@ -178,13 +178,19 @@ void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask) {
   gpio_clear(hal::MarklinBusGPIOMap::STOP.port, hal::MarklinBusGPIOMap::STOP.bits);
   gpio_clear(hal::MarklinBusGPIOMap::GO.port, hal::MarklinBusGPIOMap::GO.bits);
 
+  // STOP IRQ
   nvic_enable_irq(NVIC_EXTI4_IRQ);
   nvic_set_priority(NVIC_EXTI4_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
   exti_select_source(EXTI4, hal::MarklinBusGPIOMap::STOP.port);
   exti_set_trigger(EXTI4, EXTI_TRIGGER_FALLING);
   exti_enable_request(EXTI4);
 
-  // TODO: IRQ for Go
+  // GO IRQ
+  nvic_enable_irq(NVIC_EXTI15_10_IRQ);
+  nvic_set_priority(NVIC_EXTI15_10_IRQ, configMAX_SYSCALL_INTERRUPT_PRIORITY + 64);
+  exti_select_source(EXTI15, hal::MarklinBusGPIOMap::GO.port);
+  exti_set_trigger(EXTI15, EXTI_TRIGGER_FALLING);
+  exti_enable_request(EXTI15);
 }
 
 I2CRxMessagePtr_t getI2CMessage() {
@@ -420,6 +426,12 @@ extern "C" void exti4_isr() {
   stopGoRequest.stopRequest = true;
   taskToNotify.notifyFromISRWithWake();
   exti_reset_request(EXTI4);
+}
+
+extern "C" void exti15_isr() {
+  stopGoRequest.goRequest = true;
+  taskToNotify.notifyFromISRWithWake();
+  exti_reset_request(EXTI15);
 }
 
 }  // namespace hal
