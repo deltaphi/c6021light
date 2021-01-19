@@ -170,6 +170,9 @@ void beginI2C(uint8_t slaveAddress, freertossupport::OsTask routingTask) {
   i2c_enable_ack(I2C1);
 
   // Setup GPIO for Stop/Go
+  // disable JTAG
+  gpio_primary_remap(AFIO_MAPR_SWJ_CFG_JTAG_OFF_SW_ON, 0);
+
   gpio_set_mode(hal::MarklinBusGPIOMap::STOP.port, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN,
                 hal::MarklinBusGPIOMap::STOP.bits);
   gpio_set_mode(hal::MarklinBusGPIOMap::GO.port, GPIO_MODE_INPUT, GPIO_CNF_INPUT_PULL_UPDOWN,
