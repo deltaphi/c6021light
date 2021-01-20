@@ -1,6 +1,7 @@
 #include <atomic>
 #include <cstring>
 
+#include "hal/Debounce.h"
 #include "hal/MarklinBusGPIOMap.h"
 #include "hal/stm32I2C.h"
 
@@ -89,6 +90,8 @@ QueueType i2cTxQueue;
 freertossupport::OsTask taskToNotify;
 
 StopGoRequest stopGoRequest;
+Debounce stopLine;
+Debounce goLine;
 
 bool i2cBusy() { return (I2C_SR2(I2C1) & I2C_SR2_BUSY) != 0; }
 
@@ -426,14 +429,18 @@ extern "C" void i2c1_er_isr(void) {
 }
 
 extern "C" void exti4_isr() {
-  stopGoRequest.stopRequest = true;
-  taskToNotify.notifyFromISRWithWake();
+  if (stopLine.addEdge(Debounce::Edge::RISING)) {
+    stopGoRequest.stopRequest = true;
+    taskToNotify.notifyFromISRWithWake();
+  }
   exti_reset_request(EXTI4);
 }
 
 extern "C" void exti15_isr() {
-  stopGoRequest.goRequest = true;
-  taskToNotify.notifyFromISRWithWake();
+  if (goLine.addEdge(Debounce::Edge::RISING)) {
+    stopGoRequest.goRequest = true;
+    taskToNotify.notifyFromISRWithWake();
+  }
   exti_reset_request(EXTI15);
 }
 
