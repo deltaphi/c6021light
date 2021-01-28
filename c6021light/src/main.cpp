@@ -37,6 +37,7 @@ extern "C" {
 
 #include <FreeRTOS.h>
 #include "OsTask.h"
+#include "timers.h"
 
 // ******** Variables and Constans********
 Hal_t halImpl;
@@ -65,6 +66,16 @@ void vApplicationGetIdleTaskMemory(StaticTask_t** ppxIdleTaskTCBBuffer,
   *ppxIdleTaskTCBBuffer = &idleTaskTcb;
   *ppxIdleTaskStackBuffer = idleTaskStack;
   *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+
+void vApplicationGetTimerTaskMemory(StaticTask_t** ppxTimerTaskTCBBuffer,
+                                    StackType_t** ppxTimerTaskStackBuffer,
+                                    uint32_t* pulTimerTaskStackSize) {
+  static StackType_t timerTaskStack[configTIMER_TASK_STACK_DEPTH];
+  static StaticTask_t timerTaskTcb;
+  *ppxTimerTaskTCBBuffer = &timerTaskTcb;
+  *ppxTimerTaskStackBuffer = timerTaskStack;
+  *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
 
 }  // extern "C"
@@ -100,6 +111,12 @@ void setup() {
   ConsoleManager::begin(&dataModel);
 }
 
+void setupOsResources() {
+  // static StaticTimer_t i2cWdgTimerBuffer;
+  // hal::i2cWdg = xTimerCreateStatic("I2CWdg", HAL_I2C_WDG_TIMEOUT, false, nullptr, hal::i2cWdgCbk,
+  //                                 &i2cWdgTimerBuffer);
+}
+
 void setupOsTasks() {
   routingTask.Create("RoutingTask", configMAX_PRIORITIES - 1);
   consoleTask.Create("ConsoleTask",
@@ -109,6 +126,7 @@ void setupOsTasks() {
 
 // Main function for non-arduino
 int main(void) {
+  setupOsResources();
   setupOsTasks();
 
   setup();
