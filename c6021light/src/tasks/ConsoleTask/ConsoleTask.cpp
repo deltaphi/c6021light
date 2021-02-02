@@ -13,6 +13,11 @@ void ConsoleTask::TaskMain() {
     if (hal::pollSerial(receivedCharacter)) {
       microrl_insert_char(&ConsoleManager::microrl, receivedCharacter);
     }
+    /* TODO hacky solution for first XN trials
+     * It is doable to trigger a notifier whenever update() needs to be called,
+     * which then triggers a task which will call update().
+     */ 
+    XpressNet.update();
   }
 }
 
