@@ -50,5 +50,18 @@ TEST(AccessoryPacket, SentPacket) {
   EXPECT_EQ(actual, expected);
 }
 
+TEST(AccessoryPacket, Response) {
+  AccessoryMsg inbound = AccessoryMsg::makeInbound(RR32Can::MachineTurnoutAddress(0xAAu),
+                                                  RR32Can::TurnoutDirection::GREEN, true);
+  AccessoryMsg outbound = AccessoryMsg::makeOutbound(inbound);
+  
+  AccessoryMsg expected;
+  expected.source_ = 0x7F;
+  expected.destination_ = 0x34;
+  expected.data_ = 0x2D;
+
+  EXPECT_EQ(outbound, expected);
+}
+
 }  // namespace Messages
 }  // namespace MarklinI2C
