@@ -124,7 +124,7 @@ int main(void) {
 extern "C" void notifyLnByteReceived() { routingTask.notifyFromISRWithWake(); }
 
 // single function that gets called from all relevant XNet notifiers
-extern "C" void notifyXNetGlobal() { routingTask.notify(); }
+void notifyXNetGlobal() { routingTask.notify(); }
 
 namespace ConsoleManager {
 

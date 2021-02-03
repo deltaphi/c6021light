@@ -5,7 +5,6 @@
 #include "RR32Can/messages/SystemMessage.h"
 #include "RR32Can/messages/TurnoutPacket.h"
 
-#include "XpressNet/XpressNetMaster.h"
 
 namespace tasks {
 namespace RoutingTask {
@@ -18,10 +17,11 @@ void XpressNetForwarder::forward(const RR32Can::CanFrame& frame) {
         // Send to XpressNet
         // convert CAN turnout direction
         uint8_t xn_direction;
-        if (turnoutPacket.getDirection() == RR32Can::TurnoutDirection::GREEN)
+        if (turnoutPacket.getDirection() == RR32Can::TurnoutDirection::GREEN) {
           xn_direction = 1;
-        else
+        } else {
           xn_direction = 0;
+        }
         
         XpressNet.SetTrntPos(turnoutPacket.getLocid().getNumericAddress().value(), xn_direction, turnoutPacket.getPower());
       }
@@ -31,12 +31,14 @@ void XpressNetForwarder::forward(const RR32Can::CanFrame& frame) {
     case RR32Can::Command::SYSTEM_COMMAND: {
       const RR32Can::SystemMessage systemMessage(const_cast<RR32Can::Data&>(frame.data));
       switch (systemMessage.getSubcommand()) {
-        case RR32Can::SystemSubcommand::SYSTEM_STOP:
+        case RR32Can::SystemSubcommand::SYSTEM_STOP: {
           if (!frame.id.isResponse()) XpressNet.setPower(csTrackVoltageOff);
           break;
-        case RR32Can::SystemSubcommand::SYSTEM_GO:
+        }
+        case RR32Can::SystemSubcommand::SYSTEM_GO: {
           if (!frame.id.isResponse()) XpressNet.setPower(csNormal);
           break;
+        }
         default:
           // Other messages not forwarded.
           break;
@@ -67,6 +69,9 @@ bool XpressNetForwarder::MakeRR32CanMsg(const XpressNetMsg::XNetMsg& XnPacket, R
         systemMessage.setSubcommand(RR32Can::SystemSubcommand::SYSTEM_GO);
       } else if (XnPacket.XN_message.data.powerData == csTrackVoltageOff) {
         systemMessage.setSubcommand(RR32Can::SystemSubcommand::SYSTEM_STOP);
+      } else {
+        return false;
+        break;
       }
 
       return true;

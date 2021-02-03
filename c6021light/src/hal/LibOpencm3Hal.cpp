@@ -9,8 +9,7 @@
 #include <cstdio>
 
 #include <LocoNet.h>
-
-#include "XpressNet/XpressNetMaster.h"
+#include <XpressNetMaster.h>
 
 namespace hal {
 

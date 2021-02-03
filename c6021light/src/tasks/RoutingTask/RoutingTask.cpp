@@ -113,7 +113,6 @@ void RoutingTask::matchEnginesFromLocoNetAndCan() {
 void RoutingTask::processXpressNet() {
   for (auto messagePtr = XpressNetMsg::getXNMessage(); messagePtr != nullptr;
        messagePtr = XpressNetMsg::getXNMessage()) {
-    //printf("XN RX: %d\n", messagePtr->XN_message.data.powerData);
 
   RR32Can::CanFrame frame;
 

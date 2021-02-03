@@ -7,9 +7,9 @@
 #include "RR32Can/messages/Data.h"
 #include "RR32Can/messages/Identifier.h"
 
+#include <XpressNetMaster.h>
 #include "XpressNet/XpressNetMsg.h"
 
-#include "DataModel.h"
 
 namespace tasks {
 namespace RoutingTask {
@@ -19,16 +19,13 @@ namespace RoutingTask {
  */
 class XpressNetForwarder final : public RoutingForwarder {
  public:
-  void init(DataModel& dataModel) {
-    this->dataModel_ = &dataModel;
-  }
 
   void forwardLocoChange(const RR32Can::LocomotiveData& loco, LocoDiff_t& diff) override;
   void forward(const RR32Can::CanFrame& frame) override;
   bool MakeRR32CanMsg(const XpressNetMsg::XNetMsg& XnPacket, RR32Can::CanFrame& frame);
 
  private:
-  DataModel* dataModel_ = nullptr;
+
 };
 
 }  // namespace RoutingTask

@@ -4,7 +4,7 @@
 #include <cstdint>
 
 #include "OsTask.h"
-#include "XpressNet/XpressNetMaster.h"
+#include <XpressNetMaster.h>
 
 namespace tasks {
 namespace ConsoleTask {

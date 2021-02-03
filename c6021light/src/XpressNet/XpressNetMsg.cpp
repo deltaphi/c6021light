@@ -33,7 +33,7 @@ void forwardRx(XNetMsg& msg) {
 }  // namespace XpressNetMsg
 
 // TODO shall we move the notify functions to a separate file?
-extern "C" void notifyXNetPower(uint8_t State) {
+void notifyXNetPower(uint8_t State) {
   XpressNetMsg::XNetMsg XN_Msg;
   XN_Msg.XN_message.header = XpressNetMsg::POWER;
   XN_Msg.XN_message.data.powerData = State;

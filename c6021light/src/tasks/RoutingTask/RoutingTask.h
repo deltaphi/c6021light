@@ -24,7 +24,6 @@ class RoutingTask : public freertossupport::OsTask {
 
   void begin(DataModel& dataModel) {
     lnForwarder_.init(dataModel, slotServer_);
-    xnForwarder_.init(dataModel);
     i2cForwarder_.init(dataModel);
     slotServer_.init(dataModel);
   };
