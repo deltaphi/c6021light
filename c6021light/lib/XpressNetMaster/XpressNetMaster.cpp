@@ -325,8 +325,8 @@ void XpressNetMasterClass::XNetAnalyseReceived(void) {		//work on received data
 	#endif
 
 	#if defined(STM32F1)
-	printf("XN rx: 0x1%x", XNetMsgCallByte);
-	for (byte i = 0; i < ((XNetMsg[XNetheader] & 0x0F) + 2); i++) printf(" %x", XNetMsg[i]);
+	printf("XN rx: 0x1%02x", XNetMsgCallByte);
+	for (byte i = 0; i < ((XNetMsg[XNetheader] & 0x0F) + 2); i++) printf(" %02x", XNetMsg[i]);
 	printf("\n");
 	#endif
 	

@@ -28,27 +28,12 @@ typedef struct {
   XN_MsgBody_t data;
 } XN_Msg_t;
 
-/**
- * TODO I only created the class because I could not figure out
- * how to properly use the AtomicRingBuffer instead of the ObjectRingBuffer.
- * Probably this is way too convoluted and complicated for a simple message queue.
- */
-class XNetMsg {
- public:
 
-  constexpr XNetMsg(){};
-
-  XN_Msg_t XN_message = {POWER, 0};
-
- private:
-  
-};
-
-using XN_RxMsgPtr_t = std::unique_ptr<XNetMsg, void (*)(XNetMsg*)>;
-using XN_MsgPtr_t = XNetMsg*;
+using XN_RxMsgPtr_t = std::unique_ptr<XN_Msg_t, void (*)(XN_Msg_t*)>;
+using XN_MsgPtr_t = XN_Msg_t*;
 
 XN_RxMsgPtr_t getXNMessage();
-void forwardRx(XNetMsg& msg);
+void forwardRx(XN_Msg_t& msg);
 void freeXNRXMessage(XN_MsgPtr_t msgPtr);
 
 }  // namespace XpressNetMsg

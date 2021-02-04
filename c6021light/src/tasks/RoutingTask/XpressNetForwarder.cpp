@@ -56,18 +56,18 @@ void XpressNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, 
   // nothing here yet..
 }
 
-bool XpressNetForwarder::MakeRR32CanMsg(const XpressNetMsg::XNetMsg& XnPacket, RR32Can::CanFrame& frame) {
+bool XpressNetForwarder::MakeRR32CanMsg(const XpressNetMsg::XN_Msg_t& XnPacket, RR32Can::CanFrame& frame) {
   // Decode the message type
-  switch(XnPacket.XN_message.header) {
+  switch(XnPacket.header) {
     case XpressNetMsg::POWER: {
       frame.id.setCommand(RR32Can::Command::SYSTEM_COMMAND);
       frame.id.setResponse(false);
       RR32Can::SystemMessage systemMessage(frame.data);
       systemMessage.initData();
 
-      if (XnPacket.XN_message.data.powerData == csNormal) {
+      if (XnPacket.data.powerData == csNormal) {
         systemMessage.setSubcommand(RR32Can::SystemSubcommand::SYSTEM_GO);
-      } else if (XnPacket.XN_message.data.powerData == csTrackVoltageOff) {
+      } else if (XnPacket.data.powerData == csTrackVoltageOff) {
         systemMessage.setSubcommand(RR32Can::SystemSubcommand::SYSTEM_STOP);
       } else {
         return false;

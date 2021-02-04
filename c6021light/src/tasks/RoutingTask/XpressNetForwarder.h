@@ -22,7 +22,7 @@ class XpressNetForwarder final : public RoutingForwarder {
 
   void forwardLocoChange(const RR32Can::LocomotiveData& loco, LocoDiff_t& diff) override;
   void forward(const RR32Can::CanFrame& frame) override;
-  bool MakeRR32CanMsg(const XpressNetMsg::XNetMsg& XnPacket, RR32Can::CanFrame& frame);
+  bool MakeRR32CanMsg(const XpressNetMsg::XN_Msg_t& XnPacket, RR32Can::CanFrame& frame);
 
  private:
 
