@@ -140,6 +140,8 @@ next transmission window between 400 microseconds and 500 milliseconds after the
 #define XNetBufferSize 5	//max Data Pakets (max: 4 Bit = 16!)
 #define XNetBufferMaxData 10		//max Bytes for each Paket (max: 15!)
 
+#define XnetRxBufSize 4 // number of messages the rx buffer can hold
+
 //XpressNet Mode (Master/Slave)
 #define XNetSlaveCycle 0xFF	//max (255) cycles to Stay in SLAVE MODE when no CallByte is received
 
@@ -229,7 +231,7 @@ class XpressNetMasterClass
 	
   // library-accessible "private" interface
   private:
-	  //Variables:
+	//Variables:
 	byte XNet_state; //single state machine
 	uint8_t XNetSlaveMode;	// > 0 then we are working in SLAVE MODE
 	bool XNetSlaveInit;	//send initialize sequence
@@ -238,8 +240,11 @@ class XpressNetMasterClass
 	byte MAX485_CONTROL; //Port for send or receive control
 	uint8_t XNetAdr;	//Adresse des Abzufragenden XNet Device
 	unsigned long XSendCount;	//Zeit: Call Byte ausgesendet
-	byte XNetMsgCallByte;	//Received CallByte for Msg
-	byte XNetMsg[XNetMaxDataLength];	//Serial receive (Length, Header, Data1 to Data7)
+	byte XNetMsgCallByte;	// Received XN CallByte
+	byte XNetRxMsgBuf[XnetRxBufSize][XNetMaxDataLength+1]; // Receive buffer: 1 entry for receiving, one for processing. Callbyte at the end.
+	byte XNetRxMsgRd; // Read pointer into receive buffer
+	byte XNetRxMsgWr; // Write pointer into receive buffer
+	byte* XNetMsg;	// Pointer to valid portion of RxMsgBuf (Length, Header, Data1 to Data7)
 	byte XNetMsgBuffer[XNetMaxDataLength + 1];	//Read Buffer
 
 	byte callByteParity (byte me);	// calculate the parity bit
@@ -250,15 +255,14 @@ class XpressNetMasterClass
 	uint16_t SlotLokUse[32];	//store loco to DirectedOps
 	void SetBusy(uint8_t Slot);	//send busy message to slot that doesn't use
 	void AddBusySlot(uint8_t UserOps, uint16_t Adr);	//add loco to slot
-	void XNetclear(void);	//Clear a old Message
 
-		//Functions:
+	//Functions:
 	void unknown(void);		//unbekannte Anfrage
 	void getNextXNetAdr(void);	//N�CHSTE Adr of XNet Device
 	bool XNetCheckXOR(void);	//Checks the XOR
 	void XNetAnalyseReceived(void);		//work on received data
 	
-		//Serial send and receive:
+	//Serial send and receive:
 	static XpressNetMasterClass *active_object;	//aktuelle aktive Object for interrupt handler	
 	XSend XNetBuffer[XNetBufferSize];		//Sendbuffer for data that needs to send out
 	byte XNetBufferSend;	//position to read next data
@@ -270,7 +274,6 @@ class XpressNetMasterClass
 	void getXOR (uint8_t *data, byte length); // calculate the XOR
 	void XNetSendNext(void);	//Sendet Daten aus dem Buffer mittels Interrupt
 	void XNetReceive(void);	//Speichern der eingelesenen Daten
-	bool XNetDataReady;		//Daten Fertig empfangen!
 	
 	uint8_t XNetCVAdr;		//CV Adr that was read
 	uint8_t XNetCVvalue;	//read CV Value 
@@ -325,6 +328,4 @@ extern XpressNetMasterClass XpressNet;
 }
 #endif
 
-
 #endif
-
