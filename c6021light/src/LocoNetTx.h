@@ -2,14 +2,15 @@
 #define __LOCONETTX_H__
 
 #include <LocoNet.h>
-#include <atomic>
+
+#include <AtomicRingBuffer/ObjectRingBuffer.h>
 
 /*
  * \brief Class LocoNetTx
  */
 class LocoNetTx {
  public:
-  LocoNetTx() : bufferFree_(true){};
+  constexpr static const uint8_t QueueDepth = 8;
 
   /**
    * \brief Queue a message for asynchronous transmission.
@@ -19,9 +20,10 @@ class LocoNetTx {
    * \return true if the message was enqueued, false otherwise.
    */
   bool AsyncSend(lnMsg& msg) {
-    if (bufferFree_) {
-      bufferFree_ = false;
-      msgBuffer_ = msg;
+    auto memory = msgBuffer_.allocate();
+    if (memory.ptr != nullptr) {
+      *(memory.ptr) = msg;
+      msgBuffer_.publish(memory);
       return true;
     } else {
       return false;
@@ -32,15 +34,15 @@ class LocoNetTx {
    * \brief Perform the acutal blocking send operation for a queued message.
    */
   void DoBlockingSend() {
-    if (!bufferFree_) {
-      LocoNet.send(&msgBuffer_);
-      bufferFree_ = true;
+    auto memory = msgBuffer_.peek();
+    if (memory.ptr != nullptr) {
+      LocoNet.send(memory.ptr);
+      msgBuffer_.consume(memory);
     }
   }
 
  private:
-  std::atomic_bool bufferFree_;
-  lnMsg msgBuffer_;
+  AtomicRingBuffer::ObjectRingBuffer<lnMsg, QueueDepth> msgBuffer_;
 };
 
 #endif  // __LOCONETTX_H__
