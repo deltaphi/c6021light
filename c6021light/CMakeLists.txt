@@ -9,6 +9,11 @@ if (NOT MSVC)
   add_compile_options(-Wall -Wextra -pedantic)
 endif()
 
+if (WIN32 AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+  # Let clang accept a __try {
+  add_compile_options(-Wno-error=language-extension-token)
+endif()
+
 option(ENABLE_COVERAGE "enable_language measurement option add_compile_definitions coverage" OFF)
 
 if (ENABLE_COVERAGE)
