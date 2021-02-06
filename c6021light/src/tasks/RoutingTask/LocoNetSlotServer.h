@@ -12,7 +12,7 @@
 
 #include "RoutingForwarder.h"
 
-class DataModel;
+struct DataModel;
 
 namespace tasks {
 namespace RoutingTask {
