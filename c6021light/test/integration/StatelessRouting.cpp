@@ -1,17 +1,10 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "mocks/LocoNet.h"
-#include "mocks/RoutingForwarderMock.h"
-
-#include "RR32Can/RR32Can.h"
-
-#include "tasks/RoutingTask/LocoNetHelpers.h"
-#include "tasks/RoutingTask/RoutingTask.h"
-
 #include "RR32Can/messages/S88Event.h"
 #include "RR32Can/util/constexpr.h"
 
+#include "mocks/RoutingTaskFixture.h"
 #include "mocks/SequenceMaker.h"
 
 using namespace ::testing;
@@ -20,45 +13,16 @@ using namespace ::RR32Can::util;
 namespace tasks {
 namespace RoutingTask {
 
-class StatelessRoutingFixture : public Test {
- public:
-  void SetUp() {
-    mocks::LocoNetInstance = &lnHal;
-    hal::canMock = &canHal;
-    hal::i2cMock = &i2cHal;
-
-    routingTask.begin(dataModel, lnTx);
-
-    RR32Can::Station::CallbackStruct callbacks;
-    callbacks.tx = &canTx;
-    RR32Can::RR32Can.begin(0, callbacks);
-  }
-
-  void TearDown() {
-    hal::canMock = nullptr;
-    hal::i2cMock = nullptr;
-    mocks::LocoNetInstance = nullptr;
-  }
-
-  DataModel dataModel;
-  StrictMock<hal::I2CHalMock> i2cHal;
-  StrictMock<hal::CANHalMock> canHal;
-  StrictMock<hal::CanTxMock> canTx;
-  StrictMock<mocks::LocoNetClass> lnHal;
-  StrictMock<mocks::LocoNetTx> lnTx;
-  RoutingTask routingTask;
-};
-
 using TurnoutTestParam_t = RR32Can::MachineTurnoutAddress;
 
-class TurnoutRoutingFixture : public StatelessRoutingFixture,
+class TurnoutRoutingFixture : public mocks::RoutingTaskFixture,
                               public WithParamInterface<TurnoutTestParam_t> {
  public:
   constexpr static const RR32Can::TurnoutDirection direction = RR32Can::TurnoutDirection::GREEN;
   constexpr static const bool power = true;
 
   void SetUp() {
-    StatelessRoutingFixture::SetUp();
+    mocks::RoutingTaskFixture::SetUp();
     EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   }
 
@@ -139,11 +103,11 @@ INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture,
 
 using SenorTestParam_t = std::tuple<RR32Can::MachineTurnoutAddress, RR32Can::SensorState>;
 
-class SenorRoutingFixture : public StatelessRoutingFixture,
+class SenorRoutingFixture : public mocks::RoutingTaskFixture,
                             public WithParamInterface<SenorTestParam_t> {
  public:
   void SetUp() {
-    StatelessRoutingFixture::SetUp();
+    mocks::RoutingTaskFixture::SetUp();
     EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   }
 
@@ -194,11 +158,11 @@ INSTANTIATE_TEST_SUITE_P(SensorTest, SenorRoutingFixture,
 
 using PowerTestParam_t = bool;
 
-class PowerRoutingFixture : public StatelessRoutingFixture,
+class PowerRoutingFixture : public mocks::RoutingTaskFixture,
                             public WithParamInterface<PowerTestParam_t> {
  public:
   void SetUp() {
-    StatelessRoutingFixture::SetUp();
+    mocks::RoutingTaskFixture::SetUp();
     if (power) {
       canFrame = RR32Can::util::System_Go(false);
       LnPacket = Ln_On();
