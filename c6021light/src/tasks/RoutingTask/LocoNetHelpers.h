@@ -65,7 +65,7 @@ constexpr lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address,
   return LnPacket;
 }
 
-constexpr lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::SensorState state) {
+inline lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::SensorState state) {
   lnMsg LnPacket{};
   LnPacket.ir.command = OPC_INPUT_REP;
 
@@ -82,14 +82,14 @@ constexpr lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::Senso
   return LnPacket;
 }
 
-constexpr lnMsg Ln_On() {
+inline lnMsg Ln_On() {
   lnMsg LnPacket{};
   LnPacket.ir.command = OPC_GPON;
 
   return LnPacket;
 }
 
-constexpr lnMsg Ln_Off() {
+inline lnMsg Ln_Off() {
   lnMsg LnPacket{};
   LnPacket.ir.command = OPC_GPOFF;
 
