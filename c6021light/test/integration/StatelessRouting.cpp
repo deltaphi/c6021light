@@ -27,7 +27,7 @@ class StatelessRoutingFixture : public Test {
     hal::canMock = &canHal;
     hal::i2cMock = &i2cHal;
 
-    routingTask.begin(dataModel);
+    routingTask.begin(dataModel, lnTx);
 
     RR32Can::Station::CallbackStruct callbacks;
     callbacks.tx = &canTx;
@@ -44,7 +44,8 @@ class StatelessRoutingFixture : public Test {
   StrictMock<hal::I2CHalMock> i2cHal;
   StrictMock<hal::CANHalMock> canHal;
   StrictMock<hal::CanTxMock> canTx;
-  mocks::LocoNetClass lnHal;
+  StrictMock<mocks::LocoNetClass> lnHal;
+  StrictMock<mocks::LocoNetTx> lnTx;
   RoutingTask routingTask;
 };
 
@@ -71,7 +72,7 @@ class TurnoutRoutingFixture : public StatelessRoutingFixture,
 TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(canFrame));
-  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
 
   mocks::makeSequence(canHal);
   mocks::makeSequence(lnHal);
@@ -85,7 +86,7 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
 
 TEST_P(TurnoutRoutingFixture, TurnoutRequest_CANtoLocoNetAndI2C) {
   // Setup expectations
-  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
 
   mocks::makeSequence(i2cHal);
   mocks::makeSequence(lnHal);
@@ -120,7 +121,7 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet_WithGeneratedRes
   hal::I2CMessage_t i2cResponseMessage =
       MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnout, direction, power);
   EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessage));
-  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
 
   mocks::makeSequence(canHal);
   mocks::makeSequence(lnHal);
@@ -157,7 +158,7 @@ const RR32Can::MachineTurnoutAddress SenorRoutingFixture::ZeroAddress;
 
 TEST_P(SenorRoutingFixture, SensorRequest_CANtoLocoNet) {
   // Setup expectations
-  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
 
   mocks::makeSequence(i2cHal);
   mocks::makeSequence(lnHal);
@@ -216,7 +217,7 @@ class PowerRoutingFixture : public StatelessRoutingFixture,
 
 TEST_P(PowerRoutingFixture, PowerRequest_CANtoLocoNet) {
   // Setup expectations
-  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
 
   mocks::makeSequence(i2cHal);
   mocks::makeSequence(lnHal);
@@ -261,7 +262,7 @@ TEST_P(PowerRoutingFixture, PowerRequest_LocoNetToCAN) {
 TEST_P(PowerRoutingFixture, PowerRequest_FromI2C) {
   // Expoected output packets
   EXPECT_CALL(canTx, SendPacket(canFrame));
-  EXPECT_CALL(lnHal, send(Pointee(LnPacket)));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
 
   // Expected input packets
   mocks::makeSequence(i2cHal);

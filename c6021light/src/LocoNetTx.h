@@ -1,7 +1,7 @@
 #ifndef __LOCONETTX_H__
 #define __LOCONETTX_H__
 
-#include <LocoNet.h>
+#include <ln_opc.h>
 
 #include <AtomicRingBuffer/ObjectRingBuffer.h>
 
@@ -19,27 +19,12 @@ class LocoNetTx {
    *
    * \return true if the message was enqueued, false otherwise.
    */
-  bool AsyncSend(lnMsg& msg) {
-    auto memory = msgBuffer_.allocate();
-    if (memory.ptr != nullptr) {
-      *(memory.ptr) = msg;
-      msgBuffer_.publish(memory);
-      return true;
-    } else {
-      return false;
-    }
-  }
+  bool AsyncSend(lnMsg& msg);
 
   /**
    * \brief Perform the acutal blocking send operation for a queued message.
    */
-  void DoBlockingSend() {
-    auto memory = msgBuffer_.peek();
-    if (memory.ptr != nullptr) {
-      LocoNet.send(memory.ptr);
-      msgBuffer_.consume(memory);
-    }
-  }
+  void DoBlockingSend();
 
  private:
   AtomicRingBuffer::ObjectRingBuffer<lnMsg, QueueDepth> msgBuffer_;

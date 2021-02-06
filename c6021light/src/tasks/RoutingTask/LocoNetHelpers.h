@@ -96,6 +96,14 @@ inline lnMsg Ln_Off() {
   return LnPacket;
 }
 
+inline lnMsg Ln_LongAck(uint8_t ucCode) {
+  lnMsg LnPacket{};
+  LnPacket.data[0] = OPC_LONG_ACK;
+  LnPacket.data[1] = OPC_PEER_XFER - 0x80;
+  LnPacket.data[2] = ucCode;
+  return LnPacket;
+}
+
 }  // namespace RoutingTask
 }  // namespace tasks
 

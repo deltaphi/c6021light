@@ -8,6 +8,7 @@
 #include "RR32Can/Locomotive.h"
 #include "RR32Can/Types.h"
 
+#include "LocoNetTx.h"
 #include "ln_opc.h"
 
 #include "RoutingForwarder.h"
@@ -42,7 +43,10 @@ class LocoNetSlotServer {
   constexpr static const SlotIdx_t kNumSlots = 127;
   using SlotDB_t = std::array<SlotEntry, kNumSlots>;  // note that Slot 0 is not used
 
-  void init(DataModel& dataModel) { this->dataModel_ = &dataModel; }
+  void init(DataModel& dataModel, LocoNetTx& tx) {
+    this->dataModel_ = &dataModel;
+    this->tx_ = &tx;
+  }
 
   bool markAddressForDispatch(LocoAddr_t addr) {
     SlotDB_t::iterator it = findOrAllocateSlotForAddress(addr);
@@ -127,6 +131,7 @@ class LocoNetSlotServer {
   }
 
   DataModel* dataModel_;
+  LocoNetTx* tx_;
   SlotDB_t slotDB_;
   SlotDB_t::iterator slotInDispatch_;  // slotDB_.end() means no slot.
 };

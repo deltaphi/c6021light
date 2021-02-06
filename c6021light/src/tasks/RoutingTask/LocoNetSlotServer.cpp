@@ -2,7 +2,6 @@
 
 #include <algorithm>
 
-#include "LocoNet.h"
 #include "RR32Can/RR32Can.h"
 
 #include "ConsoleManager.h"
@@ -90,7 +89,7 @@ void LocoNetSlotServer::requestSlotDataRead(LocoNetSlotServer::SlotDB_t::iterato
     reqMsg.command = OPC_RQ_SL_DATA;
     reqMsg.slot = this->findSlotIndex(slot);
     reqMsg.pad = 0;
-    LocoNet.send(&msg);
+    tx_->AsyncSend(msg);
   }
 }
 
@@ -206,10 +205,13 @@ void LocoNetSlotServer::sendSlotDataRead(const SlotDB_t::const_iterator slot) co
   slotRead.id1 = 0;                                               // Throttle ID (low)
   slotRead.id2 = 0;                                               // Throttle ID (high)
 
-  LocoNet.send(&txMsg);
+  tx_->AsyncSend(txMsg);
 }
 
-void LocoNetSlotServer::sendNoDispatch() const { LocoNet.sendLongAck(0); }
+void LocoNetSlotServer::sendNoDispatch() const {
+  lnMsg msg = Ln_LongAck(0);
+  tx_->AsyncSend(msg);
+}
 
 void LocoNetSlotServer::dump() const {
   puts("LocoNet Slot Server Status:");

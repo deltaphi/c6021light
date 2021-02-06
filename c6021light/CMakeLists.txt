@@ -58,10 +58,14 @@ file(GLOB_RECURSE RR32CAN_LIB_SRCS "${RR32CAN_LIB_DIR}/*.cpp")
 set(RR32CANENGINEDB_LIB_DIR "${RR32CAN_INCLUDE_DIR}/RR32CanEngineDb")
 file(GLOB_RECURSE RR32CANENGINEDB_LIB_SRCS "${RR32CANENGINEDB_LIB_DIR}/*.cpp")
 
+set(ATOMIC_RING_BUFFER_INCLUDE_DIR ".pio/libdeps/bluepill/AtomicRingBuffer")
+
+
 include_directories("test")
 include_directories("test/mocks")
 include_directories(".pio/libdeps/bluepill/LocoNet/utility")
 include_directories("${RR32CAN_INCLUDE_DIR}")
+include_directories("${ATOMIC_RING_BUFFER_INCLUDE_DIR}")
 include_directories("lib/microrl/src")
 
 include_directories("src")
