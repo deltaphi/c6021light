@@ -53,6 +53,8 @@ freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
 
 hal::CanTxCbk canTxCbk;
 
+LocoNetTx lnTx;
+
 // Dummy variable that allows the toolchain to compile static variables that have destructors.
 void* __dso_handle;
 
@@ -95,7 +97,7 @@ void setup() {
   // Load Configuration
   printf("Reading Configuration.\n");
   dataModel = hal::LoadConfig();
-  routingTask.begin(dataModel);
+  routingTask.begin(dataModel, lnTx);
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");
@@ -107,6 +109,7 @@ void setup() {
   callbacks.engine = &routingTask.getCANEngineDB();
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
+  consoleTask.setup(lnTx);
   printf("Ready!\n");
   ConsoleManager::begin(&dataModel);
 }

@@ -13,6 +13,9 @@ void ConsoleTask::TaskMain() {
     if (hal::pollSerial(receivedCharacter)) {
       microrl_insert_char(&ConsoleManager::microrl, receivedCharacter);
     }
+
+    // Abuse polling ConsoleTask as a blocking LnTx handler
+    lnTx_->DoBlockingSend();
   }
 }
 

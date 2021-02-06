@@ -10,6 +10,7 @@
 #include "ln_opc.h"
 
 #include "DataModel.h"
+#include "LocoNetTx.h"
 #include "tasks/RoutingTask/LocoNetSlotServer.h"
 
 namespace tasks {
@@ -20,9 +21,10 @@ namespace RoutingTask {
  */
 class LocoNetForwarder final : public RoutingForwarder {
  public:
-  void init(DataModel& dataModel, LocoNetSlotServer& slotServer) {
+  void init(DataModel& dataModel, LocoNetSlotServer& slotServer, LocoNetTx& tx) {
     this->dataModel_ = &dataModel;
     this->slotServer_ = &slotServer;
+    this->tx_ = &tx;
   }
 
   void forwardLocoChange(const RR32Can::LocomotiveData& loco, LocoDiff_t& diff) override;
@@ -33,6 +35,7 @@ class LocoNetForwarder final : public RoutingForwarder {
  private:
   DataModel* dataModel_ = nullptr;
   LocoNetSlotServer* slotServer_ = nullptr;
+  LocoNetTx* tx_ = nullptr;
 };
 
 }  // namespace RoutingTask

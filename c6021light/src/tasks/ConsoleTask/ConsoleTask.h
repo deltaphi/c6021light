@@ -5,6 +5,8 @@
 
 #include "OsTask.h"
 
+#include "LocoNetTx.h"
+
 namespace tasks {
 namespace ConsoleTask {
 
@@ -15,7 +17,12 @@ class ConsoleTask : public freertossupport::OsTask {
  public:
   static constexpr const uint32_t kStackSize = 256;
 
+  void setup(LocoNetTx& lnTx) { lnTx_ = &lnTx; }
+
   void TaskMain();
+
+ private:
+  LocoNetTx* lnTx_;
 };
 
 }  // namespace ConsoleTask

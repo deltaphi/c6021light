@@ -52,9 +52,9 @@ TEST(AccessoryPacket, SentPacket) {
 
 TEST(AccessoryPacket, Response) {
   AccessoryMsg inbound = AccessoryMsg::makeInbound(RR32Can::MachineTurnoutAddress(0xAAu),
-                                                  RR32Can::TurnoutDirection::GREEN, true);
+                                                   RR32Can::TurnoutDirection::GREEN, true);
   AccessoryMsg outbound = AccessoryMsg::makeOutbound(inbound);
-  
+
   AccessoryMsg expected;
   expected.source_ = 0x7F;
   expected.destination_ = 0x34;
