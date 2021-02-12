@@ -14,6 +14,8 @@ if (WIN32 AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
   add_compile_options(-Wno-error=language-extension-token)
 endif()
 
+find_program(CLANG_TIDY_EXECUTABLE clang-tidy)
+
 option(ENABLE_COVERAGE "enable_language measurement option add_compile_definitions coverage" OFF)
 
 if (ENABLE_COVERAGE)
@@ -97,6 +99,11 @@ add_executable(c6021lightTest
     "${RR32CANENGINEDB_LIB_SRCS}"
  )
 target_link_libraries(c6021lightTest gtest_main gmock)
+
+if (CLANG_TIDY_EXECUTABLE)
+    set_target_properties(c6021lightTest PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE};-checks=*,-llvmlibc-callee-namespace,-modernize-use-trailing-return-type,-fuchsia-trailing-return,-llvmlibc-implementation-in-namespace,-llvmlibc-restrict-system-libc-headers,-readability-else-after-return,-llvm-else-after-return")
+endif()
+
 add_test(NAME gtest_c6021lightTest_test COMMAND c6021lightTest)
 target_compile_features(c6021lightTest PRIVATE cxx_std_14)
 
