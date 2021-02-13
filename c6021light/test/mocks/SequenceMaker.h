@@ -1,6 +1,9 @@
 #ifndef __MOCKS__SEQUENCEMAKER_H__
 #define __MOCKS__SEQUENCEMAKER_H__
 
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
 #include <algorithm>
 
 #include "RR32Can/messages/CanFrame.h"
