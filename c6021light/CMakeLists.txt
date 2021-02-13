@@ -20,7 +20,7 @@ if (WIN32 AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
 endif()
 
 option(ENABLE_COVERAGE "enable_language measurement option add_compile_definitions coverage" OFF)
-option(ENABLE_CLANG_TIDY "Enable static code analysis using clang-tidy" ON)
+option(ENABLE_CLANG_TIDY "Enable static code analysis using clang-tidy" OFF)
 
 if (ENABLE_COVERAGE)
     include(CodeCoverage.cmake)
@@ -89,7 +89,6 @@ add_executable(c6021lightTest
     "test/unit/EmptyTest.cpp"
     "test/unit/AccessoryPacketTest.cpp"
     "test/integration/StatelessRouting.cpp"
-    "test/integration/StopGoRequest.cpp"
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     
