@@ -14,12 +14,12 @@ namespace mocks {
 // CAN sequencing
 //
 
-void makeSequence(hal::CANHalMock& mock) {
+inline void makeSequence(hal::CANHalMock& mock) {
   EXPECT_CALL(mock, getCanMessage())
       .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
 }
 
-void makeSequence(hal::CANHalMock& mock, RR32Can::CanFrame& frame) {
+inline void makeSequence(hal::CANHalMock& mock, RR32Can::CanFrame& frame) {
   EXPECT_CALL(mock, getCanMessage())
       .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{&frame, hal::canRxDeleter})))
       .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
@@ -44,12 +44,12 @@ void makeSequence(hal::CANHalMock& mock, RR32Can::CanFrame (&messages)[numMessag
 // I2C sequencing
 //
 
-void makeSequence(hal::I2CHalMock& mock) {
+inline void makeSequence(hal::I2CHalMock& mock) {
   EXPECT_CALL(mock, getI2CMessage())
       .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})));
 }
 
-void makeSequence(hal::I2CHalMock& mock, hal::I2CMessage_t& msg) {
+inline void makeSequence(hal::I2CHalMock& mock, hal::I2CMessage_t& msg) {
   EXPECT_CALL(mock, getI2CMessage())
       .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{&msg, hal::i2cRxDeleter})))
       .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})));
@@ -74,11 +74,11 @@ void makeSequence(hal::I2CHalMock& mock, hal::I2CMessage_t (&messages)[numMessag
 // LocoNet sequencing
 //
 
-void makeSequence(mocks::LocoNetClass& mock) {
+inline void makeSequence(mocks::LocoNetClass& mock) {
   EXPECT_CALL(mock, receive()).WillOnce(Return(nullptr));
 }
 
-void makeSequence(mocks::LocoNetClass& mock, lnMsg& msg) {
+inline void makeSequence(mocks::LocoNetClass& mock, lnMsg& msg) {
   EXPECT_CALL(mock, receive()).WillOnce(Return(&msg)).WillOnce(Return(nullptr));
 }
 

@@ -89,6 +89,7 @@ add_executable(c6021lightTest
     "test/unit/EmptyTest.cpp"
     "test/unit/AccessoryPacketTest.cpp"
     "test/integration/StatelessRouting.cpp"
+    "test/integration/StopGoRequest.cpp"
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     
@@ -105,7 +106,7 @@ add_executable(c6021lightTest
 
     "${RR32CAN_LIB_SRCS}"
     "${RR32CANENGINEDB_LIB_SRCS}"
- )
+)
 target_link_libraries(c6021lightTest gtest_main gmock)
 
 if (ENABLE_CLANG_TIDY AND CLANG_TIDY_EXECUTABLE)

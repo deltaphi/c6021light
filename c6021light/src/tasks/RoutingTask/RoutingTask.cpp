@@ -19,6 +19,7 @@ void RoutingTask::processCAN() {
     lnForwarder_.forward(*framePtr);
     // Forward to self
     RR32Can::RR32Can.HandlePacket(*framePtr);
+    stopGoStateM_.handlePacket(*framePtr);
     // Explicitly reset framePtr so that getCanMessage can produce a new message
     framePtr.reset();
   }
@@ -85,6 +86,8 @@ void RoutingTask::processLocoNet() {
   }
 }
 
+void RoutingTask::processStateMachines() { stopGoStateM_.loop(); }
+
 void RoutingTask::matchEnginesFromLocoNetAndCan() {
   if (!slotServer_.isDisabled()) {
     for (auto& locoEntry : slotServer_) {
@@ -109,6 +112,7 @@ void RoutingTask::loop() {
   processCAN();
   processI2CMessages();
   processLocoNet();
+  processStateMachines();
   matchEnginesFromLocoNetAndCan();
 }
 

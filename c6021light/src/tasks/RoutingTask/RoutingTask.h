@@ -13,6 +13,7 @@
 
 #include "CanEngineDB.h"
 #include "LocoNetSlotServer.h"
+#include "StopGoStateMachine.h"
 
 namespace tasks {
 namespace RoutingTask {
@@ -47,6 +48,11 @@ class RoutingTask : public freertossupport::OsTask {
   void processI2CStopGo();
   void processLocoNet();
   void matchEnginesFromLocoNetAndCan();
+
+  void processStateMachines();
+
+ public:
+  StopGoStateMachine stopGoStateM_{canForwarder_};
 };
 
 }  // namespace RoutingTask
