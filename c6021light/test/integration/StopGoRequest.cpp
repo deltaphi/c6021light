@@ -59,13 +59,13 @@ TEST_F(StopGoStateMachine, Requesting_Expiry) {
 TEST_F(StopGoStateMachine, Requesting_DoubleExpiry) {
   auto expectedMsg = RR32Can::util::System_GetStatus();
 
-  mocks::makeSequence(i2cHal);
-  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
-  mocks::makeSequence(lnHal);
-  mocks::makeSequence(canHal);
+  mocks::makeSequence(i2cHal, 3);
+  EXPECT_CALL(i2cHal, getStopGoRequest()).Times(3).WillRepeatedly(Return(hal::StopGoRequest{}));
+  mocks::makeSequence(lnHal, 3);
+  mocks::makeSequence(canHal, 3);
 
   // First Loop
-  EXPECT_CALL(canTx, SendPacket(expectedMsg));
+  EXPECT_CALL(canTx, SendPacket(expectedMsg)).Times(2);
   routingTask.stopGoStateM_.startRequesting();
   routingTask.stopGoStateM_.notifyExpiry();
   routingTask.loop();
@@ -74,7 +74,6 @@ TEST_F(StopGoStateMachine, Requesting_DoubleExpiry) {
   routingTask.loop();
 
   // Third Loop
-  EXPECT_CALL(canTx, SendPacket(expectedMsg));
   routingTask.stopGoStateM_.notifyExpiry();
   routingTask.loop();
 }

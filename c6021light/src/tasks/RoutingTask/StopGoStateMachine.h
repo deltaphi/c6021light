@@ -17,11 +17,19 @@ class StopGoStateMachine {
   StopGoStateMachine(tasks::RoutingTask::CANForwarder& canForwarder)
       : canForwarder_(canForwarder) {}
 
-  void startRequesting() { state_ = State::REQUESTING; }
+  void startRequesting() {
+    state_ = State::REQUESTING;
+    timerExpired = false;
+  }
+
   void notifyExpiry() { timerExpired = true; }
+
   void loop() {
-    if (timerExpired && state_ == State::REQUESTING) {
-      sendRequest();
+    if (timerExpired) {
+      if (state_ == State::REQUESTING) {
+        sendRequest();
+      }
+      timerExpired = false;
     }
   }
 
