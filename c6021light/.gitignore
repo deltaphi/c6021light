@@ -19,3 +19,7 @@ out
 .vs
 build
 .vscode
+
+# CLion
+cmake-build-*
+.idea

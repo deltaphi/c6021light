@@ -9,18 +9,26 @@ if (NOT MSVC)
   add_compile_options(-Wall -Wextra -pedantic)
 endif()
 
+if (WIN32)
+    # Disable Windows libc depreciation warnings for POSIX functions used in the embedded code.
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+endif()
+
 if (WIN32 AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
   # Let clang accept a __try {
   add_compile_options(-Wno-error=language-extension-token)
 endif()
 
-find_program(CLANG_TIDY_EXECUTABLE clang-tidy)
-
 option(ENABLE_COVERAGE "enable_language measurement option add_compile_definitions coverage" OFF)
+option(ENABLE_CLANG_TIDY "Enable static code analysis using clang-tidy" ON)
 
 if (ENABLE_COVERAGE)
     include(CodeCoverage.cmake)
     append_coverage_compiler_flags()
+endif()
+
+if (ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXECUTABLE clang-tidy)
 endif()
 
 # Download and unpack googletest at configure time
@@ -81,6 +89,7 @@ add_executable(c6021lightTest
     "test/unit/EmptyTest.cpp"
     "test/unit/AccessoryPacketTest.cpp"
     "test/integration/StatelessRouting.cpp"
+    "test/integration/StopGoRequest.cpp"
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     
@@ -100,8 +109,8 @@ add_executable(c6021lightTest
  )
 target_link_libraries(c6021lightTest gtest_main gmock)
 
-if (CLANG_TIDY_EXECUTABLE)
-    set_target_properties(c6021lightTest PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE};-checks=*,-llvmlibc-callee-namespace,-modernize-use-trailing-return-type,-fuchsia-trailing-return,-llvmlibc-implementation-in-namespace,-llvmlibc-restrict-system-libc-headers,-readability-else-after-return,-llvm-else-after-return")
+if (ENABLE_CLANG_TIDY AND CLANG_TIDY_EXECUTABLE)
+    set_target_properties(c6021lightTest PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE}")
 endif()
 
 add_test(NAME gtest_c6021lightTest_test COMMAND c6021lightTest)
