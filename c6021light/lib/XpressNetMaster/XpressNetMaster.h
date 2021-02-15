@@ -173,7 +173,7 @@ next transmission window between 400 microseconds and 500 milliseconds after the
 #define XNet_send_data 4
 
 //XpressNet Befehl, jedes gesendete Byte
-#define XNetMaxDataLength 8
+#define XNetMaxDataLength 10
 #define XNetBufferlength 0	//Read Buffer length
 #define XNetheader	0		//Messageheader
 #define XNetdata1	1		//Databyte1

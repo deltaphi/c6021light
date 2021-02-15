@@ -336,7 +336,7 @@ extern "C" void i2c1_ev_isr(void) {
       if (rxControl.bytesProcessed < 3) {
         switch (rxControl.bytesProcessed) {
           case 1:
-            rxControl.msgMemory.ptr->destination_ = i2c_get_data(I2C1);
+            rxControl.msgMemory.ptr->source_ = i2c_get_data(I2C1);
             break;
           case 2:
             rxControl.msgMemory.ptr->data_ = i2c_get_data(I2C1);

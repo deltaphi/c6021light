@@ -23,7 +23,7 @@ void XpressNetForwarder::forward(const RR32Can::CanFrame& frame) {
           xn_direction = 0;
         }
         
-        XpressNet.SetTrntPos(turnoutPacket.getLocid().getNumericAddress().value(), xn_direction, turnoutPacket.getPower());
+        XpressNet.SetTrntPos(turnoutPacket.getLocid().getNumericAddress().value() + 4, xn_direction, turnoutPacket.getPower());
       }
       break;
     }

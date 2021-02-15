@@ -232,7 +232,7 @@ void XpressNetMasterClass::update(void)
 			break;
 		case XNet_receive_data:	//read client data, max 500ms
 			time_diff = micros() - XSendCount;
-			if (time_diff >= XNetTimeReadData) {	//Timeout?
+			if (XNetSlaveMode == 0x00 && time_diff >= XNetTimeReadData) {	// Timeout? only check in master mode!
 				XNet_state = XNet_get_callbyte;
 				XNetMsgBuffer[XNetBufferlength] = 0x00;	//reset buffer
 				break;
@@ -255,8 +255,9 @@ void XpressNetMasterClass::update(void)
 			if (XNetSlaveMode == 0x00) {		//MASTER MODE
 				XNet_state = XNet_send_data;
 				XNetSendNext();	//start sending out by interrupt
+			} else {
+				XNet_state = XNet_get_callbyte;
 			}
-			else XNet_state = XNet_get_callbyte;
 			break;
 		case XNet_send_data:
 			break;
@@ -1129,8 +1130,8 @@ void XpressNetMasterClass::XNetSendNext(void) {
 	
 	if (data9 > 0x1FF) {
 		//nothing left to send out. Re-enable receiver.
-		usart_set_mode(XN_USART_INST, USART_MODE_TX_RX);
 		digitalWrite(MAX485_CONTROL, LOW); 	//RECEIVE_MODE
+		usart_set_mode(XN_USART_INST, USART_MODE_TX_RX);
 	#if defined(STM32F1)
 		// disable Tx empty interrupt, otherwise it goes haywire
 		//usart_disable_tx_interrupt(XN_USART_INST);
@@ -1141,9 +1142,11 @@ void XpressNetMasterClass::XNetSendNext(void) {
 		 */
 		USART_CR1(XN_USART_INST) &= ~USART_CR1_TCIE;
 	#endif
-		if (XNet_state == XNet_send_data && XNetSlaveMode == 0x00)
+		if (XNet_state == XNet_send_data && XNetSlaveMode == 0x00) {
 			XNet_state = XNet_get_callbyte;
-		else XNet_state = XNet_wait_receive;	//wait for receive from client
+		} else {
+			XNet_state = XNet_wait_receive;	//wait for receive from client
+		}
 
 		return;
 	}
