@@ -23,7 +23,7 @@ inline void makeSequence(hal::CANHalMock& mock) {
 }
 
 inline void makeSequence(hal::CANHalMock& mock, uint_least32_t count) {
-  for (auto i = 0; i < count; ++i) {
+  for (auto i = 0U; i < count; ++i) {
     EXPECT_CALL(mock, getCanMessage())
         .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})))
         .RetiresOnSaturation();
@@ -40,7 +40,7 @@ template <size_t numMessages>
 void makeSequence(hal::CANHalMock& mock, RR32Can::CanFrame (&messages)[numMessages]) {
   Sequence s_;
 
-  for (size_t i = 0; i < numMessages; ++i) {
+  for (size_t i = 0U; i < numMessages; ++i) {
     EXPECT_CALL(mock, getCanMessage())
         .InSequence(s_)
         .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{&(messages[i]), hal::canRxDeleter})));
@@ -61,7 +61,7 @@ inline void makeSequence(hal::I2CHalMock& mock) {
 }
 
 inline void makeSequence(hal::I2CHalMock& mock, uint_least32_t count) {
-  for (auto i = 0; i < count; ++i) {
+  for (auto i = 0U; i < count; ++i) {
     EXPECT_CALL(mock, getI2CMessage())
         .WillOnce(Return(ByMove(hal::I2CRxMessagePtr_t{nullptr, hal::i2cRxDeleter})))
         .RetiresOnSaturation();
