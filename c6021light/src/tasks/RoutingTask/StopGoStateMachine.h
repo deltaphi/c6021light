@@ -1,13 +1,12 @@
 #ifndef __TASKS__ROUTINGTASK__STOPGOSTATEMACHINE_H__
 #define __TASKS__ROUTINGTASK__STOPGOSTATEMACHINE_H__
 
-#include <atomic>
-
 #include "OsTask.h"
 #include "OsTimer.h"
 
 #include "CANForwarder.h"
 #include "RR32Can/util/constexpr.h"
+#include "StateMachineBase.h"
 
 namespace tasks {
 namespace RoutingTask {
@@ -15,34 +14,24 @@ namespace RoutingTask {
 /*
  * \brief Class StopGoStateMachine
  */
-class StopGoStateMachine : public freertossupport::TimerCallbackBase {
+class StopGoStateMachine : public StateMachineBase {
  public:
   enum class State { IDLE, REQUESTING };
   constexpr static const uint8_t kMaxRetries = 10;
 
   StopGoStateMachine(tasks::RoutingTask::CANForwarder& canForwarder,
                      freertossupport::OsTask& parentTask)
-      : canForwarder_(canForwarder), parentTask_(parentTask) {}
-
-  void setTimer(freertossupport::OsTimer& timer) { timer_ = &timer; }
+      : StateMachineBase(parentTask), canForwarder_(canForwarder) {}
 
   void startRequesting() {
     state_ = State::REQUESTING;
     tries = 0;
-    timerExpired = true;
-    if (timer_ != nullptr) {
-      timer_->Start();
-    }
-  }
-
-  void TimerCallback(TimerHandle_t) override {
-    timerExpired = true;
-    // Actual handling performed in loop() which is called by parentTask.
-    parentTask_.notify();
+    timerExpired_ = true;
+    startTimer();
   }
 
   void loop() {
-    if (timerExpired) {
+    if (timerExpired_) {
       if (state_ == State::REQUESTING) {
         if (tries < kMaxRetries) {
           sendRequest();
@@ -51,7 +40,7 @@ class StopGoStateMachine : public freertossupport::TimerCallbackBase {
           stopRequesting();
         }
       }
-      timerExpired = false;
+      timerExpired_ = false;
     }
   }
 
@@ -68,10 +57,7 @@ class StopGoStateMachine : public freertossupport::TimerCallbackBase {
  private:
   State state_ = State::IDLE;
   uint8_t tries;
-  std::atomic_bool timerExpired{false};
   CANForwarder& canForwarder_;
-  freertossupport::OsTask& parentTask_;
-  freertossupport::OsTimer* timer_{nullptr};
 
   static bool isSystemStopGoSubcommand(const RR32Can::SystemMessage message) {
     const RR32Can::SystemSubcommand subcommand = message.getSubcommand();
@@ -82,9 +68,7 @@ class StopGoStateMachine : public freertossupport::TimerCallbackBase {
 
   void stopRequesting() {
     state_ = State::IDLE;
-    if (timer_ != nullptr) {
-      timer_->Stop();
-    }
+    stopTimer();
   }
 
   void notifyStatusMessageReceived() {
