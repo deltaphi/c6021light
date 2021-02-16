@@ -1,6 +1,11 @@
 #ifndef __TASKS__ROUTINGTASK__STOPGOSTATEMACHINE_H__
 #define __TASKS__ROUTINGTASK__STOPGOSTATEMACHINE_H__
 
+#include <atomic>
+
+#include "OsTask.h"
+#include "OsTimer.h"
+
 #include "CANForwarder.h"
 #include "RR32Can/util/constexpr.h"
 
@@ -10,24 +15,41 @@ namespace RoutingTask {
 /*
  * \brief Class StopGoStateMachine
  */
-class StopGoStateMachine {
+class StopGoStateMachine : public freertossupport::TimerCallbackBase {
  public:
   enum class State { IDLE, REQUESTING };
+  constexpr static const uint8_t kMaxRetries = 10;
 
-  StopGoStateMachine(tasks::RoutingTask::CANForwarder& canForwarder)
-      : canForwarder_(canForwarder) {}
+  StopGoStateMachine(tasks::RoutingTask::CANForwarder& canForwarder,
+                     freertossupport::OsTask& parentTask)
+      : canForwarder_(canForwarder), parentTask_(parentTask) {}
+
+  void setTimer(freertossupport::OsTimer& timer) { timer_ = &timer; }
 
   void startRequesting() {
     state_ = State::REQUESTING;
-    timerExpired = false;
+    tries = 0;
+    timerExpired = true;
+    if (timer_ != nullptr) {
+      timer_->Start();
+    }
   }
 
-  void notifyExpiry() { timerExpired = true; }
+  void TimerCallback(TimerHandle_t) override {
+    timerExpired = true;
+    // Actual handling performed in loop() which is called by parentTask.
+    parentTask_.notify();
+  }
 
   void loop() {
     if (timerExpired) {
       if (state_ == State::REQUESTING) {
-        sendRequest();
+        if (tries < kMaxRetries) {
+          sendRequest();
+          ++tries;
+        } else {
+          stopRequesting();
+        }
       }
       timerExpired = false;
     }
@@ -45,8 +67,11 @@ class StopGoStateMachine {
 
  private:
   State state_ = State::IDLE;
-  bool timerExpired = false;
+  uint8_t tries;
+  std::atomic_bool timerExpired{false};
   CANForwarder& canForwarder_;
+  freertossupport::OsTask& parentTask_;
+  freertossupport::OsTimer* timer_{nullptr};
 
   static bool isSystemStopGoSubcommand(const RR32Can::SystemMessage message) {
     const RR32Can::SystemSubcommand subcommand = message.getSubcommand();
@@ -55,7 +80,19 @@ class StopGoStateMachine {
            subcommand == RR32Can::SystemSubcommand::SYSTEM_HALT;
   }
 
-  void notifyStatusMessageReceived() { state_ = State::IDLE; }
+  void stopRequesting() {
+    state_ = State::IDLE;
+    if (timer_ != nullptr) {
+      timer_->Stop();
+    }
+  }
+
+  void notifyStatusMessageReceived() {
+    if (state_ != State::IDLE) {
+      stopRequesting();
+    }
+  }
+
   void sendRequest() { canForwarder_.forward(RR32Can::util::System_GetStatus()); }
 };
 

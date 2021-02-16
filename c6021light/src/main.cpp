@@ -37,6 +37,7 @@ extern "C" {
 
 #include <FreeRTOS.h>
 #include "OsTask.h"
+#include "OsTimer.h"
 #include "timers.h"
 
 // ******** Variables and Constans********
@@ -50,6 +51,8 @@ freertossupport::StaticOsTask<tasks::RoutingTask::RoutingTask,
 freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
                               tasks::ConsoleTask::ConsoleTask::kStackSize>
     consoleTask;
+
+freertossupport::StaticOsTimer stopGoTimer;
 
 hal::CanTxCbk canTxCbk;
 
@@ -97,7 +100,7 @@ void setup() {
   // Load Configuration
   printf("Reading Configuration.\n");
   dataModel = hal::LoadConfig();
-  routingTask.begin(dataModel, lnTx);
+  routingTask.begin(dataModel, lnTx, stopGoTimer);
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");
@@ -112,13 +115,12 @@ void setup() {
   consoleTask.setup(lnTx);
   printf("Ready!\n");
   ConsoleManager::begin(&dataModel);
+
+  // Start anything timer-related
+  routingTask.stopGoStateM_.startRequesting();
 }
 
-void setupOsResources() {
-  // static StaticTimer_t i2cWdgTimerBuffer;
-  // hal::i2cWdg = xTimerCreateStatic("I2CWdg", HAL_I2C_WDG_TIMEOUT, false, nullptr, hal::i2cWdgCbk,
-  //                                 &i2cWdgTimerBuffer);
-}
+void setupOsResources() { stopGoTimer.Create("StopGo", 1000, true, &routingTask.stopGoStateM_); }
 
 void setupOsTasks() {
   routingTask.Create("RoutingTask", configMAX_PRIORITIES - 1);

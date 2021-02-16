@@ -22,10 +22,11 @@ class RoutingTask : public freertossupport::OsTask {
  public:
   static constexpr const uint32_t kStackSize = 256;
 
-  void begin(DataModel& dataModel, LocoNetTx& lnTx) {
+  void begin(DataModel& dataModel, LocoNetTx& lnTx, freertossupport::OsTimer& stopGoTimer) {
     lnForwarder_.init(dataModel, slotServer_, lnTx);
     i2cForwarder_.init(dataModel);
     slotServer_.init(dataModel, lnTx);
+    stopGoStateM_.setTimer(stopGoTimer);
   };
 
   void TaskMain();
@@ -52,7 +53,7 @@ class RoutingTask : public freertossupport::OsTask {
   void processStateMachines();
 
  public:
-  StopGoStateMachine stopGoStateM_{canForwarder_};
+  StopGoStateMachine stopGoStateM_{canForwarder_, *this};
 };
 
 }  // namespace RoutingTask

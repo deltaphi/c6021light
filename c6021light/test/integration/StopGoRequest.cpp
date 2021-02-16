@@ -8,7 +8,7 @@
 
 class StopGoStateMachine : public mocks::RoutingTaskFixture {};
 
-TEST_F(StopGoStateMachine, Idle) {
+TEST_F(StopGoStateMachine, NotStarted) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
@@ -18,18 +18,23 @@ TEST_F(StopGoStateMachine, Idle) {
 
   // Run!
   EXPECT_TRUE(routingTask.stopGoStateM_.isIdle());
-  routingTask.stopGoStateM_.notifyExpiry();
+  routingTask.stopGoStateM_.TimerCallback(0);
   EXPECT_TRUE(routingTask.stopGoStateM_.isIdle());
   routingTask.loop();
 }
 
-TEST_F(StopGoStateMachine, Requesting_NoExpiry) {
+TEST_F(StopGoStateMachine, Requesting_InitialExpiry) {
+  auto expectedMsg = RR32Can::util::System_GetStatus();
+
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
   mocks::makeSequence(canHal);
 
-  // Expect to not call any send
+  EXPECT_CALL(stopGoTimer, Start());
+
+  // Setup expectations
+  EXPECT_CALL(canTx, SendPacket(expectedMsg));
 
   // Run!
   EXPECT_TRUE(routingTask.stopGoStateM_.isIdle());
@@ -46,13 +51,15 @@ TEST_F(StopGoStateMachine, Requesting_Expiry) {
   mocks::makeSequence(lnHal);
   mocks::makeSequence(canHal);
 
+  EXPECT_CALL(stopGoTimer, Start());
+
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(expectedMsg));
 
   // Run!
   routingTask.stopGoStateM_.startRequesting();
   EXPECT_FALSE(routingTask.stopGoStateM_.isIdle());
-  routingTask.stopGoStateM_.notifyExpiry();
+  routingTask.stopGoStateM_.TimerCallback(0);
   routingTask.loop();
 }
 
@@ -64,17 +71,19 @@ TEST_F(StopGoStateMachine, Requesting_DoubleExpiry) {
   mocks::makeSequence(lnHal, 3);
   mocks::makeSequence(canHal, 3);
 
+  EXPECT_CALL(stopGoTimer, Start());
+
   // First Loop
   EXPECT_CALL(canTx, SendPacket(expectedMsg)).Times(2);
   routingTask.stopGoStateM_.startRequesting();
-  routingTask.stopGoStateM_.notifyExpiry();
+  routingTask.stopGoStateM_.TimerCallback(0);
   routingTask.loop();
 
   // Second Loop
   routingTask.loop();
 
   // Third Loop
-  routingTask.stopGoStateM_.notifyExpiry();
+  routingTask.stopGoStateM_.TimerCallback(0);
   routingTask.loop();
 }
 
@@ -83,8 +92,12 @@ TEST_F(StopGoStateMachine, TransitionToIdleOnStatusRx) {
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
 
+  EXPECT_CALL(stopGoTimer, Start());
+
   RR32Can::CanFrame canSequence[]{RR32Can::util::System_Halt(false)};
   mocks::makeSequence(canHal, canSequence);
+
+  EXPECT_CALL(stopGoTimer, Stop());
 
   // Run!
   routingTask.stopGoStateM_.startRequesting();
