@@ -17,15 +17,6 @@ CanEngineDB::DB_t::iterator CanEngineDB::getEntry(const RR32Can::Locomotive::Uid
   return it;
 }
 
-RR32Can::Locomotive* CanEngineDB::getLoco(RR32Can::Locomotive::Uid_t uid) {
-  const auto it = getEntry(uid);
-  if (it == db_.end()) {
-    return nullptr;
-  } else {
-    return &it->loco;
-  }
-}
-
 void CanEngineDB::setLocoVelocity(RR32Can::Locomotive::Uid_t engineUid,
                                   RR32Can::Velocity_t velocity) {
   auto entry = getEntry(engineUid);
@@ -47,6 +38,38 @@ void CanEngineDB::setLocoVelocity(RR32Can::Velocity_t velocity) {
         entry.loco.setVelocity(velocity);
       }
     }
+  }
+}
+
+void CanEngineDB::setLocoFunction(const RR32Can::Uid_t engineUid, uint8_t functionIdx,
+                                  bool functionOn) {
+  auto entry = getEntry(engineUid);
+  if (entry != db_.end()) {
+    const bool oldFunctionOn = entry->loco.getFunction(functionIdx);
+    if (oldFunctionOn != functionOn) {
+      entry->diff.functions = true;
+      entry->loco.setFunction(functionIdx, functionOn);
+    }
+  }
+}
+
+void CanEngineDB::setLocoDirection(const RR32Can::Uid_t engineUid,
+                                   const RR32Can::EngineDirection direction) {
+  auto entry = getEntry(engineUid);
+  if (entry != db_.end()) {
+    const auto oldDirection = entry->loco.getDirection();
+    if (oldDirection != direction) {
+      entry->diff.direction = true;
+      entry->loco.setDirection(direction);
+    }
+  }
+}
+
+void CanEngineDB::changeLocoDirection(const RR32Can::Uid_t engineUid) {
+  auto entry = getEntry(engineUid);
+  if (entry != db_.end()) {
+    entry->diff.direction = true;
+    entry->loco.changeDirection();
   }
 }
 

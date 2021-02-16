@@ -47,9 +47,13 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
   void dump() const;
 
   // Overrides for EngineCbk
-  RR32Can::Locomotive* getLoco(RR32Can::Locomotive::Uid_t uid) override;
   void setLocoVelocity(RR32Can::Locomotive::Uid_t engineUid, RR32Can::Velocity_t velocity) override;
   void setLocoVelocity(RR32Can::Velocity_t velocity) override;
+  void setLocoFunction(const RR32Can::Uid_t engineUid, uint8_t functionIdx,
+                       bool functionOn) override;
+  void setLocoDirection(const RR32Can::Uid_t engineUid,
+                        const RR32Can::EngineDirection direction) override;
+  void changeLocoDirection(const RR32Can::Uid_t engineUid) override;
 
   auto begin() { return db_.begin(); }
   auto end() { return db_.end(); }
