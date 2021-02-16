@@ -9,11 +9,26 @@ if (NOT MSVC)
   add_compile_options(-Wall -Wextra -pedantic)
 endif()
 
+if (WIN32)
+    # Disable Windows libc depreciation warnings for POSIX functions used in the embedded code.
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+endif()
+
+if (WIN32 AND (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+  # Let clang accept a __try {
+  add_compile_options(-Wno-error=language-extension-token)
+endif()
+
 option(ENABLE_COVERAGE "enable_language measurement option add_compile_definitions coverage" OFF)
+option(ENABLE_CLANG_TIDY "Enable static code analysis using clang-tidy" OFF)
 
 if (ENABLE_COVERAGE)
     include(CodeCoverage.cmake)
     append_coverage_compiler_flags()
+endif()
+
+if (ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXECUTABLE clang-tidy)
 endif()
 
 # Download and unpack googletest at configure time
@@ -58,10 +73,14 @@ file(GLOB_RECURSE RR32CAN_LIB_SRCS "${RR32CAN_LIB_DIR}/*.cpp")
 set(RR32CANENGINEDB_LIB_DIR "${RR32CAN_INCLUDE_DIR}/RR32CanEngineDb")
 file(GLOB_RECURSE RR32CANENGINEDB_LIB_SRCS "${RR32CANENGINEDB_LIB_DIR}/*.cpp")
 
+set(ATOMIC_RING_BUFFER_INCLUDE_DIR ".pio/libdeps/bluepill/AtomicRingBuffer")
+
+
 include_directories("test")
 include_directories("test/mocks")
 include_directories(".pio/libdeps/bluepill/LocoNet/utility")
 include_directories("${RR32CAN_INCLUDE_DIR}")
+include_directories("${ATOMIC_RING_BUFFER_INCLUDE_DIR}")
 include_directories("lib/microrl/src")
 
 include_directories("src")
@@ -70,6 +89,8 @@ add_executable(c6021lightTest
     "test/unit/EmptyTest.cpp"
     "test/unit/AccessoryPacketTest.cpp"
     "test/integration/StatelessRouting.cpp"
+    "test/integration/StopGoRequest.cpp"
+    "test/integration/CanEngineDBRequest.cpp"
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     
@@ -86,8 +107,13 @@ add_executable(c6021lightTest
 
     "${RR32CAN_LIB_SRCS}"
     "${RR32CANENGINEDB_LIB_SRCS}"
- )
+)
 target_link_libraries(c6021lightTest gtest_main gmock)
+
+if (ENABLE_CLANG_TIDY AND CLANG_TIDY_EXECUTABLE)
+    set_target_properties(c6021lightTest PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_EXECUTABLE}")
+endif()
+
 add_test(NAME gtest_c6021lightTest_test COMMAND c6021lightTest)
 target_compile_features(c6021lightTest PRIVATE cxx_std_14)
 

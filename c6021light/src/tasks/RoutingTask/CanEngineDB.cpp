@@ -17,15 +17,6 @@ CanEngineDB::DB_t::iterator CanEngineDB::getEntry(const RR32Can::Locomotive::Uid
   return it;
 }
 
-RR32Can::Locomotive* CanEngineDB::getLoco(RR32Can::Locomotive::Uid_t uid) {
-  const auto it = getEntry(uid);
-  if (it == db_.end()) {
-    return nullptr;
-  } else {
-    return &it->loco;
-  }
-}
-
 void CanEngineDB::setLocoVelocity(RR32Can::Locomotive::Uid_t engineUid,
                                   RR32Can::Velocity_t velocity) {
   auto entry = getEntry(engineUid);
@@ -50,7 +41,40 @@ void CanEngineDB::setLocoVelocity(RR32Can::Velocity_t velocity) {
   }
 }
 
+void CanEngineDB::setLocoFunction(const RR32Can::Uid_t engineUid, uint8_t functionIdx,
+                                  bool functionOn) {
+  auto entry = getEntry(engineUid);
+  if (entry != db_.end()) {
+    const bool oldFunctionOn = entry->loco.getFunction(functionIdx);
+    if (oldFunctionOn != functionOn) {
+      entry->diff.functions = true;
+      entry->loco.setFunction(functionIdx, functionOn);
+    }
+  }
+}
+
+void CanEngineDB::setLocoDirection(const RR32Can::Uid_t engineUid,
+                                   const RR32Can::EngineDirection direction) {
+  auto entry = getEntry(engineUid);
+  if (entry != db_.end()) {
+    const auto oldDirection = entry->loco.getDirection();
+    if (oldDirection != direction) {
+      entry->diff.direction = true;
+      entry->loco.setDirection(direction);
+    }
+  }
+}
+
+void CanEngineDB::changeLocoDirection(const RR32Can::Uid_t engineUid) {
+  auto entry = getEntry(engineUid);
+  if (entry != db_.end()) {
+    entry->diff.direction = true;
+    entry->loco.changeDirection();
+  }
+}
+
 void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
+  dbState_ = DBState::DOWNLOADING;
   listConsumer_.reset();
   streamParser_.reset();
   listConsumer_.setStreamEndCallback(this);
@@ -60,12 +84,24 @@ void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
 
 void CanEngineDB::fetchEngineDB() { fetchEnginesFromOffset(0); }
 
-void CanEngineDB::fetchNextEngine() {
-  auto db_end = std::next(db_.begin(), listConsumer_.getNumEnginesKnownByMaster());
+RR32Can::Locomotive* CanEngineDB::findFirstIncompleteEngine() {
+  const auto db_end = std::next(db_.begin(), listConsumer_.getNumEnginesKnownByMaster());
   const auto incompleteEntry = std::find_if(
       db_.begin(), db_end, [](const auto& entry) { return entry.loco.isNameOnlyKnown(); });
   if (incompleteEntry != db_end) {
-    fetchEngine(incompleteEntry->loco);
+    return &(incompleteEntry->loco);
+  } else {
+    return nullptr;
+  }
+}
+
+void CanEngineDB::fetchNextEngine() {
+  auto* const loco = findFirstIncompleteEngine();
+  if (loco != nullptr) {
+    dbState_ = DBState::DOWNLOADING;
+    fetchEngine(*loco);
+  } else {
+    dbState_ = DBState::COMPLETE;
   }
 }
 

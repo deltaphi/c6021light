@@ -12,6 +12,7 @@ namespace freertossupport {
 class OsTask {
  public:
   MOCK_METHOD(void, waitForNotify, (), ());
+  MOCK_METHOD(void, notify, (), ());
 
  private:
 };

@@ -37,6 +37,8 @@ extern "C" {
 
 #include <FreeRTOS.h>
 #include "OsTask.h"
+#include "OsTimer.h"
+#include "timers.h"
 
 // ******** Variables and Constans********
 Hal_t halImpl;
@@ -50,7 +52,12 @@ freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
                               tasks::ConsoleTask::ConsoleTask::kStackSize>
     consoleTask;
 
+freertossupport::StaticOsTimer stopGoTimer;
+freertossupport::StaticOsTimer canEngineDbTimer;
+
 hal::CanTxCbk canTxCbk;
+
+LocoNetTx lnTx;
 
 // Dummy variable that allows the toolchain to compile static variables that have destructors.
 void* __dso_handle;
@@ -65,6 +72,16 @@ void vApplicationGetIdleTaskMemory(StaticTask_t** ppxIdleTaskTCBBuffer,
   *ppxIdleTaskTCBBuffer = &idleTaskTcb;
   *ppxIdleTaskStackBuffer = idleTaskStack;
   *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+
+void vApplicationGetTimerTaskMemory(StaticTask_t** ppxTimerTaskTCBBuffer,
+                                    StackType_t** ppxTimerTaskStackBuffer,
+                                    uint32_t* pulTimerTaskStackSize) {
+  static StackType_t timerTaskStack[configTIMER_TASK_STACK_DEPTH];
+  static StaticTask_t timerTaskTcb;
+  *ppxTimerTaskTCBBuffer = &timerTaskTcb;
+  *ppxTimerTaskStackBuffer = timerTaskStack;
+  *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
 
 }  // extern "C"
@@ -84,7 +101,7 @@ void setup() {
   // Load Configuration
   printf("Reading Configuration.\n");
   dataModel = hal::LoadConfig();
-  routingTask.begin(dataModel);
+  routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDbTimer);
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");
@@ -96,8 +113,18 @@ void setup() {
   callbacks.engine = &routingTask.getCANEngineDB();
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
+  consoleTask.setup(lnTx);
   printf("Ready!\n");
   ConsoleManager::begin(&dataModel);
+
+  // Start anything timer-related
+  routingTask.stopGoStateM_.startRequesting();
+  routingTask.canEngineDBStateM_.startRequesting();
+}
+
+void setupOsResources() {
+  stopGoTimer.Create("StopGo", 1000, true, &routingTask.stopGoStateM_);
+  canEngineDbTimer.Create("CanDb", 1000, true, &routingTask.canEngineDBStateM_);
 }
 
 void setupOsTasks() {
@@ -109,6 +136,7 @@ void setupOsTasks() {
 
 // Main function for non-arduino
 int main(void) {
+  setupOsResources();
   setupOsTasks();
 
   setup();
