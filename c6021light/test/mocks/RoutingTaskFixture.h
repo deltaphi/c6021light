@@ -27,7 +27,7 @@ class RoutingTaskFixture : public Test {
     hal::canMock = &canHal;
     hal::i2cMock = &i2cHal;
 
-    routingTask.begin(dataModel, lnTx, stopGoTimer);
+    routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDBTimer);
 
     RR32Can::Station::CallbackStruct callbacks;
     callbacks.tx = &canTx;
@@ -48,6 +48,7 @@ class RoutingTaskFixture : public Test {
   StrictMock<mocks::LocoNetTx> lnTx;
   tasks::RoutingTask::RoutingTask routingTask;
   StrictMock<freertossupport::OsTimer> stopGoTimer;
+  StrictMock<freertossupport::OsTimer> canEngineDBTimer;
 };
 
 }  // namespace mocks

@@ -12,6 +12,7 @@
 #include "LocoNetForwarder.h"
 
 #include "CanEngineDB.h"
+#include "CanEngineDBStateMachine.h"
 #include "LocoNetSlotServer.h"
 #include "StopGoStateMachine.h"
 
@@ -22,11 +23,13 @@ class RoutingTask : public freertossupport::OsTask {
  public:
   static constexpr const uint32_t kStackSize = 256;
 
-  void begin(DataModel& dataModel, LocoNetTx& lnTx, freertossupport::OsTimer& stopGoTimer) {
+  void begin(DataModel& dataModel, LocoNetTx& lnTx, freertossupport::OsTimer& stopGoTimer,
+             freertossupport::OsTimer& canEngineDBTimer) {
     lnForwarder_.init(dataModel, slotServer_, lnTx);
     i2cForwarder_.init(dataModel);
     slotServer_.init(dataModel, lnTx);
     stopGoStateM_.setTimer(stopGoTimer);
+    canEngineDBStateM_.setTimer(canEngineDBTimer);
   };
 
   void TaskMain();
@@ -54,6 +57,7 @@ class RoutingTask : public freertossupport::OsTask {
 
  public:
   StopGoStateMachine stopGoStateM_{canForwarder_, *this};
+  CanEngineDBStateMachine canEngineDBStateM_{engineDb_, *this};
 };
 
 }  // namespace RoutingTask

@@ -53,6 +53,7 @@ freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
     consoleTask;
 
 freertossupport::StaticOsTimer stopGoTimer;
+freertossupport::StaticOsTimer canEngineDbTimer;
 
 hal::CanTxCbk canTxCbk;
 
@@ -100,7 +101,7 @@ void setup() {
   // Load Configuration
   printf("Reading Configuration.\n");
   dataModel = hal::LoadConfig();
-  routingTask.begin(dataModel, lnTx, stopGoTimer);
+  routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDbTimer);
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");
@@ -118,9 +119,13 @@ void setup() {
 
   // Start anything timer-related
   routingTask.stopGoStateM_.startRequesting();
+  routingTask.canEngineDBStateM_.startRequesting();
 }
 
-void setupOsResources() { stopGoTimer.Create("StopGo", 1000, true, &routingTask.stopGoStateM_); }
+void setupOsResources() {
+  stopGoTimer.Create("StopGo", 1000, true, &routingTask.stopGoStateM_);
+  canEngineDbTimer.Create("CanDb", 1000, true, &routingTask.canEngineDBStateM_);
+}
 
 void setupOsTasks() {
   routingTask.Create("RoutingTask", configMAX_PRIORITIES - 1);

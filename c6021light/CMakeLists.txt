@@ -90,6 +90,7 @@ add_executable(c6021lightTest
     "test/unit/AccessoryPacketTest.cpp"
     "test/integration/StatelessRouting.cpp"
     "test/integration/StopGoRequest.cpp"
+    "test/integration/CanEngineDBRequest.cpp"
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     

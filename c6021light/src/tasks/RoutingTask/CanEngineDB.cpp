@@ -51,6 +51,7 @@ void CanEngineDB::setLocoVelocity(RR32Can::Velocity_t velocity) {
 }
 
 void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
+  dbState_ = DBState::DOWNLOADING;
   listConsumer_.reset();
   streamParser_.reset();
   listConsumer_.setStreamEndCallback(this);
@@ -60,12 +61,24 @@ void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
 
 void CanEngineDB::fetchEngineDB() { fetchEnginesFromOffset(0); }
 
-void CanEngineDB::fetchNextEngine() {
-  auto db_end = std::next(db_.begin(), listConsumer_.getNumEnginesKnownByMaster());
+RR32Can::Locomotive* CanEngineDB::findFirstIncompleteEngine() {
+  const auto db_end = std::next(db_.begin(), listConsumer_.getNumEnginesKnownByMaster());
   const auto incompleteEntry = std::find_if(
       db_.begin(), db_end, [](const auto& entry) { return entry.loco.isNameOnlyKnown(); });
   if (incompleteEntry != db_end) {
-    fetchEngine(incompleteEntry->loco);
+    return &(incompleteEntry->loco);
+  } else {
+    return nullptr;
+  }
+}
+
+void CanEngineDB::fetchNextEngine() {
+  auto* const loco = findFirstIncompleteEngine();
+  if (loco != nullptr) {
+    dbState_ = DBState::DOWNLOADING;
+    fetchEngine(*loco);
+  } else {
+    dbState_ = DBState::COMPLETE;
   }
 }
 

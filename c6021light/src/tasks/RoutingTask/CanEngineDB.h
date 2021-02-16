@@ -37,6 +37,8 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
 
   using DB_t = std::array<DbEntry_t, kMaxNumDbEntries>;
 
+  enum class DBState { EMPTY, DOWNLOADING, COMPLETE };
+
   void fetchEngineDB();
 
   void streamComplete(RR32Can::ConfigDataConsumer*) override;
@@ -61,13 +63,19 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
     return nullptr;
   }
 
+  bool isEmpty() { return dbState_ == DBState::EMPTY; }
+  bool isDownloading() { return dbState_ == DBState::DOWNLOADING; }
+  bool isComplete() { return dbState_ == DBState::COMPLETE; }
+
  private:
   RR32Can::ConfigDataStreamParser streamParser_;
   RR32Can::LocoListConsumer listConsumer_;
   RR32Can::LocoConsumer locoConsumer_;
   DB_t db_;
+  DBState dbState_{DBState::EMPTY};
 
   DB_t::iterator getEntry(const RR32Can::Locomotive::Uid_t uid);
+  RR32Can::Locomotive* findFirstIncompleteEngine();
 
   void fetchEnginesFromOffset(uint8_t offset);
 
