@@ -5,8 +5,6 @@
 #include "RR32Can/messages/SystemMessage.h"
 #include "RR32Can/messages/TurnoutPacket.h"
 
-#include "LocoNet.h"
-
 #include "tasks/RoutingTask/LocoNetHelpers.h"
 
 namespace tasks {
@@ -20,7 +18,7 @@ void LocoNetForwarder::forward(const RR32Can::CanFrame& frame) {
         // Send to LocoNet
         auto msg = Ln_Turnout(turnoutPacket.getLocid(), turnoutPacket.getDirection(),
                               turnoutPacket.getPower());
-        LocoNet.send(&msg);
+        tx_->AsyncSend(msg);
       }
       break;
     }
@@ -31,13 +29,13 @@ void LocoNetForwarder::forward(const RR32Can::CanFrame& frame) {
         case RR32Can::SystemSubcommand::SYSTEM_STOP:
           if (!frame.id.isResponse()) {
             auto msg = Ln_Off();
-            LocoNet.send(&msg);
+            tx_->AsyncSend(msg);
           }
           break;
         case RR32Can::SystemSubcommand::SYSTEM_GO:
           if (!frame.id.isResponse()) {
             auto msg = Ln_On();
-            LocoNet.send(&msg);
+            tx_->AsyncSend(msg);
           }
           break;
         default:
@@ -50,7 +48,7 @@ void LocoNetForwarder::forward(const RR32Can::CanFrame& frame) {
       const RR32Can::S88Event s88Event(const_cast<RR32Can::Data&>(frame.data));
       if (s88Event.getSubtype() == RR32Can::S88Event::Subtype::RESPONSE) {
         auto msg = Ln_Sensor(s88Event.getContactId(), s88Event.getNewState());
-        LocoNet.send(&msg);
+        tx_->AsyncSend(msg);
       }
       break;
     }
@@ -84,7 +82,7 @@ void LocoNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, Lo
         speedMessage.command = OPC_LOCO_SPD;
         speedMessage.slot = slotIdx;
         speedMessage.spd = canVelocityToLnSpeed(loco.getVelocity());
-        LocoNet.send(&msg);
+        tx_->AsyncSend(msg);
         diff.velocity = false;
       }
 
@@ -94,7 +92,7 @@ void LocoNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, Lo
         dirfMessage.command = OPC_LOCO_DIRF;
         dirfMessage.slot = slotIdx;
         dirfMessage.dirf = locoToDirf(loco);
-        LocoNet.send(&msg);
+        tx_->AsyncSend(msg);
         diff.direction = false;
       }
 
@@ -104,7 +102,7 @@ void LocoNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, Lo
         sndMessage.command = OPC_LOCO_SND;
         sndMessage.slot = slotIdx;
         sndMessage.snd = locoToSnd(loco);
-        LocoNet.send(&msg);
+        tx_->AsyncSend(msg);
       }
 
       diff.functions = 0;
