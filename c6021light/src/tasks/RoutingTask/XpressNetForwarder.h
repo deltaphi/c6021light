@@ -7,7 +7,6 @@
 #include "RR32Can/messages/Data.h"
 #include "RR32Can/messages/Identifier.h"
 
-#include <XpressNetMaster.h>
 #include "XpressNet/XpressNetMsg.h"
 
 

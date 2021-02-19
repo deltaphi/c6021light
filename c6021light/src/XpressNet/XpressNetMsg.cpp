@@ -1,5 +1,6 @@
 #include "AtomicRingBuffer/ObjectRingBuffer.h"
 
+#include "XpressNetMaster.h"
 #include "XpressNetMsg.h"
 
 namespace XpressNetMsg {

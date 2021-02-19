@@ -1,5 +1,7 @@
 #include "tasks/RoutingTask/XpressNetForwarder.h"
 
+#include "XpressNetMaster.h"
+
 #include "RR32Can/Constants.h"
 #include "RR32Can/messages/S88Event.h"
 #include "RR32Can/messages/SystemMessage.h"

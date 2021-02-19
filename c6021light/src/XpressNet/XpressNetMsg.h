@@ -9,7 +9,6 @@
 #endif
 
 #include "RR32Can/Types.h"
-#include "XpressNetMaster.h"
 
 namespace XpressNetMsg {
 
