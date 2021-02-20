@@ -20,7 +20,7 @@ constexpr RR32Can::Velocity_t lnSpeedToCanVelocity(RR32Can::Velocity_t speed) {
   return (speed * RR32Can::kMaxEngineVelocity / kLocoNetMaxVeloctiy);
 }
 
-constexpr RR32Can::Velocity_t canVelocityToLnSpeed(RR32Can::Velocity_t velocity) {
+constexpr uint8_t canVelocityToLnSpeed(RR32Can::Velocity_t velocity) {
   return (velocity * kLocoNetMaxVeloctiy) / RR32Can::kMaxEngineVelocity;
 }
 
