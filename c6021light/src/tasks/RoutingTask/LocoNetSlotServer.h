@@ -106,9 +106,9 @@ class LocoNetSlotServer {
   auto begin() { return slotDB_.begin(); }
   auto end() { return slotDB_.end(); }
 
- private:
   bool dispatchSlotAvailable() const { return slotInDispatch_ != slotDB_.end(); }
 
+ private:
   void processSlotMove(const slotMoveMsg& msg);
 
   SlotDB_t::iterator findOrRequestSlot(const uint8_t lnMsgSlot);
@@ -133,7 +133,7 @@ class LocoNetSlotServer {
   DataModel* dataModel_;
   LocoNetTx* tx_;
   SlotDB_t slotDB_;
-  SlotDB_t::iterator slotInDispatch_;  // slotDB_.end() means no slot.
+  SlotDB_t::iterator slotInDispatch_{slotDB_.end()};  // slotDB_.end() means no slot.
 };
 
 }  // namespace RoutingTask

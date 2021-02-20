@@ -93,7 +93,8 @@ add_executable(c6021lightTest
     "test/integration/CanEngineDBRequest.cpp"
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
-    
+    "test/integration/SlotServer.cpp"
+
     "src/tasks/RoutingTask/CANForwarder.cpp"
     "src/tasks/RoutingTask/I2CForwarder.cpp"
     "src/tasks/RoutingTask/LocoNetForwarder.cpp"

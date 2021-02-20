@@ -185,6 +185,7 @@ void LocoNetSlotServer::sendSlotDataRead(const SlotDB_t::const_iterator slot) co
   SlotIdx_t slotIdx = this->findSlotIndex(slot);
 
   slotRead.command = OPC_SL_RD_DATA;
+  slotRead.mesg_size = 0x0Eu;
   slotRead.slot = slotIdx;  // Slot Number
   slotRead.stat = 0;        // Status1, speed steps
 
@@ -204,6 +205,7 @@ void LocoNetSlotServer::sendSlotDataRead(const SlotDB_t::const_iterator slot) co
   slotRead.snd = locoToSnd(slot->loco);                           // F5-8
   slotRead.id1 = 0;                                               // Throttle ID (low)
   slotRead.id2 = 0;                                               // Throttle ID (high)
+  slotRead.chksum = 0;
 
   tx_->AsyncSend(txMsg);
 }

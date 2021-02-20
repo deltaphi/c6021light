@@ -104,6 +104,32 @@ inline lnMsg Ln_LongAck(uint8_t ucCode) {
   return LnPacket;
 }
 
+inline lnMsg Ln_SlotMove(uint8_t src, uint8_t dest) {
+  lnMsg LnPacket{};
+  LnPacket.sm.command = OPC_MOVE_SLOTS;
+  LnPacket.sm.src = src;
+  LnPacket.sm.dest = dest;
+  return LnPacket;
+}
+
+inline lnMsg Ln_SlotDataRead(uint8_t slot, uint8_t stat, const RR32Can::LocomotiveData& engine) {
+  lnMsg LnPacket{};
+  LnPacket.sd.command = OPC_SL_RD_DATA;
+  LnPacket.sd.mesg_size = 0x0Eu;
+  LnPacket.sd.slot = slot;
+  LnPacket.sd.stat = stat;
+  putLocoAddress(LnPacket.sd, engine.getAddress());
+  LnPacket.sd.spd = static_cast<uint8_t>(canVelocityToLnSpeed(engine.getVelocity()));
+  LnPacket.sd.dirf = locoToDirf(engine);
+  LnPacket.sd.trk = 0;
+  LnPacket.sd.ss2 = 0;
+  LnPacket.sd.snd = locoToSnd(engine);
+  LnPacket.sd.id1 = 0;
+  LnPacket.sd.id2 = 0;
+  LnPacket.sd.chksum = 0;
+  return LnPacket;
+}
+
 }  // namespace RoutingTask
 }  // namespace tasks
 
