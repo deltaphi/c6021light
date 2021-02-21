@@ -191,10 +191,11 @@ void LocoNetSlotServer::sendSlotDataRead(const SlotDB_t::const_iterator slot) co
 
   if (slot->inUse) {
     slotRead.stat |= 0b00110000;  // Busy & Active
-    slotRead.stat |= 0b00000011;  // 128 steps mode, no advanced consisting
   } else {
     slotRead.stat &= ~0b00110000;  // FREE Slot
   }
+
+  slotRead.stat |= 0b00000011;  // 128 steps mode, no advanced consisting
 
   putLocoAddress(slotRead, slot->loco.getAddress().getNumericAddress());
 

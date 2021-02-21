@@ -104,6 +104,15 @@ inline lnMsg Ln_LongAck(uint8_t ucCode) {
   return LnPacket;
 }
 
+inline lnMsg Ln_LocoAddr(const RR32Can::MachineLocomotiveAddress& address) {
+  const uint16_t addr = address.getNumericAddress().value();
+  locoAdrMsg msg;
+  msg.command = OPC_LOCO_ADR;
+  msg.adr_hi = addr >> 7;
+  msg.adr_lo = addr & 0x7F;
+  return lnMsg{msg};
+}
+
 inline lnMsg Ln_SlotMove(uint8_t src, uint8_t dest) {
   lnMsg LnPacket{};
   LnPacket.sm.command = OPC_MOVE_SLOTS;

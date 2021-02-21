@@ -74,6 +74,7 @@ class LocoNetSlotServer {
         freeIt = addrIt;
       }
     }
+    initializeSlot(freeIt, addr);
     return freeIt;
   }
 
@@ -88,7 +89,7 @@ class LocoNetSlotServer {
   }
 
   static uint16_t extractAddress(const lnMsg& LnPacket) {
-    uint16_t addr = (LnPacket.data[1] | ((LnPacket.data[2] & 0x0F) << 7));
+    const uint16_t addr = (LnPacket.data[1] << 7) | (LnPacket.data[2] & 0x7F);
     return addr;
   }
 
@@ -125,6 +126,13 @@ class LocoNetSlotServer {
   void processLocoSnd(const locoSndMsg& msg);
 
   static void clearSlot(SlotDB_t::iterator& slot) { *slot = SlotEntry(); }
+
+  static void initializeSlot(SlotDB_t::iterator& slot, LocoAddr_t address) {
+    clearSlot(slot);
+    slot->loco.setAddress(address);
+    slot->loco.setDirection(RR32Can::EngineDirection::FORWARD);
+    slot->needsMatchToCAN = true;
+  }
 
   auto shouldSendEngineUpdateForSlot(const SlotDB_t::const_iterator slot) {
     return slot->inUse && !isDisabled();
