@@ -37,6 +37,7 @@ extern "C" {
 
 #include <FreeRTOS.h>
 #include "OsTask.h"
+#include "OsTimer.h"
 #include "timers.h"
 
 // ******** Variables and Constans********
@@ -51,7 +52,12 @@ freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
                               tasks::ConsoleTask::ConsoleTask::kStackSize>
     consoleTask;
 
+freertossupport::StaticOsTimer stopGoTimer;
+freertossupport::StaticOsTimer canEngineDbTimer;
+
 hal::CanTxCbk canTxCbk;
+
+LocoNetTx lnTx;
 
 // Dummy variable that allows the toolchain to compile static variables that have destructors.
 void* __dso_handle;
@@ -95,7 +101,7 @@ void setup() {
   // Load Configuration
   printf("Reading Configuration.\n");
   dataModel = hal::LoadConfig();
-  routingTask.begin(dataModel);
+  routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDbTimer);
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");
@@ -107,14 +113,18 @@ void setup() {
   callbacks.engine = &routingTask.getCANEngineDB();
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
+  consoleTask.setup(lnTx);
   printf("Ready!\n");
   ConsoleManager::begin(&dataModel);
+
+  // Start anything timer-related
+  routingTask.stopGoStateM_.startRequesting();
+  routingTask.canEngineDBStateM_.startRequesting();
 }
 
 void setupOsResources() {
-  // static StaticTimer_t i2cWdgTimerBuffer;
-  // hal::i2cWdg = xTimerCreateStatic("I2CWdg", HAL_I2C_WDG_TIMEOUT, false, nullptr, hal::i2cWdgCbk,
-  //                                 &i2cWdgTimerBuffer);
+  stopGoTimer.Create("StopGo", 1000, true, &routingTask.stopGoStateM_);
+  canEngineDbTimer.Create("CanDb", 1000, true, &routingTask.canEngineDBStateM_);
 }
 
 void setupOsTasks() {
@@ -141,6 +151,9 @@ int main(void) {
 
 extern "C" void notifyLnByteReceived() { routingTask.notifyFromISRWithWake(); }
 
+// single function that gets called from all relevant XNet notifiers
+void notifyXNetGlobal() { routingTask.notify(); }
+
 namespace ConsoleManager {
 
 int run_ln_slot_server_dump(int argc, const char* const* argv, int argcMatched) {
@@ -152,6 +165,23 @@ int run_ln_slot_server_dump(int argc, const char* const* argv, int argcMatched) 
 
   routingTask.getLnSlotServer().dump();
 
+  return 0;
+}
+
+int run_ln_slot_server_dispatch(int argc, const char* const* argv, int argcMatched) {
+  static constexpr const char* appName{"LnSlotServerDispatch"};
+
+  if (!checkNumArgs(argc - argcMatched, 1, 1, appName)) {
+    display_help(argc, argv);
+    return -2;
+  }
+
+  const int dispatchAddrInt = atoi(argv[argcMatched]);
+
+  using LocoAddr_t = tasks::RoutingTask::LocoNetSlotServer::LocoAddr_t;
+  const LocoAddr_t dispatchAddress = RR32Can::MachineLocomotiveAddress(dispatchAddrInt);
+  auto& slotServer = routingTask.getLnSlotServer();
+  slotServer.markAddressForDispatch(dispatchAddress);
   return 0;
 }
 

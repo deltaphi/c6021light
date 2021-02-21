@@ -6,6 +6,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
+#include "LocoNetTx.h"
 #include "ln_opc.h"
 
 #define LocoNet (*mocks::LocoNetInstance)
@@ -32,10 +33,12 @@ namespace mocks {
  */
 class LocoNetClass {
  public:
-  MOCK_METHOD(void, send, (lnMsg*), ());
-  MOCK_METHOD(void, reportSensor, (uint16_t address, uint8_t state), ());
-  MOCK_METHOD(void, sendLongAck, (uint8_t ucCode), ());
   MOCK_METHOD(lnMsg*, receive, (), ());
+};
+
+class LocoNetTx : public ::LocoNetTx {
+ public:
+  MOCK_METHOD(bool, DoAsyncSend, (lnMsg), ());
 };
 
 extern LocoNetClass* LocoNetInstance;

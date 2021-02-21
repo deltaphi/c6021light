@@ -12,6 +12,7 @@ class LibOpencm3Hal {
     beginClock();
     beginGpio();
     beginLocoNet();
+    beginXpressNet();
   }
 
   void led(bool on);
@@ -21,6 +22,7 @@ class LibOpencm3Hal {
   void beginClock();
   void beginGpio();
   void beginLocoNet();
+  void beginXpressNet();
 };
 
 }  // namespace hal

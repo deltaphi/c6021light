@@ -24,7 +24,9 @@ single device.
 
 The I2C bus operates at 5V.
 
-# Hardware
+# I2C Bus
+
+## Hardware
 
 Belegung der Buchse (Keyboard 6040 links)
 ```
@@ -40,7 +42,7 @@ z.B. ept 102-90065
 
 http://dl1zax.selfhost.de/ATMega/PDF/6022.pdf
 
-# I2C Bus Communication
+## I2C Bus Communication
 
 Zitat von [Dr. König's Märklin-Digital-Page](http://www.drkoenig.de/digital/i2c.htm):
 ```
@@ -81,7 +83,7 @@ Taste 0 rot
 
 0x20 0xfe 0x08 (Osci wA 0x10 -> Data 0x20)
 
-## I2C Messages
+### I2C Messages
 
 Devices communicate over I2C. The system is multi-master, i.e., any device that has data to send
 as as a master. Read from slave devices is not used.
@@ -95,7 +97,7 @@ receiver sender data
 * sender is the I2C slave address under which the originator of the message can be reached.
 * data The data byte, containing the action to be performed.
 
-### I2C Device Addresses
+#### I2C Device Addresses
 
 Note that I2C addresses are 7 Bit. However, the above mentioned fields are all 8 bit. In practice,
 this results in the fact that the receiver address and sender address are shifted by 1 bit. In the
@@ -106,7 +108,7 @@ observed in the receiver field).
 * Keyboard 0 uses a slave address of 0x10. The Keyboard address is derived from the DIP switches on
   the back.
 
-### I2C Data Byte
+#### I2C Data Byte
 
 The data byte is constructed as follows:
 
@@ -120,7 +122,7 @@ one output of the decoder.
 Modern Systems use individually addressable decoders (Keyboard Address + Decoder_* + Output_*) and
 treat the direction separately.
 
-## Keyboard Message flow
+### Keyboard Message flow
 
 The Keyboard does not need any initialization. As soon as 8V are applied to one of the power pins
 and the I2C lines are pulled up to 5V (a 10k resistor on each line does the job) it starts up and
@@ -140,13 +142,53 @@ buttons has no effect. The Keyboard is stuck processing the original request. If
 received even when no corresponding request was sent, the indicators always change and no further
 processing takes place on the Keyboard.
 
-### Power On/Off
+#### Power On/Off
 
 When a button is pressed, a "Power ON" message is sent. When a button is released, a "Power OFF"
 message is sent. However, due to the Decoder-Based addressing scheme, the "Power Off" message is
 not addressed towards a specific turnout but towards the decoder Address, i.e., all 8 outputs are
 considered to be unpowered.
 
+# LocoNet
+
+## Hardware
+
+Looking from the top, the lines on the LocoNet connector are as follows:
+
+```
+ 6      5    4    3     2   1
+PWR    GND DATA  DATA  GND PWR
++8V    0V  +14V  +14V  0V  +8V    (Measured from IB1)
++9V    0V  +8,7V +8,7V 0V  +9V    (Measured with J31/J32 closed, 10V supply voltage)
++11,4V 0V  +10V  +10V  0V  +11,4V (Measured with J31/J32 closed, 12V supply voltage)
+```
+
+## Message Sequence for Dispatch
+
+Recorded from IB1.
+
+Request dispatch form FREDI, no Slot in dispatch:
+```
+LN RX:  ba 0 0 45 [OPC_MOVE_SLOTS] 0 -> 0
+LN RX:  b4 3a 0 71 [OPC_LONG_ACK]
+```
+
+Dispatch engine 50 on IB1:
+```
+LN RX:  b5 1 10 5b [OPC_SLOT_STAT1] Slot: 1 Stat1: 0x10
+LN RX:  bf 0 32 72 [OPC_LOCO_ADR] Addr 50
+LN RX:  e7 e 1 10 32 0 0 7 0 0 0 10 4 26 [OPC_SL_RD_DATA] Slot: 1 Stat: 16 Addr: 50 Speed: 0 Dirf: 00 ...
+LN RX:  ba 1 0 44 [OPC_MOVE_SLOTS] 1 -> 0
+LN RX:  e7 e 1 20 32 0 0 7 0 0 0 10 4 16 [OPC_SL_RD_DATA] Slot: 1 Stat: 32 Addr: 50 Speed: 0 Dirf: 00 ...
+```
+
+Request dispatch from FREDI, Engine 50 in dispatch:
+```
+LN RX:  ba 0 0 45 [OPC_MOVE_SLOTS] 0 -> 0
+LN RX:  e7 e 1 30 32 0 0 7 0 0 0 10 4 6 [OPC_SL_RD_DATA] Slot: 1 Stat: 48 Addr: 50 Speed: 0 Dirf: 00 ...
+LN RX:  ef e 1 30 32 0 0 7 0 0 0 10 4 e [OPC_WR_SL_DATA] Slot: 1 Stat: 48 Addr: 50 Speed: 0 Dirf: 00 ...
+LN RX:  b4 6f 7f 5b [OPC_LONG_ACK]
+```
 
 # Overall Communication Pattern
 

@@ -8,11 +8,12 @@
 #include "RR32Can/Locomotive.h"
 #include "RR32Can/Types.h"
 
+#include "LocoNetTx.h"
 #include "ln_opc.h"
 
 #include "RoutingForwarder.h"
 
-class DataModel;
+struct DataModel;
 
 namespace tasks {
 namespace RoutingTask {
@@ -42,7 +43,10 @@ class LocoNetSlotServer {
   constexpr static const SlotIdx_t kNumSlots = 127;
   using SlotDB_t = std::array<SlotEntry, kNumSlots>;  // note that Slot 0 is not used
 
-  void init(DataModel& dataModel) { this->dataModel_ = &dataModel; }
+  void init(DataModel& dataModel, LocoNetTx& tx) {
+    this->dataModel_ = &dataModel;
+    this->tx_ = &tx;
+  }
 
   bool markAddressForDispatch(LocoAddr_t addr) {
     SlotDB_t::iterator it = findOrAllocateSlotForAddress(addr);
@@ -70,6 +74,7 @@ class LocoNetSlotServer {
         freeIt = addrIt;
       }
     }
+    initializeSlot(freeIt, addr);
     return freeIt;
   }
 
@@ -84,7 +89,7 @@ class LocoNetSlotServer {
   }
 
   static uint16_t extractAddress(const lnMsg& LnPacket) {
-    uint16_t addr = (LnPacket.data[1] | ((LnPacket.data[2] & 0x0F) << 7));
+    const uint16_t addr = (LnPacket.data[1] << 7) | (LnPacket.data[2] & 0x7F);
     return addr;
   }
 
@@ -102,19 +107,28 @@ class LocoNetSlotServer {
   auto begin() { return slotDB_.begin(); }
   auto end() { return slotDB_.end(); }
 
- private:
   bool dispatchSlotAvailable() const { return slotInDispatch_ != slotDB_.end(); }
 
+ private:
   void processSlotMove(const slotMoveMsg& msg);
 
   SlotDB_t::iterator findOrRequestSlot(const uint8_t lnMsgSlot);
-  SlotDB_t::iterator findSlot(const uint8_t lnMsgSlot);
-  void requestSlotDataRead(SlotDB_t::iterator slot) const;
+
+  SlotDB_t::iterator findSlot(const uint8_t lnMsgSlot) {
+    return std::next(slotDB_.begin(), std::min(lnMsgSlot, kNumSlots));
+  }
+
+  SlotDB_t::const_iterator findSlot(const uint8_t lnMsgSlot) const {
+    return std::next(slotDB_.begin(), std::min(lnMsgSlot, kNumSlots));
+  }
+
+  void requestSlotDataRead(SlotDB_t::iterator slot);
   void sendSlotDataRead(const SlotDB_t::const_iterator slot) const;
   void sendNoDispatch() const;
 
   void processLocoRequest(const LocoAddr_t locoAddr);
   void processSlotRead(const rwSlotDataMsg& msg);
+  void processRequestSlotRead(slotReqMsg slotReq) const;
 
   void processLocoSpeed(const locoSpdMsg& msg);
   void processLocoDirF(const locoDirfMsg& msg);
@@ -122,13 +136,21 @@ class LocoNetSlotServer {
 
   static void clearSlot(SlotDB_t::iterator& slot) { *slot = SlotEntry(); }
 
+  static void initializeSlot(SlotDB_t::iterator& slot, LocoAddr_t address) {
+    clearSlot(slot);
+    slot->loco.setAddress(address);
+    slot->inUse = true;
+    slot->needsMatchToCAN = true;
+  }
+
   auto shouldSendEngineUpdateForSlot(const SlotDB_t::const_iterator slot) {
     return slot->inUse && !isDisabled();
   }
 
   DataModel* dataModel_;
+  LocoNetTx* tx_;
   SlotDB_t slotDB_;
-  SlotDB_t::iterator slotInDispatch_;  // slotDB_.end() means no slot.
+  SlotDB_t::iterator slotInDispatch_{slotDB_.end()};  // slotDB_.end() means no slot.
 };
 
 }  // namespace RoutingTask

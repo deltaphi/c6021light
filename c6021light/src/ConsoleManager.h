@@ -20,6 +20,15 @@ extern microrl_t microrl;
 void begin(DataModel* dataModel);
 
 void display_help(int argc, const char* const* argv);
+
+/**
+ * \brief Verify that the expected (range of) number(s) of arguments is available.
+ *
+ * \param argc The number of remaining arguments.
+ * \param lower The minimum number of expected arguments.
+ * \param upper The maximum number of expected arguments.
+ * \param appName The name of the application to be used in the error message.
+ */
 bool checkNumArgs(int argc, int lower, int upper, const char* appName);
 }  // namespace ConsoleManager
 

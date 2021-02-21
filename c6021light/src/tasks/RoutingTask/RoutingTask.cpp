@@ -8,6 +8,8 @@
 #include "hal/stm32can.h"
 #include "tasks/RoutingTask/LocoNetPrinter.h"
 
+#include "XpressNet/XpressNetMsg.h"
+
 #include "DataModel.h"
 
 namespace tasks {
@@ -17,8 +19,11 @@ void RoutingTask::processCAN() {
   for (auto framePtr = hal::getCanMessage(); framePtr != nullptr; framePtr = hal::getCanMessage()) {
     i2cForwarder_.forward(*framePtr);
     lnForwarder_.forward(*framePtr);
+    xnForwarder_.forward(*framePtr);
     // Forward to self
     RR32Can::RR32Can.HandlePacket(*framePtr);
+    stopGoStateM_.handlePacket(*framePtr);
+    canEngineDBStateM_.handlePacket(*framePtr);
     // Explicitly reset framePtr so that getCanMessage can produce a new message
     framePtr.reset();
   }
@@ -45,6 +50,7 @@ void RoutingTask::processI2CMessages() {
     if (i2cForwarder_.MakeRR32CanMsg(*messagePtr, frame)) {
       RR32Can::RR32Can.SendPacket(frame);
       lnForwarder_.forward(frame);
+      xnForwarder_.forward(frame);
       // Forward to self
       RR32Can::RR32Can.HandlePacket(frame);
     }
@@ -61,6 +67,7 @@ void RoutingTask::processI2CStopGo() {
   if (i2cForwarder_.MakeRR32CanPowerMsg(hal::getStopGoRequest(), frame)) {
     RR32Can::RR32Can.SendPacket(frame);
     lnForwarder_.forward(frame);
+    xnForwarder_.forward(frame);
     // Forward to self
     RR32Can::RR32Can.HandlePacket(frame);
   }
@@ -68,21 +75,32 @@ void RoutingTask::processI2CStopGo() {
 
 void RoutingTask::processLocoNet() {
   for (lnMsg* LnPacket = LocoNet.receive(); LnPacket; LnPacket = LocoNet.receive()) {
-    printLnPacket(*LnPacket);
+    printLnPacket(*LnPacket, RxTxDirection::RX);
 
     RR32Can::CanFrame frame;
 
     // Convert to generic CAN representation
     if (lnForwarder_.MakeRR32CanMsg(*LnPacket, frame)) {
       i2cForwarder_.forward(frame);
+      xnForwarder_.forward(frame);
       // Forward to CAN
       RR32Can::RR32Can.SendPacket(frame);
 
       // Forward to self
       RR32Can::RR32Can.HandlePacket(frame);
     }
+    lnForwarder_.HandleDummyMessages(*LnPacket);
     slotServer_.process(*LnPacket);
   }
+}
+
+void RoutingTask::processStateMachines() {
+  stopGoStateM_.loop();
+
+  if (engineDb_.isComplete()) {
+    canEngineDBStateM_.notifyEngineDBComplete();
+  }
+  canEngineDBStateM_.loop();
 }
 
 void RoutingTask::matchEnginesFromLocoNetAndCan() {
@@ -104,11 +122,35 @@ void RoutingTask::matchEnginesFromLocoNetAndCan() {
   }
 }
 
+void RoutingTask::processXpressNet() {
+  for (auto messagePtr = XpressNetMsg::getXNMessage(); messagePtr != nullptr;
+       messagePtr = XpressNetMsg::getXNMessage()) {
+
+  RR32Can::CanFrame frame;
+
+  // Convert to generic CAN representation
+  if (xnForwarder_.MakeRR32CanMsg(*messagePtr, frame)) {
+    i2cForwarder_.forward(frame);
+    lnForwarder_.forward(frame);
+    // Forward to CAN
+    RR32Can::RR32Can.SendPacket(frame);
+
+    // Forward to self
+    RR32Can::RR32Can.HandlePacket(frame);
+  }
+
+  // Explicitly reset framePtr so that getXNMessage can produce a new message
+  messagePtr.reset(); 
+  }
+}
+
 void RoutingTask::loop() {
   processI2CStopGo();
   processCAN();
   processI2CMessages();
   processLocoNet();
+  processXpressNet();
+  processStateMachines();
   matchEnginesFromLocoNetAndCan();
 }
 

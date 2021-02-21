@@ -20,7 +20,7 @@ constexpr RR32Can::Velocity_t lnSpeedToCanVelocity(RR32Can::Velocity_t speed) {
   return (speed * RR32Can::kMaxEngineVelocity / kLocoNetMaxVeloctiy);
 }
 
-constexpr RR32Can::Velocity_t canVelocityToLnSpeed(RR32Can::Velocity_t velocity) {
+constexpr uint8_t canVelocityToLnSpeed(RR32Can::Velocity_t velocity) {
   return (velocity * kLocoNetMaxVeloctiy) / RR32Can::kMaxEngineVelocity;
 }
 
@@ -46,11 +46,11 @@ constexpr bool isDispatchGet(const slotMoveMsg& msg) { return msg.src == 0; }
 constexpr bool isDispatchPut(const slotMoveMsg& msg) { return msg.dest == 0; }
 constexpr bool isNullMove(const slotMoveMsg& msg) { return msg.src == msg.dest; }
 
-constexpr lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address,
-                           RR32Can::TurnoutDirection direction, bool power) {
+namespace {
+
+void putTurnoutAddress(lnMsg& LnPacket, RR32Can::MachineTurnoutAddress address,
+                       RR32Can::TurnoutDirection direction, bool power) {
   const RR32Can::MachineTurnoutAddress addr = address.getNumericAddress();
-  lnMsg LnPacket{};
-  LnPacket.srq.command = OPC_SW_REQ;
 
   LnPacket.srq.sw1 = addr.value() & 0x7F;
   LnPacket.srq.sw2 = (addr.value() >> 7) & 0x0F;
@@ -61,11 +61,40 @@ constexpr lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address,
   if (direction == RR32Can::TurnoutDirection::GREEN) {
     LnPacket.srq.sw2 |= OPC_SW_REQ_DIR;
   }
+}
 
+}  // namespace
+
+inline RR32Can::MachineTurnoutAddress getTurnoutAddress(const lnMsg& LnPacket) {
+  const uint16_t numericAddr = ((LnPacket.srq.sw2 & 0x0F) << 7) | LnPacket.srq.sw1;
+  const RR32Can::MachineTurnoutAddress addr{numericAddr};
+  return addr;
+}
+
+inline lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address, RR32Can::TurnoutDirection direction,
+                        bool power) {
+  lnMsg LnPacket{};
+  putTurnoutAddress(LnPacket, address, direction, power);
+  LnPacket.srq.command = OPC_SW_REQ;
   return LnPacket;
 }
 
-constexpr lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::SensorState state) {
+inline lnMsg Ln_TurnoutStatusRequest(RR32Can::MachineTurnoutAddress address) {
+  lnMsg LnPacket{};
+  putTurnoutAddress(LnPacket, address, RR32Can::TurnoutDirection::RED, false);
+  LnPacket.srq.command = OPC_SW_STATE;
+  return LnPacket;
+}
+
+inline lnMsg Ln_TurnoutStatusResponse(RR32Can::MachineTurnoutAddress address,
+                                      RR32Can::TurnoutDirection direction, bool power) {
+  lnMsg LnPacket{};
+  putTurnoutAddress(LnPacket, address, direction, power);
+  LnPacket.srq.command = OPC_SW_REP;
+  return LnPacket;
+}
+
+inline lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::SensorState state) {
   lnMsg LnPacket{};
   LnPacket.ir.command = OPC_INPUT_REP;
 
@@ -82,18 +111,124 @@ constexpr lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::Senso
   return LnPacket;
 }
 
-constexpr lnMsg Ln_On() {
+inline lnMsg Ln_On() {
   lnMsg LnPacket{};
   LnPacket.ir.command = OPC_GPON;
 
   return LnPacket;
 }
 
-constexpr lnMsg Ln_Off() {
+inline lnMsg Ln_Off() {
   lnMsg LnPacket{};
   LnPacket.ir.command = OPC_GPOFF;
 
   return LnPacket;
+}
+
+/**
+ * Construct a OPC_LONG_ACK message.
+ *
+ * @param lopc The Opcode that is ACKed.
+ * @param success Whether the Acknowledgemet is positive (true) or negative (false).
+ * @return
+ */
+inline lnMsg Ln_LongAck(uint8_t lopc, bool success) {
+  lnMsg LnPacket{};
+  LnPacket.data[0] = OPC_LONG_ACK;
+  LnPacket.data[1] = lopc & 0x7fU;
+  LnPacket.data[2] = (success ? 0x7fU : 0U);
+  return LnPacket;
+}
+
+inline lnMsg Ln_LocoAddr(const RR32Can::MachineLocomotiveAddress& address) {
+  const uint16_t addr = address.getNumericAddress().value();
+  locoAdrMsg msg;
+  msg.command = OPC_LOCO_ADR;
+  msg.adr_hi = addr >> 7;
+  msg.adr_lo = addr & 0x7F;
+  return lnMsg{msg};
+}
+
+inline lnMsg Ln_SlotMove(uint8_t src, uint8_t dest) {
+  lnMsg LnPacket{};
+  LnPacket.sm.command = OPC_MOVE_SLOTS;
+  LnPacket.sm.src = src;
+  LnPacket.sm.dest = dest;
+  return LnPacket;
+}
+
+inline lnMsg Ln_RequestSlotData(uint8_t slot) {
+  lnMsg LnPacket;
+  LnPacket.sr.command = OPC_RQ_SL_DATA;
+  LnPacket.sr.slot = slot;
+  LnPacket.sr.pad = 0;
+  return LnPacket;
+}
+
+namespace {
+
+inline rwSlotDataMsg Ln_SlotReadWriteMessage(uint8_t slot, uint8_t stat,
+                                             const RR32Can::LocomotiveData& engine) {
+  rwSlotDataMsg msg;
+  msg.mesg_size = 0x0Eu;
+  msg.slot = slot;  // Slot Number
+  msg.stat = stat;  // Status1, speed steps
+  putLocoAddress(msg, engine.getAddress());
+  msg.spd = static_cast<uint8_t>(canVelocityToLnSpeed(engine.getVelocity()));  // Speed
+  msg.dirf = locoToDirf(engine);  // Direction & Functions 0-4
+  msg.trk = 0;                    //
+  msg.ss2 = 0;                    // Status2
+  msg.snd = locoToSnd(engine);    // F5-8
+  msg.id1 = 0;                    // Throttle ID (low)
+  msg.id2 = 0;                    // Throttle ID (high)
+  msg.chksum = 0;
+  return msg;
+}
+
+}  // namespace
+
+inline lnMsg Ln_SlotDataRead(uint8_t slot, uint8_t stat, const RR32Can::LocomotiveData& engine) {
+  // See https://wiki.rocrail.net/doku.php?id=loconet:lnpe-parms-en for message definition.
+  lnMsg LnPacket{};
+  LnPacket.sd = Ln_SlotReadWriteMessage(slot, stat, engine);
+  LnPacket.sd.command = OPC_SL_RD_DATA;
+
+  return LnPacket;
+}
+
+inline lnMsg Ln_SlotDataWrite(uint8_t slot, uint8_t stat, const RR32Can::LocomotiveData& engine) {
+  // See https://wiki.rocrail.net/doku.php?id=loconet:lnpe-parms-en for message definition.
+  lnMsg LnPacket{};
+  LnPacket.sd = Ln_SlotReadWriteMessage(slot, stat, engine);
+  LnPacket.sd.command = OPC_WR_SL_DATA;
+  return LnPacket;
+}
+
+inline lnMsg Ln_LocoSpeed(uint8_t slotIdx, RR32Can::Velocity_t velocity) {
+  lnMsg msg;
+  locoSpdMsg& speedMessage = msg.lsp;
+  speedMessage.command = OPC_LOCO_SPD;
+  speedMessage.slot = slotIdx;
+  speedMessage.spd = canVelocityToLnSpeed(velocity);
+  return msg;
+}
+
+inline lnMsg Ln_LocoDirf(uint8_t slotIdx, const RR32Can::LocomotiveData& loco) {
+  lnMsg msg;
+  locoDirfMsg& dirfMessage = msg.ldf;
+  dirfMessage.command = OPC_LOCO_DIRF;
+  dirfMessage.slot = slotIdx;
+  dirfMessage.dirf = locoToDirf(loco);
+  return msg;
+}
+
+inline lnMsg Ln_LocoSnd(uint8_t slotIdx, const RR32Can::LocomotiveData& loco) {
+  lnMsg msg;
+  locoSndMsg& sndMessage = msg.ls;
+  sndMessage.command = OPC_LOCO_SND;
+  sndMessage.slot = slotIdx;
+  sndMessage.snd = locoToSnd(loco);
+  return msg;
 }
 
 }  // namespace RoutingTask

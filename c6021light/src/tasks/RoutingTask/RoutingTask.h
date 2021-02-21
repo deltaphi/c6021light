@@ -10,9 +10,12 @@
 #include "CANForwarder.h"
 #include "I2CForwarder.h"
 #include "LocoNetForwarder.h"
+#include "XpressNetForwarder.h"
 
 #include "CanEngineDB.h"
+#include "CanEngineDBStateMachine.h"
 #include "LocoNetSlotServer.h"
+#include "StopGoStateMachine.h"
 
 namespace tasks {
 namespace RoutingTask {
@@ -21,16 +24,20 @@ class RoutingTask : public freertossupport::OsTask {
  public:
   static constexpr const uint32_t kStackSize = 256;
 
-  void begin(DataModel& dataModel) {
-    lnForwarder_.init(dataModel, slotServer_);
+  void begin(DataModel& dataModel, LocoNetTx& lnTx, freertossupport::OsTimer& stopGoTimer,
+             freertossupport::OsTimer& canEngineDBTimer) {
+    lnForwarder_.init(dataModel, slotServer_, lnTx);
     i2cForwarder_.init(dataModel);
-    slotServer_.init(dataModel);
+    slotServer_.init(dataModel, lnTx);
+    stopGoStateM_.setTimer(stopGoTimer);
+    canEngineDBStateM_.setTimer(canEngineDBTimer);
   };
 
   void TaskMain();
   void loop();
 
   const LocoNetSlotServer& getLnSlotServer() const { return slotServer_; }
+  LocoNetSlotServer& getLnSlotServer() { return slotServer_; }
 
   CanEngineDB& getCANEngineDB() { return engineDb_; }
 
@@ -41,12 +48,20 @@ class RoutingTask : public freertossupport::OsTask {
   CANForwarder canForwarder_;
   I2CForwarder i2cForwarder_;
   LocoNetForwarder lnForwarder_;
+  XpressNetForwarder xnForwarder_;
 
   void processCAN();
   void processI2CMessages();
   void processI2CStopGo();
   void processLocoNet();
+  void processXpressNet();
   void matchEnginesFromLocoNetAndCan();
+
+  void processStateMachines();
+
+ public:
+  StopGoStateMachine stopGoStateM_{canForwarder_, *this};
+  CanEngineDBStateMachine canEngineDBStateM_{engineDb_, *this};
 };
 
 }  // namespace RoutingTask

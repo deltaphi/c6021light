@@ -31,6 +31,8 @@ DEFINE_COMMAND_STRING(passive);
 DEFINE_COMMAND_STRING(enabled);
 DEFINE_COMMAND_STRING(disabled);
 
+DEFINE_COMMAND_STRING(dispatch);
+
 DEFINE_COMMAND_STRING(turnoutProtocol);
 
 DEFINE_COMMAND_STRING(lnSlotServer);
@@ -66,6 +68,7 @@ int run_ln_slot_server_active(int argc, const char* const* argv, int argcMatched
 int run_ln_slot_server_passive(int argc, const char* const* argv, int argcMatched);
 int run_ln_slot_server_disable(int argc, const char* const* argv, int argcMatched);
 int run_ln_slot_server_getstatus(int argc, const char* const* argv, int argcMatched);
+int run_ln_slot_server_dispatch(int, const char* const*, int);
 int run_ln_slot_server_dump(int, const char* const*, int);
 
 int run_app_download_enginedb_can(int, const char* const*, int);
@@ -113,7 +116,9 @@ static const cliSupport::Argument COMMAND_ARGS(config)[] = {
 
 // Arguments for lnSlotServer
 static const cliSupport::Argument COMMAND_ARGS(lnSlotServer)[] = {
-    {COMMAND(dump), nullptr, run_ln_slot_server_dump, "Display current slots."}, {}};
+    {COMMAND(dump), nullptr, run_ln_slot_server_dump, "Display current slots."},
+    {COMMAND(dispatch), nullptr, run_ln_slot_server_dispatch, "Dispatch engine."},
+    {}};
 
 // Arguments for CAN Engine DB
 static const cliSupport::Argument COMMAND_ARGS(canEngineDB)[] = {
