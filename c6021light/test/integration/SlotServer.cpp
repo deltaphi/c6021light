@@ -77,7 +77,7 @@ TEST_F(SlotServerActive, MoveFrom0_NoDispatch_Nack) {
 
   EXPECT_FALSE(routingTask.getLnSlotServer().dispatchSlotAvailable());
 
-  lnMsg expectedPacket = Ln_LongAck(0);
+  lnMsg expectedPacket = Ln_LongAck(OPC_MOVE_SLOTS, false);
   EXPECT_CALL(lnTx, DoAsyncSend(expectedPacket));
 
   routingTask.loop();
@@ -193,6 +193,29 @@ TEST_F(SlotServerActive, RequestSlot_Known_WillReadData) {
 
   // Run!
   routingTask.loop();
+}
+
+TEST_F(SlotServerActive, SlotWrite_WillLongAck) {
+  makeNonLnSequence();
+
+  // Expect a LONG_ACK
+  lnMsg expectedPacket = Ln_LongAck(OPC_WR_SL_DATA, true);
+  EXPECT_CALL(lnTx, DoAsyncSend(expectedPacket));
+
+  // Create a write slot message
+  const auto locoAddr = RR32Can::MachineLocomotiveAddress(50U);
+  const RR32Can::LocomotiveData loco{0, locoAddr, 15, RR32Can::EngineDirection::REVERSE, 0x001F};
+  lnMsg LnPacket = Ln_SlotDataWrite(42, 0x33, loco);
+  mocks::makeSequence(lnHal, LnPacket);
+
+  // Run!
+  routingTask.loop();
+
+  // Check that loco was entered into the slot.
+  const auto slotIt = routingTask.getLnSlotServer().findSlotForAddress(locoAddr);
+  ASSERT_NE(slotIt, routingTask.getLnSlotServer().end());
+  EXPECT_EQ(slotIt->loco.getAddress(), locoAddr);
+  EXPECT_TRUE(slotIt->inUse);
 }
 
 }  // namespace RoutingTask

@@ -153,8 +153,13 @@ void LocoNetSlotServer::process(const lnMsg& LnPacket) {
       processRequestSlotRead(LnPacket.sr);
       break;
     case OPC_SL_RD_DATA:
+      processSlotRead(LnPacket.sd);
+      break;
     case OPC_WR_SL_DATA:
       processSlotRead(LnPacket.sd);
+      if (isActive()) {
+        tx_->AsyncSend(Ln_LongAck(OPC_WR_SL_DATA, true));
+      }
       break;
     case OPC_LOCO_SPD:
       processLocoSpeed(LnPacket.lsp);
@@ -183,7 +188,9 @@ void LocoNetSlotServer::sendSlotDataRead(const SlotDB_t::const_iterator slot) co
   tx_->AsyncSend(Ln_SlotDataRead(slotIdx, stat, slot->loco));
 }
 
-void LocoNetSlotServer::sendNoDispatch() const { tx_->AsyncSend(Ln_LongAck(0)); }
+void LocoNetSlotServer::sendNoDispatch() const {
+  tx_->AsyncSend(Ln_LongAck(OPC_MOVE_SLOTS, false));
+}
 
 void LocoNetSlotServer::dump() const {
   puts("LocoNet Slot Server Status:");

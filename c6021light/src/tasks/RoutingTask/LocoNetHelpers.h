@@ -96,11 +96,18 @@ inline lnMsg Ln_Off() {
   return LnPacket;
 }
 
-inline lnMsg Ln_LongAck(uint8_t ucCode) {
+/**
+ * Construct a OPC_LONG_ACK message.
+ *
+ * @param lopc The Opcode that is ACKed.
+ * @param success Whether the Acknowledgemet is positive (true) or negative (false).
+ * @return
+ */
+inline lnMsg Ln_LongAck(uint8_t lopc, bool success) {
   lnMsg LnPacket{};
   LnPacket.data[0] = OPC_LONG_ACK;
-  LnPacket.data[1] = OPC_PEER_XFER - 0x80;
-  LnPacket.data[2] = ucCode;
+  LnPacket.data[1] = lopc & 0x7fU;
+  LnPacket.data[2] = (success ? 0x7fU : 0U);
   return LnPacket;
 }
 
@@ -129,22 +136,42 @@ inline lnMsg Ln_RequestSlotData(uint8_t slot) {
   return LnPacket;
 }
 
+namespace {
+
+inline rwSlotDataMsg Ln_SlotReadWriteMessage(uint8_t slot, uint8_t stat,
+                                             const RR32Can::LocomotiveData& engine) {
+  rwSlotDataMsg msg;
+  msg.mesg_size = 0x0Eu;
+  msg.slot = slot;  // Slot Number
+  msg.stat = stat;  // Status1, speed steps
+  putLocoAddress(msg, engine.getAddress());
+  msg.spd = static_cast<uint8_t>(canVelocityToLnSpeed(engine.getVelocity()));  // Speed
+  msg.dirf = locoToDirf(engine);  // Direction & Functions 0-4
+  msg.trk = 0;                    //
+  msg.ss2 = 0;                    // Status2
+  msg.snd = locoToSnd(engine);    // F5-8
+  msg.id1 = 0;                    // Throttle ID (low)
+  msg.id2 = 0;                    // Throttle ID (high)
+  msg.chksum = 0;
+  return msg;
+}
+
+}  // namespace
+
 inline lnMsg Ln_SlotDataRead(uint8_t slot, uint8_t stat, const RR32Can::LocomotiveData& engine) {
   // See https://wiki.rocrail.net/doku.php?id=loconet:lnpe-parms-en for message definition.
   lnMsg LnPacket{};
+  LnPacket.sd = Ln_SlotReadWriteMessage(slot, stat, engine);
   LnPacket.sd.command = OPC_SL_RD_DATA;
-  LnPacket.sd.mesg_size = 0x0Eu;
-  LnPacket.sd.slot = slot;  // Slot Number
-  LnPacket.sd.stat = stat;  // Status1, speed steps
-  putLocoAddress(LnPacket.sd, engine.getAddress());
-  LnPacket.sd.spd = static_cast<uint8_t>(canVelocityToLnSpeed(engine.getVelocity()));  // Speed
-  LnPacket.sd.dirf = locoToDirf(engine);  // Direction & Functions 0-4
-  LnPacket.sd.trk = 0;                    //
-  LnPacket.sd.ss2 = 0;                    // Status2
-  LnPacket.sd.snd = locoToSnd(engine);    // F5-8
-  LnPacket.sd.id1 = 0;                    // Throttle ID (low)
-  LnPacket.sd.id2 = 0;                    // Throttle ID (high)
-  LnPacket.sd.chksum = 0;
+
+  return LnPacket;
+}
+
+inline lnMsg Ln_SlotDataWrite(uint8_t slot, uint8_t stat, const RR32Can::LocomotiveData& engine) {
+  // See https://wiki.rocrail.net/doku.php?id=loconet:lnpe-parms-en for message definition.
+  lnMsg LnPacket{};
+  LnPacket.sd = Ln_SlotReadWriteMessage(slot, stat, engine);
+  LnPacket.sd.command = OPC_WR_SL_DATA;
   return LnPacket;
 }
 
