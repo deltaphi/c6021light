@@ -163,6 +163,32 @@ PWR    GND DATA  DATA  GND PWR
 +11,4V 0V  +10V  +10V  0V  +11,4V (Measured with J31/J32 closed, 12V supply voltage)
 ```
 
+## Message Sequence for Dispatch
+
+Recorded from IB1.
+
+Request dispatch form FREDI, no Slot in dispatch:
+```
+LN RX:  ba 0 0 45 [OPC_MOVE_SLOTS] 0 -> 0
+LN RX:  b4 3a 0 71 [OPC_LONG_ACK]
+```
+
+Dispatch engine 50 on IB1:
+```
+LN RX:  b5 1 10 5b [OPC_SLOT_STAT1] Slot: 1 Stat1: 0x10
+LN RX:  bf 0 32 72 [OPC_LOCO_ADR] Addr 50
+LN RX:  e7 e 1 10 32 0 0 7 0 0 0 10 4 26 [OPC_SL_RD_DATA] Slot: 1 Stat: 16 Addr: 50 Speed: 0 Dirf: 00 ...
+LN RX:  ba 1 0 44 [OPC_MOVE_SLOTS] 1 -> 0
+LN RX:  e7 e 1 20 32 0 0 7 0 0 0 10 4 16 [OPC_SL_RD_DATA] Slot: 1 Stat: 32 Addr: 50 Speed: 0 Dirf: 00 ...
+```
+
+Request dispatch from FREDI, Engine 50 in dispatch:
+```
+LN RX:  ba 0 0 45 [OPC_MOVE_SLOTS] 0 -> 0
+LN RX:  e7 e 1 30 32 0 0 7 0 0 0 10 4 6 [OPC_SL_RD_DATA] Slot: 1 Stat: 48 Addr: 50 Speed: 0 Dirf: 00 ...
+LN RX:  ef e 1 30 32 0 0 7 0 0 0 10 4 e [OPC_WR_SL_DATA] Slot: 1 Stat: 48 Addr: 50 Speed: 0 Dirf: 00 ...
+LN RX:  b4 6f 7f 5b [OPC_LONG_ACK]
+```
 
 # Overall Communication Pattern
 
