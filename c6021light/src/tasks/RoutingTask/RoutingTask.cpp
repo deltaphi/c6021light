@@ -70,7 +70,7 @@ void RoutingTask::processI2CStopGo() {
 
 void RoutingTask::processLocoNet() {
   for (lnMsg* LnPacket = LocoNet.receive(); LnPacket; LnPacket = LocoNet.receive()) {
-    printLnPacket(*LnPacket);
+    printLnPacket(*LnPacket, RxTxDirection::RX);
 
     RR32Can::CanFrame frame;
 
