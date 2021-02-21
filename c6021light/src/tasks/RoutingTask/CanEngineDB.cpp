@@ -125,9 +125,11 @@ void CanEngineDB::streamComplete(RR32Can::ConfigDataConsumer* consumer) {
     const auto nextRequestedStreamOffset = engineOffset + RR32Can::kEngineBrowserEntries;
 
     for (const auto& engineShortInfo : engineShortInfos) {
-      db_[engineOffset].reset();
-      db_[engineOffset].loco.setName(engineShortInfo.getName());
-      ++engineOffset;
+      if (!hasEngine(engineShortInfo.getName())) {
+        db_[engineOffset].reset();
+        db_[engineOffset].loco.setName(engineShortInfo.getName());
+        ++engineOffset;
+      }
     }
 
     const bool allEnginesDownloaded =
@@ -140,6 +142,15 @@ void CanEngineDB::streamComplete(RR32Can::ConfigDataConsumer* consumer) {
   } else if (consumer == &locoConsumer_) {
     fetchNextEngine();
   }
+}
+
+bool CanEngineDB::hasEngine(const char* const engineName) const {
+  for (auto it = db_.cbegin(); it != db_.cend() && !it->loco.isFree(); ++it) {
+    if (strncmp(engineName, it->loco.getName(), RR32Can::kEngineNameLength) == 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void CanEngineDB::dump() const {
