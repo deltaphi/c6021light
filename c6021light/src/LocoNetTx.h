@@ -19,7 +19,7 @@ class LocoNetTx {
    *
    * \return true if the message was enqueued, false otherwise.
    */
-  bool AsyncSend(lnMsg& msg);
+  bool AsyncSend(const lnMsg& msg);
 
   /**
    * \brief Perform the acutal blocking send operation for a queued message.

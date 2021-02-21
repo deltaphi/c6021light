@@ -75,7 +75,7 @@ void RoutingTask::processI2CStopGo() {
 
 void RoutingTask::processLocoNet() {
   for (lnMsg* LnPacket = LocoNet.receive(); LnPacket; LnPacket = LocoNet.receive()) {
-    printLnPacket(*LnPacket);
+    printLnPacket(*LnPacket, RxTxDirection::RX);
 
     RR32Can::CanFrame frame;
 
@@ -89,6 +89,7 @@ void RoutingTask::processLocoNet() {
       // Forward to self
       RR32Can::RR32Can.HandlePacket(frame);
     }
+    lnForwarder_.HandleDummyMessages(*LnPacket);
     slotServer_.process(*LnPacket);
   }
 }

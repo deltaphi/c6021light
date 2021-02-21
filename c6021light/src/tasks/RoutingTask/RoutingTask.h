@@ -37,6 +37,7 @@ class RoutingTask : public freertossupport::OsTask {
   void loop();
 
   const LocoNetSlotServer& getLnSlotServer() const { return slotServer_; }
+  LocoNetSlotServer& getLnSlotServer() { return slotServer_; }
 
   CanEngineDB& getCANEngineDB() { return engineDb_; }
 

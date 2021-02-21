@@ -6,7 +6,9 @@
 namespace tasks {
 namespace RoutingTask {
 
-void printLnPacket(const lnMsg& LnPacket);
+enum class RxTxDirection { RX, TX };
+
+void printLnPacket(const lnMsg& LnPacket, RxTxDirection rxTx);
 
 }  // namespace RoutingTask
 }  // namespace tasks

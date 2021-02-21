@@ -26,10 +26,10 @@ void dirfToLoco(const uint8_t dirf, RR32Can::LocomotiveData& loco) {
 uint8_t locoToDirf(const RR32Can::LocomotiveData& loco) {
   uint8_t dirf = 0;
 
-  if (loco.getDirection() == RR32Can::EngineDirection::FORWARD) {
-    dirf &= ~kDirfDirMask;
-  } else {
+  if (loco.getDirection() == RR32Can::EngineDirection::REVERSE) {
     dirf |= kDirfDirMask;
+  } else {
+    dirf &= ~kDirfDirMask;
   }
 
   uint8_t functionMask = 1;

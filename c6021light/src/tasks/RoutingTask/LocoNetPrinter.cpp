@@ -8,8 +8,8 @@
 namespace tasks {
 namespace RoutingTask {
 
-void printLnPacket(const lnMsg& LnPacket) {
-  printf("LN RX: ");
+void printLnPacket(const lnMsg& LnPacket, RxTxDirection rxTx) {
+  printf("LN %sX: ", (rxTx == RxTxDirection::RX ? "R" : "T"));
   for (int i = 0; i < getLnMsgSize(const_cast<lnMsg*>(&LnPacket)); ++i) {
     printf(" %x", LnPacket.data[i]);
   }
