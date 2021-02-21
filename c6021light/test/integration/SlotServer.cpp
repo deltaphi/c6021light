@@ -35,6 +35,12 @@ class SlotServerActive : public SlotServerFixture {
     SlotServerFixture::SetUp();
     this->dataModel.lnSlotServerState = LocoNetSlotServer::SlotServerState::ACTIVE;
   }
+
+  void makeNonLnSequence() {
+    mocks::makeSequence(i2cHal);
+    EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
+    mocks::makeSequence(canHal);
+  }
 };
 
 TEST_F(SlotServerFixture, Disabled_MoveFrom0_NoReaction) {
@@ -64,12 +70,10 @@ TEST_F(SlotServerFixture, Passive_MoveFrom0_NoReaction) {
 }
 
 TEST_F(SlotServerActive, MoveFrom0_NoDispatch_Nack) {
-  mocks::makeSequence(i2cHal);
-  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
-  lnMsg LnPacket = Ln_SlotMove(0, 0);
+  makeNonLnSequence();
 
+  lnMsg LnPacket = Ln_SlotMove(0, 0);
   mocks::makeSequence(lnHal, LnPacket);
-  mocks::makeSequence(canHal);
 
   EXPECT_FALSE(routingTask.getLnSlotServer().dispatchSlotAvailable());
 
@@ -80,12 +84,10 @@ TEST_F(SlotServerActive, MoveFrom0_NoDispatch_Nack) {
 }
 
 TEST_F(SlotServerActive, MoveFrom0_HasDispatch_SlotRead) {
-  mocks::makeSequence(i2cHal);
-  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
-  lnMsg LnPacket = Ln_SlotMove(0, 0);
+  makeNonLnSequence();
 
+  lnMsg LnPacket = Ln_SlotMove(0, 0);
   mocks::makeSequence(lnHal, LnPacket);
-  mocks::makeSequence(canHal);
 
   // Expect an Engine
   const auto locoAddr = RR32Can::MachineLocomotiveAddress(50U);
@@ -110,10 +112,7 @@ TEST_F(SlotServerActive, MoveFrom0_HasDispatch_SlotRead) {
 }
 
 TEST_F(SlotServerActive, RequestAddress_UnknownAddress_SlotRead) {
-  mocks::makeSequence(i2cHal);
-  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
-
-  mocks::makeSequence(canHal);
+  makeNonLnSequence();
 
   // Expect an Engine
   const auto locoAddr = RR32Can::MachineLocomotiveAddress(50U);
@@ -130,9 +129,7 @@ TEST_F(SlotServerActive, RequestAddress_UnknownAddress_SlotRead) {
 }
 
 TEST_F(SlotServerActive, RequestAddress_HasAddress_SlotRead) {
-  mocks::makeSequence(i2cHal);
-  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
-  mocks::makeSequence(canHal);
+  makeNonLnSequence();
 
   // Expect an Engine
   const auto locoAddr = RR32Can::MachineLocomotiveAddress(50U);
