@@ -139,6 +139,7 @@ class LocoNetSlotServer {
   static void initializeSlot(SlotDB_t::iterator& slot, LocoAddr_t address) {
     clearSlot(slot);
     slot->loco.setAddress(address);
+    slot->inUse = true;
     slot->needsMatchToCAN = true;
   }
 

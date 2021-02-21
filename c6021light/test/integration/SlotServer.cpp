@@ -117,7 +117,7 @@ TEST_F(SlotServerActive, RequestAddress_UnknownAddress_SlotRead) {
   // Expect an Engine
   const auto locoAddr = RR32Can::MachineLocomotiveAddress(50U);
   RR32Can::LocomotiveData loco{0, locoAddr, 0, RR32Can::EngineDirection::FORWARD, 0};
-  lnMsg expectedPacket = Ln_SlotDataRead(1, 3, loco);
+  lnMsg expectedPacket = Ln_SlotDataRead(1, 0x33, loco);
   EXPECT_CALL(lnTx, DoAsyncSend(expectedPacket));
 
   // Request Address
