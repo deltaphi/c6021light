@@ -109,6 +109,9 @@ TEST_F(SlotServerActive, MoveFrom0_HasDispatch_SlotRead) {
 
   // Run!
   routingTask.loop();
+
+  // No double-dispatch
+  EXPECT_FALSE(routingTask.getLnSlotServer().dispatchSlotAvailable());
 }
 
 TEST_F(SlotServerActive, RequestAddress_UnknownAddress_SlotRead) {

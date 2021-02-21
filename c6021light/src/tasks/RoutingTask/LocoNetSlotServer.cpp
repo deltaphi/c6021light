@@ -33,6 +33,7 @@ void LocoNetSlotServer::processSlotMove(const slotMoveMsg& msg) {
     if (isActive()) {
       if (dispatchSlotAvailable()) {
         sendSlotDataRead(slotInDispatch_);
+        slotInDispatch_ = end();
       } else {
         sendNoDispatch();
       }
