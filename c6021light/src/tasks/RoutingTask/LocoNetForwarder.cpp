@@ -77,32 +77,17 @@ void LocoNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, Lo
     const uint8_t slotIdx = slotServer_->findSlotIndex(slotIt);
     if (slotServer_->isSlotInBounds(slotIt)) {
       if (diff.velocity) {
-        lnMsg msg;
-        locoSpdMsg& speedMessage = msg.lsp;
-        speedMessage.command = OPC_LOCO_SPD;
-        speedMessage.slot = slotIdx;
-        speedMessage.spd = canVelocityToLnSpeed(loco.getVelocity());
-        tx_->AsyncSend(msg);
+        tx_->AsyncSend(Ln_LocoSpeed(slotIdx, loco.getVelocity()));
         diff.velocity = false;
       }
 
       if (diff.direction || ((diff.functions & 0x1F) != 0)) {
-        lnMsg msg;
-        locoDirfMsg& dirfMessage = msg.ldf;
-        dirfMessage.command = OPC_LOCO_DIRF;
-        dirfMessage.slot = slotIdx;
-        dirfMessage.dirf = locoToDirf(loco);
-        tx_->AsyncSend(msg);
+        tx_->AsyncSend(Ln_LocoDirf(slotIdx, loco));
         diff.direction = false;
       }
 
       if (((diff.functions & 0x1E0) != 0)) {
-        lnMsg msg;
-        locoSndMsg& sndMessage = msg.ls;
-        sndMessage.command = OPC_LOCO_SND;
-        sndMessage.slot = slotIdx;
-        sndMessage.snd = locoToSnd(loco);
-        tx_->AsyncSend(msg);
+        tx_->AsyncSend(Ln_LocoSnd(slotIdx, loco));
       }
 
       diff.functions = 0;

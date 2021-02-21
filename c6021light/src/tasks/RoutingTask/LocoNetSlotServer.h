@@ -113,14 +113,22 @@ class LocoNetSlotServer {
   void processSlotMove(const slotMoveMsg& msg);
 
   SlotDB_t::iterator findOrRequestSlot(const uint8_t lnMsgSlot);
-  SlotDB_t::iterator findSlot(const uint8_t lnMsgSlot);
-  void requestSlotDataRead(SlotDB_t::iterator slot) const;
+
+  SlotDB_t::iterator findSlot(const uint8_t lnMsgSlot) {
+    return std::next(slotDB_.begin(), std::min(lnMsgSlot, kNumSlots));
+  }
+
+  SlotDB_t::const_iterator findSlot(const uint8_t lnMsgSlot) const {
+    return std::next(slotDB_.begin(), std::min(lnMsgSlot, kNumSlots));
+  }
+
+  void requestSlotDataRead(SlotDB_t::iterator slot);
   void sendSlotDataRead(const SlotDB_t::const_iterator slot) const;
   void sendNoDispatch() const;
 
   void processLocoRequest(const LocoAddr_t locoAddr);
   void processSlotRead(const rwSlotDataMsg& msg);
-  void processRequestSlotRead(slotReqMsg slotReq);
+  void processRequestSlotRead(slotReqMsg slotReq) const;
 
   void processLocoSpeed(const locoSpdMsg& msg);
   void processLocoDirF(const locoDirfMsg& msg);

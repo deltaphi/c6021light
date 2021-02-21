@@ -11,6 +11,6 @@ uint8_t getLnMsgSize(volatile lnMsg* Msg) {
              : ((Msg->sz.command & (uint8_t)0x60) >> (uint8_t)4) + 2;
 }
 
-bool LocoNetTx::AsyncSend(lnMsg& msg) {
+bool LocoNetTx::AsyncSend(const lnMsg& msg) {
   return static_cast<mocks::LocoNetTx*>(this)->DoAsyncSend(msg);
 }

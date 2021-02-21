@@ -130,21 +130,49 @@ inline lnMsg Ln_RequestSlotData(uint8_t slot) {
 }
 
 inline lnMsg Ln_SlotDataRead(uint8_t slot, uint8_t stat, const RR32Can::LocomotiveData& engine) {
+  // See https://wiki.rocrail.net/doku.php?id=loconet:lnpe-parms-en for message definition.
   lnMsg LnPacket{};
   LnPacket.sd.command = OPC_SL_RD_DATA;
   LnPacket.sd.mesg_size = 0x0Eu;
-  LnPacket.sd.slot = slot;
-  LnPacket.sd.stat = stat;
+  LnPacket.sd.slot = slot;  // Slot Number
+  LnPacket.sd.stat = stat;  // Status1, speed steps
   putLocoAddress(LnPacket.sd, engine.getAddress());
-  LnPacket.sd.spd = static_cast<uint8_t>(canVelocityToLnSpeed(engine.getVelocity()));
-  LnPacket.sd.dirf = locoToDirf(engine);
-  LnPacket.sd.trk = 0;
-  LnPacket.sd.ss2 = 0;
-  LnPacket.sd.snd = locoToSnd(engine);
-  LnPacket.sd.id1 = 0;
-  LnPacket.sd.id2 = 0;
+  LnPacket.sd.spd = static_cast<uint8_t>(canVelocityToLnSpeed(engine.getVelocity()));  // Speed
+  LnPacket.sd.dirf = locoToDirf(engine);  // Direction & Functions 0-4
+  LnPacket.sd.trk = 0;                    //
+  LnPacket.sd.ss2 = 0;                    // Status2
+  LnPacket.sd.snd = locoToSnd(engine);    // F5-8
+  LnPacket.sd.id1 = 0;                    // Throttle ID (low)
+  LnPacket.sd.id2 = 0;                    // Throttle ID (high)
   LnPacket.sd.chksum = 0;
   return LnPacket;
+}
+
+inline lnMsg Ln_LocoSpeed(uint8_t slotIdx, RR32Can::Velocity_t velocity) {
+  lnMsg msg;
+  locoSpdMsg& speedMessage = msg.lsp;
+  speedMessage.command = OPC_LOCO_SPD;
+  speedMessage.slot = slotIdx;
+  speedMessage.spd = canVelocityToLnSpeed(velocity);
+  return msg;
+}
+
+inline lnMsg Ln_LocoDirf(uint8_t slotIdx, const RR32Can::LocomotiveData& loco) {
+  lnMsg msg;
+  locoDirfMsg& dirfMessage = msg.ldf;
+  dirfMessage.command = OPC_LOCO_DIRF;
+  dirfMessage.slot = slotIdx;
+  dirfMessage.dirf = locoToDirf(loco);
+  return msg;
+}
+
+inline lnMsg Ln_LocoSnd(uint8_t slotIdx, const RR32Can::LocomotiveData& loco) {
+  lnMsg msg;
+  locoSndMsg& sndMessage = msg.ls;
+  sndMessage.command = OPC_LOCO_SND;
+  sndMessage.slot = slotIdx;
+  sndMessage.snd = locoToSnd(loco);
+  return msg;
 }
 
 }  // namespace RoutingTask

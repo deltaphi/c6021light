@@ -59,17 +59,11 @@ void LocoNetSlotServer::processSlotMove(const slotMoveMsg& msg) {
 
 void LocoNetSlotServer::processLocoRequest(const LocoAddr_t locoAddr) {
   if (isActive()) {
-    SlotDB_t::iterator slot = findOrAllocateSlotForAddress(locoAddr);
+    const SlotDB_t::const_iterator slot = findOrAllocateSlotForAddress(locoAddr);
     if (slot != slotDB_.end()) {
       sendSlotDataRead(slot);
     }
   }
-}
-
-LocoNetSlotServer::SlotDB_t::iterator LocoNetSlotServer::findSlot(const uint8_t lnMsgSlot) {
-  SlotDB_t::iterator slotIt = slotDB_.begin();
-  std::advance(slotIt, std::min(lnMsgSlot, kNumSlots));
-  return slotIt;
 }
 
 LocoNetSlotServer::SlotDB_t::iterator LocoNetSlotServer::findOrRequestSlot(
@@ -81,14 +75,11 @@ LocoNetSlotServer::SlotDB_t::iterator LocoNetSlotServer::findOrRequestSlot(
   return slotIt;
 }
 
-void LocoNetSlotServer::requestSlotDataRead(LocoNetSlotServer::SlotDB_t::iterator slot) const {
+void LocoNetSlotServer::requestSlotDataRead(LocoNetSlotServer::SlotDB_t::iterator slot) {
   if (!this->isDisabled()) {
     slot->diff = LocoDiff_t{};
-    lnMsg msg;
-    slotReqMsg& reqMsg{msg.sr};
-    reqMsg.command = OPC_RQ_SL_DATA;
-    reqMsg.slot = this->findSlotIndex(slot);
-    reqMsg.pad = 0;
+    const auto slotIdx = this->findSlotIndex(slot);
+    const auto msg = Ln_RequestSlotData(slotIdx);
     tx_->AsyncSend(msg);
   }
 }
@@ -101,7 +92,7 @@ void LocoNetSlotServer::processSlotRead(const rwSlotDataMsg& msg) {
     slotIt->inUse = true;
     slotIt->loco.reset();
     slotIt->loco.setAddress(getLocoAddress(msg));
-    slotIt->loco.setUid(getLocoAddress(msg).value());  // Foce the engine to be MM2.
+    slotIt->loco.setUid(getLocoAddress(msg).value());  // Force the engine to be MM2.
     slotIt->loco.setVelocity(lnSpeedToCanVelocity(msg.spd));
     dirfToLoco(msg.dirf, slotIt->loco);
     sndToLoco(msg.snd, slotIt->loco);
@@ -180,44 +171,19 @@ void LocoNetSlotServer::process(const lnMsg& LnPacket) {
 }
 
 void LocoNetSlotServer::sendSlotDataRead(const SlotDB_t::const_iterator slot) const {
-  lnMsg txMsg;
-  rwSlotDataMsg& slotRead = txMsg.sd;
-
-  // See https://wiki.rocrail.net/doku.php?id=loconet:lnpe-parms-en for message definition.
-
   SlotIdx_t slotIdx = this->findSlotIndex(slot);
-
-  slotRead.command = OPC_SL_RD_DATA;
-  slotRead.mesg_size = 0x0Eu;
-  slotRead.slot = slotIdx;  // Slot Number
-  slotRead.stat = 0;        // Status1, speed steps
+  uint8_t stat = 0b00000011;  // 128 steps mode, no advanced consisting
 
   if (slot->inUse) {
-    slotRead.stat |= 0b00110000;  // Busy & Active
+    stat |= 0b00110000;  // Busy & Active
   } else {
-    slotRead.stat &= ~0b00110000;  // FREE Slot
+    stat &= ~0b00110000;  // FREE Slot
   }
 
-  slotRead.stat |= 0b00000011;  // 128 steps mode, no advanced consisting
-
-  putLocoAddress(slotRead, slot->loco.getAddress().getNumericAddress());
-
-  slotRead.spd = canVelocityToLnSpeed(slot->loco.getVelocity());  // Speed
-  slotRead.dirf = locoToDirf(slot->loco);                         // Direction & Functions 0-4
-  slotRead.trk = 0;                                               //
-  slotRead.ss2 = 0;                                               // Status2
-  slotRead.snd = locoToSnd(slot->loco);                           // F5-8
-  slotRead.id1 = 0;                                               // Throttle ID (low)
-  slotRead.id2 = 0;                                               // Throttle ID (high)
-  slotRead.chksum = 0;
-
-  tx_->AsyncSend(txMsg);
+  tx_->AsyncSend(Ln_SlotDataRead(slotIdx, stat, slot->loco));
 }
 
-void LocoNetSlotServer::sendNoDispatch() const {
-  lnMsg msg = Ln_LongAck(0);
-  tx_->AsyncSend(msg);
-}
+void LocoNetSlotServer::sendNoDispatch() const { tx_->AsyncSend(Ln_LongAck(0)); }
 
 void LocoNetSlotServer::dump() const {
   puts("LocoNet Slot Server Status:");
@@ -232,8 +198,8 @@ void LocoNetSlotServer::dump() const {
   puts("-- LocoNet Slot Server Status.");
 }
 
-void LocoNetSlotServer::processRequestSlotRead(const slotReqMsg slotReq) {
-  const SlotDB_t::iterator it = findSlot(slotReq.slot);
+void LocoNetSlotServer::processRequestSlotRead(const slotReqMsg slotReq) const {
+  const SlotDB_t::const_iterator it = findSlot(slotReq.slot);
   sendSlotDataRead(it);
 }
 

@@ -2,7 +2,7 @@
 
 #include <LocoNet.h>
 
-bool LocoNetTx::AsyncSend(lnMsg& msg) {
+bool LocoNetTx::AsyncSend(const lnMsg& msg) {
   auto memory = msgBuffer_.allocate();
   if (memory.ptr != nullptr) {
     *(memory.ptr) = msg;
