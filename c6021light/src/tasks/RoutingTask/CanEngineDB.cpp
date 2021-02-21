@@ -76,6 +76,7 @@ void CanEngineDB::changeLocoDirection(const RR32Can::Uid_t engineUid) {
 void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
   dbState_ = DBState::DOWNLOADING;
   listConsumer_.reset();
+  listConsumer_.setStreamOffset(offset);
   streamParser_.reset();
   listConsumer_.setStreamEndCallback(this);
   streamParser_.startStream(&listConsumer_);
