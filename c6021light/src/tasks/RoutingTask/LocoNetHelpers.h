@@ -121,6 +121,14 @@ inline lnMsg Ln_SlotMove(uint8_t src, uint8_t dest) {
   return LnPacket;
 }
 
+inline lnMsg Ln_RequestSlotData(uint8_t slot) {
+  lnMsg LnPacket;
+  LnPacket.sr.command = OPC_RQ_SL_DATA;
+  LnPacket.sr.slot = slot;
+  LnPacket.sr.pad = 0;
+  return LnPacket;
+}
+
 inline lnMsg Ln_SlotDataRead(uint8_t slot, uint8_t stat, const RR32Can::LocomotiveData& engine) {
   lnMsg LnPacket{};
   LnPacket.sd.command = OPC_SL_RD_DATA;

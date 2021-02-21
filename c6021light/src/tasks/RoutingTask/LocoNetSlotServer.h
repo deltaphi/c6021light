@@ -120,6 +120,7 @@ class LocoNetSlotServer {
 
   void processLocoRequest(const LocoAddr_t locoAddr);
   void processSlotRead(const rwSlotDataMsg& msg);
+  void processRequestSlotRead(slotReqMsg slotReq);
 
   void processLocoSpeed(const locoSpdMsg& msg);
   void processLocoDirF(const locoDirfMsg& msg);
@@ -130,7 +131,6 @@ class LocoNetSlotServer {
   static void initializeSlot(SlotDB_t::iterator& slot, LocoAddr_t address) {
     clearSlot(slot);
     slot->loco.setAddress(address);
-    slot->loco.setDirection(RR32Can::EngineDirection::FORWARD);
     slot->needsMatchToCAN = true;
   }
 

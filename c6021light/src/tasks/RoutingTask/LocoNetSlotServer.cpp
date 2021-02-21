@@ -158,6 +158,9 @@ void LocoNetSlotServer::process(const lnMsg& LnPacket) {
     case OPC_LOCO_ADR:
       processLocoRequest(extractLocoAddress(LnPacket));
       break;
+    case OPC_RQ_SL_DATA:
+      processRequestSlotRead(LnPacket.sr);
+      break;
     case OPC_SL_RD_DATA:
     case OPC_WR_SL_DATA:
       processSlotRead(LnPacket.sd);
@@ -227,6 +230,11 @@ void LocoNetSlotServer::dump() const {
     ++slotIdx;
   }
   puts("-- LocoNet Slot Server Status.");
+}
+
+void LocoNetSlotServer::processRequestSlotRead(const slotReqMsg slotReq) {
+  const SlotDB_t::iterator it = findSlot(slotReq.slot);
+  sendSlotDataRead(it);
 }
 
 }  // namespace RoutingTask
