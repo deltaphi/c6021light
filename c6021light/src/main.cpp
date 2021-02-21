@@ -165,6 +165,23 @@ int run_ln_slot_server_dump(int argc, const char* const* argv, int argcMatched) 
   return 0;
 }
 
+int run_ln_slot_server_dispatch(int argc, const char* const* argv, int argcMatched) {
+  static constexpr const char* appName{"LnSlotServerDispatch"};
+
+  if (!checkNumArgs(argc - argcMatched, 1, 1, appName)) {
+    display_help(argc, argv);
+    return -2;
+  }
+
+  const int dispatchAddrInt = atoi(argv[argcMatched]);
+
+  using LocoAddr_t = tasks::RoutingTask::LocoNetSlotServer::LocoAddr_t;
+  const LocoAddr_t dispatchAddress = RR32Can::MachineLocomotiveAddress(dispatchAddrInt);
+  auto& slotServer = routingTask.getLnSlotServer();
+  slotServer.markAddressForDispatch(dispatchAddress);
+  return 0;
+}
+
 int run_app_download_enginedb_can(int, const char* const*, int) {
   routingTask.getCANEngineDB().fetchEngineDB();
   return 0;
