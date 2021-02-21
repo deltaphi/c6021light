@@ -88,12 +88,13 @@ include_directories("src")
 add_executable(c6021lightTest
     "test/unit/EmptyTest.cpp"
     "test/unit/AccessoryPacketTest.cpp"
+    "test/unit/SlotServer.cpp"
     "test/integration/StatelessRouting.cpp"
     "test/integration/StopGoRequest.cpp"
     "test/integration/CanEngineDBRequest.cpp"
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
-    "test/integration/SlotServer.cpp"
+    "test/integration/SlotServerProcessing.cpp"
 
     "src/tasks/RoutingTask/CANForwarder.cpp"
     "src/tasks/RoutingTask/I2CForwarder.cpp"
