@@ -72,10 +72,13 @@ void LocoNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, Lo
   // In active mode:
   // Allocate a slot for the loco and start sending packets immediately.
 
-  if (slotServer_->isPassive()) {
-    const auto slotIt = slotServer_->findSlotForAddress(loco.getAddress());
-    const uint8_t slotIdx = slotServer_->findSlotIndex(slotIt);
+  if (!slotServer_->isDisabled()) {
+    const auto slotIt =
+        (slotServer_->isActive() ? slotServer_->findOrAllocateSlotForAddress(loco.getAddress())
+                                 : slotServer_->findSlotForAddress(loco.getAddress()));
+
     if (slotServer_->isSlotInBounds(slotIt)) {
+      const uint8_t slotIdx = slotServer_->findSlotIndex(slotIt);
       if (diff.velocity) {
         tx_->AsyncSend(Ln_LocoSpeed(slotIdx, loco.getVelocity()));
         diff.velocity = false;
