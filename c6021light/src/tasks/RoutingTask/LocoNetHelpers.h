@@ -46,11 +46,11 @@ constexpr bool isDispatchGet(const slotMoveMsg& msg) { return msg.src == 0; }
 constexpr bool isDispatchPut(const slotMoveMsg& msg) { return msg.dest == 0; }
 constexpr bool isNullMove(const slotMoveMsg& msg) { return msg.src == msg.dest; }
 
-constexpr lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address,
-                           RR32Can::TurnoutDirection direction, bool power) {
+namespace {
+
+void putTurnoutAddress(lnMsg& LnPacket, RR32Can::MachineTurnoutAddress address,
+                       RR32Can::TurnoutDirection direction, bool power) {
   const RR32Can::MachineTurnoutAddress addr = address.getNumericAddress();
-  lnMsg LnPacket{};
-  LnPacket.srq.command = OPC_SW_REQ;
 
   LnPacket.srq.sw1 = addr.value() & 0x7F;
   LnPacket.srq.sw2 = (addr.value() >> 7) & 0x0F;
@@ -61,7 +61,36 @@ constexpr lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address,
   if (direction == RR32Can::TurnoutDirection::GREEN) {
     LnPacket.srq.sw2 |= OPC_SW_REQ_DIR;
   }
+}
 
+}  // namespace
+
+inline RR32Can::MachineTurnoutAddress getTurnoutAddress(const lnMsg& LnPacket) {
+  const uint16_t numericAddr = ((LnPacket.srq.sw2 & 0x0F) << 7) | LnPacket.srq.sw1;
+  const RR32Can::MachineTurnoutAddress addr{numericAddr};
+  return addr;
+}
+
+inline lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address, RR32Can::TurnoutDirection direction,
+                        bool power) {
+  lnMsg LnPacket{};
+  putTurnoutAddress(LnPacket, address, direction, power);
+  LnPacket.srq.command = OPC_SW_REQ;
+  return LnPacket;
+}
+
+inline lnMsg Ln_TurnoutStatusRequest(RR32Can::MachineTurnoutAddress address) {
+  lnMsg LnPacket{};
+  putTurnoutAddress(LnPacket, address, RR32Can::TurnoutDirection::RED, false);
+  LnPacket.srq.command = OPC_SW_STATE;
+  return LnPacket;
+}
+
+inline lnMsg Ln_TurnoutStatusResponse(RR32Can::MachineTurnoutAddress address,
+                                      RR32Can::TurnoutDirection direction, bool power) {
+  lnMsg LnPacket{};
+  putTurnoutAddress(LnPacket, address, direction, power);
+  LnPacket.srq.command = OPC_SW_REP;
   return LnPacket;
 }
 

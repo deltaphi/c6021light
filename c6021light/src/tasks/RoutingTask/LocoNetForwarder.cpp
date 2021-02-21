@@ -105,8 +105,7 @@ bool LocoNetForwarder::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::CanFrame& 
       turnoutPacket.initData();
 
       // Extract the switch address
-      RR32Can::MachineTurnoutAddress lnAddr{static_cast<RR32Can::MachineTurnoutAddress::value_type>(
-          ((LnPacket.srq.sw2 & 0x0F) << 7) | LnPacket.srq.sw1)};
+      RR32Can::MachineTurnoutAddress lnAddr{getTurnoutAddress(LnPacket)};
       lnAddr.setProtocol(dataModel_->accessoryRailProtocol);
       turnoutPacket.setLocid(lnAddr);
 
@@ -172,6 +171,16 @@ bool LocoNetForwarder::MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::CanFrame& 
     default:
       // Other packet types not handled.
       return false;
+      break;
+  }
+}
+
+void LocoNetForwarder::HandleDummyMessages(const lnMsg& msg) {
+  switch (msg.data[0]) {
+    case OPC_SW_STATE:
+      if (slotServer_->isActive()) {
+        tx_->AsyncSend(Ln_LongAck(OPC_SW_STATE, true));
+      }
       break;
   }
 }

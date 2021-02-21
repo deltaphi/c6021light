@@ -83,6 +83,7 @@ void RoutingTask::processLocoNet() {
       // Forward to self
       RR32Can::RR32Can.HandlePacket(frame);
     }
+    lnForwarder_.HandleDummyMessages(*LnPacket);
     slotServer_.process(*LnPacket);
   }
 }

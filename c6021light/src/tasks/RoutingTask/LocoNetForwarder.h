@@ -32,6 +32,8 @@ class LocoNetForwarder final : public RoutingForwarder {
 
   bool MakeRR32CanMsg(const lnMsg& LnPacket, RR32Can::CanFrame& frame);
 
+  void HandleDummyMessages(const lnMsg& msg);
+
  private:
   DataModel* dataModel_ = nullptr;
   LocoNetSlotServer* slotServer_ = nullptr;

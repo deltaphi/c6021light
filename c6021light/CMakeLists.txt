@@ -90,6 +90,7 @@ add_executable(c6021lightTest
     "test/unit/AccessoryPacketTest.cpp"
     "test/unit/SlotServer.cpp"
     "test/integration/StatelessRouting.cpp"
+    "test/integration/LnSwitchRequest.cpp"
     "test/integration/StopGoRequest.cpp"
     "test/integration/CanEngineDBRequest.cpp"
     "test/mocks/LocoNet.cpp"
