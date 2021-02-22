@@ -51,7 +51,7 @@ uint8_t locoToDirf(const RR32Can::LocomotiveData& loco) {
 
 void sndToLoco(const uint8_t snd, RR32Can::LocomotiveData& loco) {
   uint8_t functionMask = 1;
-  for (uint8_t functionIdx = kFunctionsInSndMessage;
+  for (uint8_t functionIdx = kLowestFunctionInSndMessage;
        functionIdx < kLowestFunctionInSndMessage + kFunctionsInSndMessage; ++functionIdx) {
     loco.setFunction(functionIdx, ((snd & functionMask) != 0));
     functionMask <<= 1;
@@ -62,9 +62,8 @@ uint8_t locoToSnd(const RR32Can::LocomotiveData& loco) {
   uint8_t snd = 0;
 
   uint8_t functionMask = 1;
-  for (uint8_t i = kFunctionsInSndMessage; i < kLowestFunctionInSndMessage + kFunctionsInSndMessage;
-       ++i) {
-    uint8_t functionIdx = i;
+  for (uint8_t functionIdx = kLowestFunctionInSndMessage;
+       functionIdx < kLowestFunctionInSndMessage + kFunctionsInSndMessage; ++functionIdx) {
     if (loco.getFunction(functionIdx)) {
       snd |= functionMask;
     } else {

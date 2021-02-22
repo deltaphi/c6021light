@@ -117,12 +117,14 @@ void LocoNetSlotServer::processLocoDirF(const locoDirfMsg& msg) {
     const auto oldDirf = locoToDirf(slotIt->loco);
     const auto delta = oldDirf ^ msg.dirf;
     const bool hasChanged = delta != 0;
+    const auto originalFunctionBits = slotIt->loco.getFunctionBits();
 
     if (hasChanged) {
       dirfToLoco(msg.dirf, slotIt->loco);
       slotIt->diff.direction |= (delta & kDirfDirMask) != 0;
-      slotIt->diff.functions |= (delta & 0x10) >> 4;
-      slotIt->diff.functions |= (delta & 0x0F) << 1;
+      const auto updatedFunctionBits = slotIt->loco.getFunctionBits();
+      const auto functionBitsDelta = updatedFunctionBits ^ originalFunctionBits;
+      slotIt->diff.functions |= functionBitsDelta;
     }
   }
 }
@@ -131,13 +133,17 @@ void LocoNetSlotServer::processLocoSnd(const locoSndMsg& msg) {
   const SlotDB_t::iterator slotIt = findOrRequestSlot(msg.slot);
 
   if (isSlotInBounds(slotIt)) {
-    const uint8_t oldDirf = locoToSnd(slotIt->loco);
+    const auto oldDirf = locoToSnd(slotIt->loco);
     const auto delta = oldDirf ^ msg.snd;
     const bool hasChanged = delta != 0;
 
+    const auto originalFunctionBits = slotIt->loco.getFunctionBits();
+
     if (hasChanged) {
       sndToLoco(msg.snd, slotIt->loco);
-      slotIt->diff.functions |= (delta & 0x0F << 5);
+      const auto updatedFunctionBits = slotIt->loco.getFunctionBits();
+      const auto functionBitsDelta = updatedFunctionBits ^ originalFunctionBits;
+      slotIt->diff.functions |= functionBitsDelta;
     }
   }
 }
