@@ -47,7 +47,7 @@ void CanEngineDB::setLocoFunction(const RR32Can::Uid_t engineUid, uint8_t functi
   if (entry != db_.end()) {
     const bool oldFunctionOn = entry->loco.getFunction(functionIdx);
     if (oldFunctionOn != functionOn) {
-      entry->diff.functions = true;
+      entry->diff.functions |= (1U << functionIdx);
       entry->loco.setFunction(functionIdx, functionOn);
     }
   }
