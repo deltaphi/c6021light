@@ -47,7 +47,7 @@ void CanEngineDB::setLocoFunction(const RR32Can::Uid_t engineUid, uint8_t functi
   if (entry != db_.end()) {
     const bool oldFunctionOn = entry->loco.getFunction(functionIdx);
     if (oldFunctionOn != functionOn) {
-      entry->diff.functions = true;
+      entry->diff.functions |= (1U << functionIdx);
       entry->loco.setFunction(functionIdx, functionOn);
     }
   }
@@ -76,6 +76,7 @@ void CanEngineDB::changeLocoDirection(const RR32Can::Uid_t engineUid) {
 void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
   dbState_ = DBState::DOWNLOADING;
   listConsumer_.reset();
+  listConsumer_.setStreamOffset(offset);
   streamParser_.reset();
   listConsumer_.setStreamEndCallback(this);
   streamParser_.startStream(&listConsumer_);
@@ -124,9 +125,11 @@ void CanEngineDB::streamComplete(RR32Can::ConfigDataConsumer* consumer) {
     const auto nextRequestedStreamOffset = engineOffset + RR32Can::kEngineBrowserEntries;
 
     for (const auto& engineShortInfo : engineShortInfos) {
-      db_[engineOffset].reset();
-      db_[engineOffset].loco.setName(engineShortInfo.getName());
-      ++engineOffset;
+      if (!hasEngine(engineShortInfo.getName())) {
+        db_[engineOffset].reset();
+        db_[engineOffset].loco.setName(engineShortInfo.getName());
+        ++engineOffset;
+      }
     }
 
     const bool allEnginesDownloaded =
@@ -139,6 +142,15 @@ void CanEngineDB::streamComplete(RR32Can::ConfigDataConsumer* consumer) {
   } else if (consumer == &locoConsumer_) {
     fetchNextEngine();
   }
+}
+
+bool CanEngineDB::hasEngine(const char* const engineName) const {
+  for (auto it = db_.cbegin(); it != db_.cend() && !it->loco.isFree(); ++it) {
+    if (strncmp(engineName, it->loco.getName(), RR32Can::kEngineNameLength) == 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void CanEngineDB::dump() const {

@@ -80,19 +80,34 @@ void LocoNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, Lo
     if (slotServer_->isSlotInBounds(slotIt)) {
       const uint8_t slotIdx = slotServer_->findSlotIndex(slotIt);
       if (diff.velocity) {
+        slotIt->loco.setVelocity(loco.getVelocity());
         tx_->AsyncSend(Ln_LocoSpeed(slotIdx, loco.getVelocity()));
         diff.velocity = false;
       }
 
+      if (diff.direction) {
+        slotIt->loco.setDirection(loco.getDirection());
+      }
+
+      if (diff.functions != 0) {
+        for (uint8_t i = 0U; i < 9U; ++i) {
+          const RR32Can::Locomotive::FunctionBits_t mask = 1U << i;
+          const RR32Can::Locomotive::FunctionBits_t delta = diff.functions & mask;
+          if (delta != 0) {
+            slotIt->loco.setFunction(i, loco.getFunction(i));
+          }
+        }
+      }
+
       if (diff.direction || ((diff.functions & 0x1F) != 0)) {
         tx_->AsyncSend(Ln_LocoDirf(slotIdx, loco));
-        diff.direction = false;
       }
 
       if (((diff.functions & 0x1E0) != 0)) {
         tx_->AsyncSend(Ln_LocoSnd(slotIdx, loco));
       }
 
+      diff.direction = false;
       diff.functions = 0;
     }
   }

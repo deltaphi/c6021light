@@ -67,9 +67,9 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
     return nullptr;
   }
 
-  bool isEmpty() { return dbState_ == DBState::EMPTY; }
-  bool isDownloading() { return dbState_ == DBState::DOWNLOADING; }
-  bool isComplete() { return dbState_ == DBState::COMPLETE; }
+  bool isEmpty() const { return dbState_ == DBState::EMPTY; }
+  bool isDownloading() const { return dbState_ == DBState::DOWNLOADING; }
+  bool isComplete() const { return dbState_ == DBState::COMPLETE; }
 
  private:
   RR32Can::ConfigDataStreamParser streamParser_;
@@ -85,6 +85,8 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
 
   void fetchEngine(RR32Can::Locomotive& loco);
   void fetchNextEngine();
+
+  bool hasEngine(const char* const engineName) const;
 };
 
 }  // namespace RoutingTask
