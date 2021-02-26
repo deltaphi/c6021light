@@ -210,6 +210,7 @@ inline lnMsg Ln_LocoSpeed(uint8_t slotIdx, RR32Can::Velocity_t velocity) {
   speedMessage.command = OPC_LOCO_SPD;
   speedMessage.slot = slotIdx;
   speedMessage.spd = canVelocityToLnSpeed(velocity);
+  speedMessage.chksum = 0U;
   return msg;
 }
 
