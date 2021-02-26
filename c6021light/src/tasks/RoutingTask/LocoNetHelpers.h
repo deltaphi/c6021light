@@ -76,6 +76,7 @@ inline lnMsg Ln_Turnout(RR32Can::MachineTurnoutAddress address, RR32Can::Turnout
   lnMsg LnPacket{};
   putTurnoutAddress(LnPacket, address, direction, power);
   LnPacket.srq.command = OPC_SW_REQ;
+  LnPacket.srq.chksum = 0U;
   return LnPacket;
 }
 
@@ -83,6 +84,7 @@ inline lnMsg Ln_TurnoutStatusRequest(RR32Can::MachineTurnoutAddress address) {
   lnMsg LnPacket{};
   putTurnoutAddress(LnPacket, address, RR32Can::TurnoutDirection::RED, false);
   LnPacket.srq.command = OPC_SW_STATE;
+  LnPacket.srq.chksum = 0U;
   return LnPacket;
 }
 
@@ -91,6 +93,7 @@ inline lnMsg Ln_TurnoutStatusResponse(RR32Can::MachineTurnoutAddress address,
   lnMsg LnPacket{};
   putTurnoutAddress(LnPacket, address, direction, power);
   LnPacket.srq.command = OPC_SW_REP;
+  LnPacket.srq.chksum = 0U;
   return LnPacket;
 }
 
@@ -107,6 +110,7 @@ inline lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::SensorSt
   if (state == RR32Can::SensorState::CLOSED) {
     LnPacket.ir.in2 |= OPC_INPUT_REP_HI;
   }
+  LnPacket.ir.chksum = 0U;
 
   return LnPacket;
 }
@@ -114,6 +118,9 @@ inline lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::SensorSt
 inline lnMsg Ln_On() {
   lnMsg LnPacket{};
   LnPacket.ir.command = OPC_GPON;
+  LnPacket.ir.in1 = 0U;
+  LnPacket.ir.in2 = 0U;
+  LnPacket.ir.chksum = 0U;
 
   return LnPacket;
 }
@@ -121,6 +128,9 @@ inline lnMsg Ln_On() {
 inline lnMsg Ln_Off() {
   lnMsg LnPacket{};
   LnPacket.ir.command = OPC_GPOFF;
+  LnPacket.ir.in1 = 0U;
+  LnPacket.ir.in2 = 0U;
+  LnPacket.ir.chksum = 0U;
 
   return LnPacket;
 }
@@ -134,9 +144,10 @@ inline lnMsg Ln_Off() {
  */
 inline lnMsg Ln_LongAck(uint8_t lopc, bool success) {
   lnMsg LnPacket{};
-  LnPacket.data[0] = OPC_LONG_ACK;
-  LnPacket.data[1] = lopc & 0x7fU;
-  LnPacket.data[2] = (success ? 0x7fU : 0U);
+  LnPacket.lack.command = OPC_LONG_ACK;
+  LnPacket.lack.opcode = lopc & 0x7fU;
+  LnPacket.lack.ack1 = (success ? 0x7fU : 0U);
+  LnPacket.lack.chksum = 0U;
   return LnPacket;
 }
 
@@ -146,6 +157,7 @@ inline lnMsg Ln_LocoAddr(const RR32Can::MachineLocomotiveAddress& address) {
   msg.command = OPC_LOCO_ADR;
   msg.adr_hi = addr >> 7;
   msg.adr_lo = addr & 0x7F;
+  msg.chksum = 0U;
   return lnMsg{msg};
 }
 
@@ -154,6 +166,7 @@ inline lnMsg Ln_SlotMove(uint8_t src, uint8_t dest) {
   LnPacket.sm.command = OPC_MOVE_SLOTS;
   LnPacket.sm.src = src;
   LnPacket.sm.dest = dest;
+  LnPacket.sm.chksum = 0U;
   return LnPacket;
 }
 
@@ -161,7 +174,8 @@ inline lnMsg Ln_RequestSlotData(uint8_t slot) {
   lnMsg LnPacket;
   LnPacket.sr.command = OPC_RQ_SL_DATA;
   LnPacket.sr.slot = slot;
-  LnPacket.sr.pad = 0;
+  LnPacket.sr.pad = 0U;
+  LnPacket.sr.chksum = 0U;
   return LnPacket;
 }
 
@@ -220,6 +234,7 @@ inline lnMsg Ln_LocoDirf(uint8_t slotIdx, const RR32Can::LocomotiveData& loco) {
   dirfMessage.command = OPC_LOCO_DIRF;
   dirfMessage.slot = slotIdx;
   dirfMessage.dirf = locoToDirf(loco);
+  dirfMessage.chksum = 0U;
   return msg;
 }
 
@@ -229,6 +244,7 @@ inline lnMsg Ln_LocoSnd(uint8_t slotIdx, const RR32Can::LocomotiveData& loco) {
   sndMessage.command = OPC_LOCO_SND;
   sndMessage.slot = slotIdx;
   sndMessage.snd = locoToSnd(loco);
+  sndMessage.chksum = 0U;
   return msg;
 }
 
