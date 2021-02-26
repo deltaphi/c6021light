@@ -15,8 +15,9 @@ uint8_t getLnMsgSize(volatile lnMsg* Msg);
 
 inline bool operator==(const lnMsg& left, const lnMsg& right) {
   if (left.data[0] == right.data[0]) {
-    auto leftSize = getLnMsgSize(const_cast<lnMsg*>(&left));
-    if (leftSize == getLnMsgSize(const_cast<lnMsg*>(&right))) {
+    const auto leftSize = getLnMsgSize(const_cast<lnMsg*>(&left));
+    const auto rightSize = getLnMsgSize(const_cast<lnMsg*>(&right));
+    if (leftSize == rightSize) {
       return memcmp(left.data, right.data, leftSize) == 0;
     } else {
       return false;
