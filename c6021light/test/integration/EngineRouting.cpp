@@ -105,41 +105,54 @@ TEST_F(EngineRoutingFixture, DirectionChangeLnToCan) {
   routingTask.loop();
 }
 
-TEST_F(EngineRoutingFixture, FunctionChangeCanToLn) {
-  RR32Can::CanFrame injectedMessage =
-      RR32Can::util::LocoFunction(false, exampleLoco_.getUid(), 0, true);
-  RR32Can::Locomotive updatedLoco = exampleLoco_;
-  updatedLoco.setFunction(0, true);
-  ASSERT_NE(updatedLoco.getFunction(0), exampleLoco_.getFunction(0));
-  lnMsg expectedMessage = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
+using FunctionFixtureParam_t = uint8_t;
 
+class EngineRoutingFixture_F0_4 : public EngineRoutingFixture,
+                                  public WithParamInterface<FunctionFixtureParam_t> {
+ public:
+  void SetUp() {
+    EngineRoutingFixture::SetUp();
+
+    const auto functionIdx = GetParam();
+
+    canFrame = RR32Can::util::LocoFunction(false, exampleLoco_.getUid(), functionIdx, true);
+
+    RR32Can::Locomotive updatedLoco = exampleLoco_;
+    updatedLoco.setFunction(functionIdx, true);
+    ASSERT_NE(updatedLoco.getFunction(functionIdx), exampleLoco_.getFunction(functionIdx));
+
+    lnMsg = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
+  }
+
+  RR32Can::CanFrame canFrame;
+  lnMsg lnMsg;
+};
+
+TEST_P(EngineRoutingFixture_F0_4, FunctionChangeCanToLn) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
-  mocks::makeSequence(canHal, injectedMessage);
+  mocks::makeSequence(canHal, canFrame);
 
-  EXPECT_CALL(lnTx, DoAsyncSend(expectedMessage));
+  EXPECT_CALL(lnTx, DoAsyncSend(lnMsg));
 
   routingTask.loop();
 }
 
-TEST_F(EngineRoutingFixture, FunctionChangeLnToCan) {
-  RR32Can::CanFrame expectedMessage =
-      RR32Can::util::LocoFunction(false, exampleLoco_.getUid(), 0, true);
-  RR32Can::Locomotive updatedLoco = exampleLoco_;
-  updatedLoco.setFunction(0, true);
-  ASSERT_NE(updatedLoco.getFunction(0), exampleLoco_.getFunction(0));
-  lnMsg injetedMessage = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
-
+TEST_P(EngineRoutingFixture_F0_4, FunctionChangeLnToCan) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
-  mocks::makeSequence(lnHal, injetedMessage);
+  mocks::makeSequence(lnHal, lnMsg);
   mocks::makeSequence(canHal);
 
-  EXPECT_CALL(canTx, SendPacket(expectedMessage));
+  EXPECT_CALL(canTx, SendPacket(canFrame));
 
   routingTask.loop();
 }
+
+INSTANTIATE_TEST_SUITE_P(EngineRoutingFunctions, EngineRoutingFixture_F0_4,
+                         Range(static_cast<FunctionFixtureParam_t>(0U),
+                               static_cast<FunctionFixtureParam_t>(5U)));
 
 }  // namespace RoutingTask
 }  // namespace tasks
