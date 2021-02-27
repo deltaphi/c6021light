@@ -122,16 +122,16 @@ class EngineRoutingFunctionFixture : public EngineRoutingFixture,
     ASSERT_NE(updatedLoco.getFunction(functionIdx), exampleLoco_.getFunction(functionIdx));
 
     if (functionIdx < 5) {
-      lnMsg = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
+      locoNetMessage = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
     } else if (functionIdx < 9) {
-      lnMsg = Ln_LocoSnd(kLocoSlotIdx, updatedLoco);
+      locoNetMessage = Ln_LocoSnd(kLocoSlotIdx, updatedLoco);
     } else {
       FAIL() << "Parameter '" << functionIdx << "' not implemented.";
     }
   }
 
   RR32Can::CanFrame canFrame;
-  lnMsg lnMsg;
+  lnMsg locoNetMessage;
 };
 
 TEST_P(EngineRoutingFunctionFixture, FunctionChangeCanToLn) {
@@ -140,7 +140,7 @@ TEST_P(EngineRoutingFunctionFixture, FunctionChangeCanToLn) {
   mocks::makeSequence(lnHal);
   mocks::makeSequence(canHal, canFrame);
 
-  EXPECT_CALL(lnTx, DoAsyncSend(lnMsg));
+  EXPECT_CALL(lnTx, DoAsyncSend(locoNetMessage));
 
   routingTask.loop();
 }
@@ -148,7 +148,7 @@ TEST_P(EngineRoutingFunctionFixture, FunctionChangeCanToLn) {
 TEST_P(EngineRoutingFunctionFixture, FunctionChangeLnToCan) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
-  mocks::makeSequence(lnHal, lnMsg);
+  mocks::makeSequence(lnHal, locoNetMessage);
   mocks::makeSequence(canHal);
 
   EXPECT_CALL(canTx, SendPacket(canFrame));
