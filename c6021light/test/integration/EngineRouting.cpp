@@ -107,8 +107,8 @@ TEST_F(EngineRoutingFixture, DirectionChangeLnToCan) {
 
 using FunctionFixtureParam_t = uint8_t;
 
-class EngineRoutingFixture_F0_4 : public EngineRoutingFixture,
-                                  public WithParamInterface<FunctionFixtureParam_t> {
+class EngineRoutingFunctionFixture : public EngineRoutingFixture,
+                                     public WithParamInterface<FunctionFixtureParam_t> {
  public:
   void SetUp() {
     EngineRoutingFixture::SetUp();
@@ -121,14 +121,20 @@ class EngineRoutingFixture_F0_4 : public EngineRoutingFixture,
     updatedLoco.setFunction(functionIdx, true);
     ASSERT_NE(updatedLoco.getFunction(functionIdx), exampleLoco_.getFunction(functionIdx));
 
-    lnMsg = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
+    if (functionIdx < 5) {
+      lnMsg = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
+    } else if (functionIdx < 9) {
+      lnMsg = Ln_LocoSnd(kLocoSlotIdx, updatedLoco);
+    } else {
+      FAIL() << "Parameter '" << functionIdx << "' not implemented.";
+    }
   }
 
   RR32Can::CanFrame canFrame;
   lnMsg lnMsg;
 };
 
-TEST_P(EngineRoutingFixture_F0_4, FunctionChangeCanToLn) {
+TEST_P(EngineRoutingFunctionFixture, FunctionChangeCanToLn) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
@@ -139,7 +145,7 @@ TEST_P(EngineRoutingFixture_F0_4, FunctionChangeCanToLn) {
   routingTask.loop();
 }
 
-TEST_P(EngineRoutingFixture_F0_4, FunctionChangeLnToCan) {
+TEST_P(EngineRoutingFunctionFixture, FunctionChangeLnToCan) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal, lnMsg);
@@ -150,9 +156,9 @@ TEST_P(EngineRoutingFixture_F0_4, FunctionChangeLnToCan) {
   routingTask.loop();
 }
 
-INSTANTIATE_TEST_SUITE_P(EngineRoutingFunctions, EngineRoutingFixture_F0_4,
+INSTANTIATE_TEST_SUITE_P(EngineRoutingFunctions, EngineRoutingFunctionFixture,
                          Range(static_cast<FunctionFixtureParam_t>(0U),
-                               static_cast<FunctionFixtureParam_t>(5U)));
+                               static_cast<FunctionFixtureParam_t>(9U)));
 
 }  // namespace RoutingTask
 }  // namespace tasks
