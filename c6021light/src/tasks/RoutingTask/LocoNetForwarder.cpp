@@ -107,6 +107,10 @@ void LocoNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, Lo
         tx_->AsyncSend(Ln_LocoSnd(slotIdx, loco));
       }
 
+      if (((diff.functions & 0x1E00) != 0)) {
+        tx_->AsyncSend(Ln_LocoSnd2(slotIdx, loco));
+      }
+
       diff.direction = false;
       diff.functions = 0;
     }

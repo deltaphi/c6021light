@@ -49,21 +49,21 @@ uint8_t locoToDirf(const RR32Can::LocomotiveData& loco) {
   return dirf;
 }
 
-void sndToLoco(const uint8_t snd, RR32Can::LocomotiveData& loco) {
+void sndToLoco(const uint8_t snd, RR32Can::LocomotiveData& loco, const uint8_t functionOffset) {
   uint8_t functionMask = 1;
-  for (uint8_t functionIdx = kLowestFunctionInSndMessage;
-       functionIdx < kLowestFunctionInSndMessage + kFunctionsInSndMessage; ++functionIdx) {
+  for (uint8_t functionIdx = functionOffset; functionIdx < functionOffset + kFunctionsInSndMessage;
+       ++functionIdx) {
     loco.setFunction(functionIdx, ((snd & functionMask) != 0));
     functionMask <<= 1;
   }
 }
 
-uint8_t locoToSnd(const RR32Can::LocomotiveData& loco) {
+uint8_t locoToSnd(const RR32Can::LocomotiveData& loco, const uint8_t functionOffset) {
   uint8_t snd = 0;
 
   uint8_t functionMask = 1;
-  for (uint8_t functionIdx = kLowestFunctionInSndMessage;
-       functionIdx < kLowestFunctionInSndMessage + kFunctionsInSndMessage; ++functionIdx) {
+  for (uint8_t functionIdx = functionOffset; functionIdx < functionOffset + kFunctionsInSndMessage;
+       ++functionIdx) {
     if (loco.getFunction(functionIdx)) {
       snd |= functionMask;
     } else {
@@ -73,5 +73,6 @@ uint8_t locoToSnd(const RR32Can::LocomotiveData& loco) {
   }
   return snd;
 }
+
 }  // namespace RoutingTask
 }  // namespace tasks

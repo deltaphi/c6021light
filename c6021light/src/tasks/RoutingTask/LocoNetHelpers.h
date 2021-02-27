@@ -16,6 +16,8 @@ constexpr static const uint8_t kFunctionsInDirfMessage = 5;
 constexpr static const uint8_t kFunctionsInSndMessage = 4;
 constexpr static const uint8_t kLowestFunctionInSndMessage = 5;
 
+constexpr static const decltype(OPC_LOCO_SND) OPC_LOCO_SND2{OPC_LOCO_SND + 1U};
+
 constexpr RR32Can::Velocity_t lnSpeedToCanVelocity(RR32Can::Velocity_t speed) {
   return (speed * RR32Can::kMaxEngineVelocity / kLocoNetMaxVeloctiy);
 }
@@ -27,8 +29,8 @@ constexpr uint8_t canVelocityToLnSpeed(RR32Can::Velocity_t velocity) {
 void dirfToLoco(const uint8_t dirf, RR32Can::LocomotiveData& loco);
 uint8_t locoToDirf(const RR32Can::LocomotiveData& loco);
 
-void sndToLoco(const uint8_t snd, RR32Can::LocomotiveData& loco);
-uint8_t locoToSnd(const RR32Can::LocomotiveData& loco);
+void sndToLoco(const uint8_t snd, RR32Can::LocomotiveData& loco, const uint8_t i);
+uint8_t locoToSnd(const RR32Can::LocomotiveData& loco, const uint8_t functionOffset);
 
 constexpr RR32Can::Locomotive::Address_t getLocoAddress(const rwSlotDataMsg& slotRead) {
   RR32Can::Locomotive::Address_t::value_type address = slotRead.adr2 << 7;
@@ -189,12 +191,12 @@ inline rwSlotDataMsg Ln_SlotReadWriteMessage(uint8_t slot, uint8_t stat,
   msg.stat = stat;  // Status1, speed steps
   putLocoAddress(msg, engine.getAddress());
   msg.spd = static_cast<uint8_t>(canVelocityToLnSpeed(engine.getVelocity()));  // Speed
-  msg.dirf = locoToDirf(engine);  // Direction & Functions 0-4
-  msg.trk = 0;                    //
-  msg.ss2 = 0;                    // Status2
-  msg.snd = locoToSnd(engine);    // F5-8
-  msg.id1 = 0;                    // Throttle ID (low)
-  msg.id2 = 0;                    // Throttle ID (high)
+  msg.dirf = locoToDirf(engine);                             // Direction & Functions 0-4
+  msg.trk = 0;                                               //
+  msg.ss2 = 0;                                               // Status2
+  msg.snd = locoToSnd(engine, kLowestFunctionInSndMessage);  // F5-8
+  msg.id1 = 0;                                               // Throttle ID (low)
+  msg.id2 = 0;                                               // Throttle ID (high)
   msg.chksum = 0;
   return msg;
 }
@@ -243,7 +245,17 @@ inline lnMsg Ln_LocoSnd(uint8_t slotIdx, const RR32Can::LocomotiveData& loco) {
   locoSndMsg& sndMessage = msg.ls;
   sndMessage.command = OPC_LOCO_SND;
   sndMessage.slot = slotIdx;
-  sndMessage.snd = locoToSnd(loco);
+  sndMessage.snd = locoToSnd(loco, kLowestFunctionInSndMessage);
+  sndMessage.chksum = 0U;
+  return msg;
+}
+
+inline lnMsg Ln_LocoSnd2(uint8_t slotIdx, const RR32Can::LocomotiveData& loco) {
+  lnMsg msg;
+  locoSndMsg& sndMessage = msg.ls;
+  sndMessage.command = OPC_LOCO_SND + 1U;
+  sndMessage.slot = slotIdx;
+  sndMessage.snd = locoToSnd(loco, kLowestFunctionInSndMessage + kFunctionsInSndMessage);
   sndMessage.chksum = 0U;
   return msg;
 }

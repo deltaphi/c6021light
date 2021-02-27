@@ -125,6 +125,8 @@ class EngineRoutingFunctionFixture : public EngineRoutingFixture,
       locoNetMessage = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
     } else if (functionIdx < 9) {
       locoNetMessage = Ln_LocoSnd(kLocoSlotIdx, updatedLoco);
+    } else if (functionIdx < 13) {
+      locoNetMessage = Ln_LocoSnd2(kLocoSlotIdx, updatedLoco);
     } else {
       FAIL() << "Parameter '" << functionIdx << "' not implemented.";
     }
@@ -158,7 +160,7 @@ TEST_P(EngineRoutingFunctionFixture, FunctionChangeLnToCan) {
 
 INSTANTIATE_TEST_SUITE_P(EngineRoutingFunctions, EngineRoutingFunctionFixture,
                          Range(static_cast<FunctionFixtureParam_t>(0U),
-                               static_cast<FunctionFixtureParam_t>(9U)));
+                               static_cast<FunctionFixtureParam_t>(13U)));
 
 }  // namespace RoutingTask
 }  // namespace tasks
