@@ -17,10 +17,6 @@ class EngineRoutingFixture : public mocks::RoutingTaskFixture {
     exampleLoco_.setName("BR 42");
     exampleLoco_.setAvailability(RR32Can::LocomotiveShortInfo::AvailabilityStatus::FULL_DETAILS);
 
-    RR32Can::Station::CallbackStruct callbacks;
-    callbacks.engine = &routingTask.getCANEngineDB();
-    RR32Can::RR32Can.begin(0, callbacks);
-
     dataModel.lnSlotServerState = tasks::RoutingTask::LocoNetSlotServer::SlotServerState::PASSIVE;
 
     {
@@ -47,7 +43,7 @@ namespace RoutingTask {
 
 TEST_F(EngineRoutingFixture, SpeedChangeCanToLn) {
   RR32Can::CanFrame injectedMessage = RR32Can::util::LocoSpeed(false, exampleLoco_.getUid(), 500);
-  const lnMsg expectedMessage = Ln_LocoSpeed(1, 500);
+  lnMsg expectedMessage = Ln_LocoSpeed(kLocoSlotIdx, 500);
 
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
@@ -55,6 +51,92 @@ TEST_F(EngineRoutingFixture, SpeedChangeCanToLn) {
   mocks::makeSequence(canHal, injectedMessage);
 
   EXPECT_CALL(lnTx, DoAsyncSend(expectedMessage));
+
+  routingTask.loop();
+}
+
+TEST_F(EngineRoutingFixture, SpeedChangeLnToCan) {
+  RR32Can::CanFrame expectedMessage = RR32Can::util::LocoSpeed(false, exampleLoco_.getUid(), 496);
+  lnMsg injetedMessage = Ln_LocoSpeed(kLocoSlotIdx, 500);
+
+  mocks::makeSequence(i2cHal);
+  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
+  mocks::makeSequence(lnHal, injetedMessage);
+  mocks::makeSequence(canHal);
+
+  EXPECT_CALL(canTx, SendPacket(expectedMessage));
+
+  routingTask.loop();
+}
+
+TEST_F(EngineRoutingFixture, DirectionChangeCanToLn) {
+  RR32Can::CanFrame injectedMessage =
+      RR32Can::util::LocoDirection(false, exampleLoco_.getUid(), RR32Can::EngineDirection::REVERSE);
+  RR32Can::Locomotive updatedLoco = exampleLoco_;
+  updatedLoco.setDirection(RR32Can::EngineDirection::REVERSE);
+  ASSERT_NE(updatedLoco.getDirection(), exampleLoco_.getDirection());
+  lnMsg expectedMessage = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
+
+  mocks::makeSequence(i2cHal);
+  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
+  mocks::makeSequence(lnHal);
+  mocks::makeSequence(canHal, injectedMessage);
+
+  EXPECT_CALL(lnTx, DoAsyncSend(expectedMessage));
+
+  routingTask.loop();
+}
+
+TEST_F(EngineRoutingFixture, DirectionChangeLnToCan) {
+  RR32Can::CanFrame expectedMessage =
+      RR32Can::util::LocoDirection(false, exampleLoco_.getUid(), RR32Can::EngineDirection::REVERSE);
+  RR32Can::Locomotive updatedLoco = exampleLoco_;
+  updatedLoco.setDirection(RR32Can::EngineDirection::REVERSE);
+  ASSERT_NE(updatedLoco.getDirection(), exampleLoco_.getDirection());
+  lnMsg injetedMessage = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
+
+  mocks::makeSequence(i2cHal);
+  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
+  mocks::makeSequence(lnHal, injetedMessage);
+  mocks::makeSequence(canHal);
+
+  EXPECT_CALL(canTx, SendPacket(expectedMessage));
+
+  routingTask.loop();
+}
+
+TEST_F(EngineRoutingFixture, FunctionChangeCanToLn) {
+  RR32Can::CanFrame injectedMessage =
+      RR32Can::util::LocoFunction(false, exampleLoco_.getUid(), 0, true);
+  RR32Can::Locomotive updatedLoco = exampleLoco_;
+  updatedLoco.setFunction(0, true);
+  ASSERT_NE(updatedLoco.getFunction(0), exampleLoco_.getFunction(0));
+  lnMsg expectedMessage = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
+
+  mocks::makeSequence(i2cHal);
+  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
+  mocks::makeSequence(lnHal);
+  mocks::makeSequence(canHal, injectedMessage);
+
+  EXPECT_CALL(lnTx, DoAsyncSend(expectedMessage));
+
+  routingTask.loop();
+}
+
+TEST_F(EngineRoutingFixture, FunctionChangeLnToCan) {
+  RR32Can::CanFrame expectedMessage =
+      RR32Can::util::LocoFunction(false, exampleLoco_.getUid(), 0, true);
+  RR32Can::Locomotive updatedLoco = exampleLoco_;
+  updatedLoco.setFunction(0, true);
+  ASSERT_NE(updatedLoco.getFunction(0), exampleLoco_.getFunction(0));
+  lnMsg injetedMessage = Ln_LocoDirf(kLocoSlotIdx, updatedLoco);
+
+  mocks::makeSequence(i2cHal);
+  EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
+  mocks::makeSequence(lnHal, injetedMessage);
+  mocks::makeSequence(canHal);
+
+  EXPECT_CALL(canTx, SendPacket(expectedMessage));
 
   routingTask.loop();
 }

@@ -31,6 +31,7 @@ class RoutingTaskFixture : public Test {
 
     RR32Can::Station::CallbackStruct callbacks;
     callbacks.tx = &canTx;
+    callbacks.engine = &routingTask.getCANEngineDB();
     RR32Can::RR32Can.begin(0, callbacks);
   }
 
