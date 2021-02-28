@@ -29,12 +29,18 @@ enum class LocoFunExtBlockId : uint8_t { FIRST = 8, SECOND = 9, THIRD = 5 };
 constexpr static const decltype(OPC_LOCO_SND) OPC_LOCO_SND2{OPC_LOCO_SND + 1U};
 constexpr static const decltype(OPC_LOCO_SND) OPC_LOCO_FUNEXT{0xD4U};
 
-constexpr RR32Can::Velocity_t lnSpeedToCanVelocity(RR32Can::Velocity_t speed) {
-  return (speed * RR32Can::kMaxEngineVelocity / kLocoNetMaxVeloctiy);
+constexpr RR32Can::Velocity_t lnSpeedToCanVelocity(const uint8_t speed) {
+  const uint16_t adjustedSpeed = speed * 10;
+  const auto velocity = (adjustedSpeed * RR32Can::kMaxEngineVelocity / kLocoNetMaxVeloctiy);
+  const auto roundedVelocity = (velocity + 5) / 10;
+  return roundedVelocity;
 }
 
-constexpr uint8_t canVelocityToLnSpeed(RR32Can::Velocity_t velocity) {
-  return (velocity * kLocoNetMaxVeloctiy) / RR32Can::kMaxEngineVelocity;
+constexpr uint8_t canVelocityToLnSpeed(const RR32Can::Velocity_t velocity) {
+  const RR32Can::Velocity_t adjustedVelocity = velocity * 10;
+  const auto speed = (adjustedVelocity * kLocoNetMaxVeloctiy) / RR32Can::kMaxEngineVelocity;
+  const auto roundedSpeed = (speed + 5) / 10;
+  return roundedSpeed;
 }
 
 void dirfToLoco(const uint8_t dirf, RR32Can::LocomotiveData& loco);

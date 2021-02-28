@@ -57,7 +57,7 @@ TEST_F(EngineRoutingFixture, SpeedChangeCanToLn) {
 
 TEST_F(EngineRoutingFixture, SpeedChangeLnToCan) {
   RR32Can::CanFrame expectedMessage = RR32Can::util::LocoSpeed(false, exampleLoco_.getUid(), 496);
-  lnMsg injetedMessage = Ln_LocoSpeed(kLocoSlotIdx, 500);
+  lnMsg injetedMessage = Ln_LocoSpeed(kLocoSlotIdx, 496);
 
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
