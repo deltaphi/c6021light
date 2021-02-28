@@ -16,7 +16,18 @@ constexpr static const uint8_t kFunctionsInDirfMessage = 5;
 constexpr static const uint8_t kFunctionsInSndMessage = 4;
 constexpr static const uint8_t kLowestFunctionInSndMessage = 5;
 
+constexpr static const uint8_t kFunExtMagicByte{0x20U};
+constexpr static const uint8_t kFunExtFunctionPerMessage{7};
+constexpr static const uint8_t kFunExtFirstOffset{13};
+constexpr static const uint8_t kFunExtSecondOffset{21};
+
+constexpr static const uint8_t kFunExt20Mask{0x20};
+constexpr static const uint8_t kFunExt28Mask{0x40};
+
+enum class LocoFunExtBlockId : uint8_t { FIRST = 8, SECOND = 9, THIRD = 5 };
+
 constexpr static const decltype(OPC_LOCO_SND) OPC_LOCO_SND2{OPC_LOCO_SND + 1U};
+constexpr static const decltype(OPC_LOCO_SND) OPC_LOCO_FUNEXT{0xD4U};
 
 constexpr RR32Can::Velocity_t lnSpeedToCanVelocity(RR32Can::Velocity_t speed) {
   return (speed * RR32Can::kMaxEngineVelocity / kLocoNetMaxVeloctiy);
@@ -258,6 +269,46 @@ inline lnMsg Ln_LocoSnd2(uint8_t slotIdx, const RR32Can::LocomotiveData& loco) {
   sndMessage.snd = locoToSnd(loco, kLowestFunctionInSndMessage + kFunctionsInSndMessage);
   sndMessage.chksum = 0U;
   return msg;
+}
+
+uint8_t locoToFunExtByte(const LocoFunExtBlockId blockId, const RR32Can::LocomotiveData& loco);
+inline lnMsg Ln_LocoFunExt(const uint8_t slotIdx, const LocoFunExtBlockId blockId,
+                           const RR32Can::LocomotiveData& loco) {
+  lnMsg msg;
+  msg.msdi.command = OPC_LOCO_FUNEXT;
+  msg.msdi.arg1 = kFunExtMagicByte;
+  slotIdx;
+  msg.msdi.arg2 = slotIdx;
+  msg.msdi.arg3 = static_cast<uint8_t>(blockId);
+  msg.msdi.arg4 = locoToFunExtByte(blockId, loco);
+  msg.msdi.chksum = 0;
+  return msg;
+}
+
+inline uint8_t locoToFunExtByte(const LocoFunExtBlockId blockId,
+                                const RR32Can::LocomotiveData& loco) {
+  uint8_t result{0};
+
+  if (blockId == LocoFunExtBlockId::THIRD) {
+    if (loco.getFunction(20)) {
+      result |= kFunExt20Mask;
+    }
+    if (loco.getFunction(28)) {
+      result |= kFunExt28Mask;
+    }
+  } else {
+    const auto startIdx =
+        (blockId == LocoFunExtBlockId::FIRST ? kFunExtFirstOffset : kFunExtSecondOffset);
+    uint8_t mask{1U};
+    for (uint8_t i = startIdx; i < startIdx + kFunExtFunctionPerMessage; ++i) {
+      if (loco.getFunction(i)) {
+        result |= mask;
+      }
+      mask <<= 1;
+    }
+  }
+
+  return result;
 }
 
 }  // namespace RoutingTask
