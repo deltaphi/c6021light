@@ -132,7 +132,8 @@ class LocoNetSlotServer {
 
   void processLocoSpeed(const locoSpdMsg& msg);
   void processLocoDirF(const locoDirfMsg& msg);
-  void processLocoSnd(const locoSndMsg& msg);
+  void processLocoSnd(const locoSndMsg& msg, const uint8_t functionOffset);
+  void processLocoFunExt(const multiSenseDeviceInfoMsg& msg);
 
   static void clearSlot(SlotDB_t::iterator& slot) { *slot = SlotEntry(); }
 

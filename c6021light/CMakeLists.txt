@@ -89,6 +89,7 @@ add_executable(c6021lightTest
     "test/unit/EmptyTest.cpp"
     "test/unit/AccessoryPacketTest.cpp"
     "test/unit/SlotServer.cpp"
+    "test/unit/VelocityConversion.cpp"
     "test/integration/StatelessRouting.cpp"
     "test/integration/LnSwitchRequest.cpp"
     "test/integration/StopGoRequest.cpp"
@@ -96,6 +97,7 @@ add_executable(c6021lightTest
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     "test/integration/SlotServerProcessing.cpp"
+    "test/integration/EngineRouting.cpp"
 
     "src/tasks/RoutingTask/CANForwarder.cpp"
     "src/tasks/RoutingTask/I2CForwarder.cpp"

@@ -96,7 +96,7 @@ void LocoNetSlotServer::processSlotRead(const rwSlotDataMsg& msg) {
     slotIt->loco.setUid(getLocoAddress(msg).value());  // Force the engine to be MM2.
     slotIt->loco.setVelocity(lnSpeedToCanVelocity(msg.spd));
     dirfToLoco(msg.dirf, slotIt->loco);
-    sndToLoco(msg.snd, slotIt->loco);
+    sndToLoco(msg.snd, slotIt->loco, kLowestFunctionInSndMessage);
     slotIt->needsMatchToCAN = true;
   }
 }
@@ -129,22 +129,56 @@ void LocoNetSlotServer::processLocoDirF(const locoDirfMsg& msg) {
   }
 }
 
-void LocoNetSlotServer::processLocoSnd(const locoSndMsg& msg) {
+void LocoNetSlotServer::processLocoSnd(const locoSndMsg& msg, const uint8_t functionOffset) {
   const SlotDB_t::iterator slotIt = findOrRequestSlot(msg.slot);
 
   if (isSlotInBounds(slotIt)) {
-    const auto oldDirf = locoToSnd(slotIt->loco);
+    const auto oldDirf = locoToSnd(slotIt->loco, functionOffset);
     const auto delta = oldDirf ^ msg.snd;
     const bool hasChanged = delta != 0;
 
     const auto originalFunctionBits = slotIt->loco.getFunctionBits();
 
     if (hasChanged) {
-      sndToLoco(msg.snd, slotIt->loco);
+      sndToLoco(msg.snd, slotIt->loco, functionOffset);
       const auto updatedFunctionBits = slotIt->loco.getFunctionBits();
       const auto functionBitsDelta = updatedFunctionBits ^ originalFunctionBits;
       slotIt->diff.functions |= functionBitsDelta;
     }
+  }
+}
+
+void LocoNetSlotServer::processLocoFunExt(const multiSenseDeviceInfoMsg& msg) {
+  if (msg.arg1 != kFunExtMagicByte) {
+    return;
+  }
+
+  const auto slotIdx = msg.arg2;
+  SlotDB_t::iterator slotIt = findOrRequestSlot(slotIdx);
+
+  if (isSlotInBounds(slotIt)) {
+    const auto originalFunctionBits = slotIt->loco.getFunctionBits();
+
+    const auto blockId = static_cast<LocoFunExtBlockId>(msg.arg3);
+    if (blockId == LocoFunExtBlockId::THIRD) {
+      slotIt->loco.setFunction(20, (msg.arg4 & kFunExt20Mask) != 0);
+      slotIt->loco.setFunction(28, (msg.arg4 & kFunExt28Mask) != 0);
+    } else {
+      const auto startIdx =
+          (blockId == LocoFunExtBlockId::FIRST ? kFunExtFirstOffset : kFunExtSecondOffset);
+
+      uint8_t mask = 1;
+      for (uint8_t functionIdx = startIdx; functionIdx < startIdx + kFunExtFunctionPerMessage;
+           ++functionIdx) {
+        const auto functionOn = (msg.arg4 & mask) != 0;
+        slotIt->loco.setFunction(functionIdx, functionOn);
+        mask <<= 1;
+      }
+    }
+
+    const auto newFunctionBits = slotIt->loco.getFunctionBits();
+    const auto delta = originalFunctionBits ^ newFunctionBits;
+    slotIt->diff.functions |= delta;
   }
 }
 
@@ -175,7 +209,15 @@ void LocoNetSlotServer::process(const lnMsg& LnPacket) {
       processLocoDirF(LnPacket.ldf);
       break;
     case OPC_LOCO_SND:
-      processLocoSnd(LnPacket.ls);
+      processLocoSnd(LnPacket.ls, kLowestFunctionInSndMessage);
+      break;
+    case OPC_LOCO_SND2: {
+      constexpr const auto functionOffset{kLowestFunctionInSndMessage + kFunctionsInSndMessage};
+      processLocoSnd(LnPacket.ls, functionOffset);
+      break;
+    }
+    case OPC_LOCO_FUNEXT:
+      processLocoFunExt(LnPacket.msdi);
       break;
     default:
       break;

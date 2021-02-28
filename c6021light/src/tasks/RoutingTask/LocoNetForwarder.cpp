@@ -103,8 +103,36 @@ void LocoNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, Lo
         tx_->AsyncSend(Ln_LocoDirf(slotIdx, loco));
       }
 
-      if (((diff.functions & 0x1E0) != 0)) {
-        tx_->AsyncSend(Ln_LocoSnd(slotIdx, loco));
+      {
+        constexpr const RR32Can::FunctionBits_t f5_8_mask = (0x0F << kLowestFunctionInSndMessage);
+        if (((diff.functions & f5_8_mask) != 0)) {
+          tx_->AsyncSend(Ln_LocoSnd(slotIdx, loco));
+        }
+      }
+      {
+        constexpr const RR32Can::FunctionBits_t f9_12_mask =
+            (0x0F << (kLowestFunctionInSndMessage + kFunctionsInSndMessage));
+        if (((diff.functions & f9_12_mask) != 0)) {
+          tx_->AsyncSend(Ln_LocoSnd2(slotIdx, loco));
+        }
+      }
+      {
+        constexpr const RR32Can::FunctionBits_t f13_19_mask = (0x7F << (kFunExtFirstOffset));
+        if (((diff.functions & f13_19_mask) != 0)) {
+          tx_->AsyncSend(Ln_LocoFunExt(slotIdx, LocoFunExtBlockId::FIRST, loco));
+        }
+      }
+      {
+        constexpr const RR32Can::FunctionBits_t f21_27_mask = (0x7F << (kFunExtSecondOffset));
+        if (((diff.functions & f21_27_mask) != 0)) {
+          tx_->AsyncSend(Ln_LocoFunExt(slotIdx, LocoFunExtBlockId::SECOND, loco));
+        }
+      }
+      {
+        constexpr const RR32Can::FunctionBits_t f20_28_mask = ((1 << 20) | (1 << 28));
+        if (((diff.functions & f20_28_mask) != 0)) {
+          tx_->AsyncSend(Ln_LocoFunExt(slotIdx, LocoFunExtBlockId::THIRD, loco));
+        }
       }
 
       diff.direction = false;
