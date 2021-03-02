@@ -8,6 +8,8 @@
 #include <memory>
 #endif
 
+#include <AtomicRingBuffer/ObjectRingBuffer.h>
+
 #include "RR32Can/Types.h"
 
 namespace XpressNetMsg {

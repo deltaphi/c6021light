@@ -95,12 +95,14 @@ add_executable(c6021lightTest
     "test/integration/StopGoRequest.cpp"
     "test/integration/CanEngineDBRequest.cpp"
     "test/mocks/LocoNet.cpp"
+    "test/mocks/XpressNetMaster.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     "test/integration/SlotServerProcessing.cpp"
     "test/integration/EngineRouting.cpp"
 
     "src/tasks/RoutingTask/CANForwarder.cpp"
     "src/tasks/RoutingTask/I2CForwarder.cpp"
+    "src/tasks/RoutingTask/XpressNetForwarder.cpp"
     "src/tasks/RoutingTask/LocoNetForwarder.cpp"
     "src/tasks/RoutingTask/LocoNetHelpers.cpp"
     "src/tasks/RoutingTask/LocoNetPrinter.cpp"
@@ -109,6 +111,8 @@ add_executable(c6021lightTest
     "src/tasks/RoutingTask/RoutingTask.cpp"
 
     "src/MarklinI2C/Messages/AccessoryMsg.cpp"
+
+    "src/XpressNet/XpressNetMsg.cpp"
 
     "${RR32CAN_LIB_SRCS}"
     "${RR32CANENGINEDB_LIB_SRCS}"
