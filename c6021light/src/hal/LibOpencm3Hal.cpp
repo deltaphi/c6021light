@@ -10,17 +10,7 @@
 
 #include <LocoNet.h>
 
-#include "c6021lightConfig.h"
-
 namespace hal {
-
-void LibOpencm3Hal::led(bool on) {
-  if (on) {
-    gpio_clear(kStartStopLEDBank, kStartStopLEDPin);
-  } else {
-    gpio_set(kStartStopLEDBank, kStartStopLEDPin);
-  }
-}
 
 void LibOpencm3Hal::beginClock() {
   // Enable the overall clock.
@@ -47,11 +37,8 @@ void LibOpencm3Hal::beginClock() {
 }
 
 void LibOpencm3Hal::beginGpio() {
-  gpio_set_mode(kStartStopLEDBank, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, kStartStopLEDPin);
-  gpio_set(kStartStopLEDBank, kStartStopLEDPin);  // Turn the LED off.
-
-  gpio_set_mode(kStatusLEDBank, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, kStatusLEDPin);  // Extra LED
-  gpio_set(kStatusLEDBank, kStatusLEDPin);  // Set Idle High (TODO: Correct?)
+  startStopLed.init();
+  statusLed.init();
 
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL,
                 GPIO4 | GPIO5 | GPIO6);  // Extra LED
@@ -59,8 +46,6 @@ void LibOpencm3Hal::beginGpio() {
 }
 
 void LibOpencm3Hal::beginLocoNet() { LocoNet.init(PinNames::PB15); }
-
-void LibOpencm3Hal::toggleLed() { gpio_toggle(kStartStopLEDBank, kStartStopLEDPin); }
 
 extern "C" {
 void exti14_isr();
