@@ -17,5 +17,9 @@ Aenderungen
 
 1.3 2021/01
     TxD und RxD getauscht auf J52 Pin Header für Standard USB2Serial Module
+
+1.4 2021/03
+    mehr Platz für Spannungsregler
+    C30 wahlweise 2,5 oder 5 mm Rastermaß
     
 ```
