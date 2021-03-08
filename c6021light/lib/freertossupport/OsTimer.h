@@ -13,6 +13,10 @@ namespace freertossupport {
  */
 class OsTimer {
  public:
+  void Start(TickType_t period_ms) {
+    xTimerChangePeriod(handle_, pdMS_TO_TICKS(period_ms), 0);
+    Start();
+  }
   void Start() { xTimerStart(handle_, 0); }
   void Stop() { xTimerStop(handle_, 0); }
 

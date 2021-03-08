@@ -16,29 +16,27 @@ extern "C" {
 #include "hal/stm32eepromEmulation.h"
 #include "hal/stm32usart.h"
 
-using Hal_t = hal::LibOpencm3Hal;
+#include <FreeRTOS.h>
+#include "OsTask.h"
+#include "OsTimer.h"
+#include "timers.h"
 
-#include "ConsoleManager.h"
-#include "DataModel.h"
+#include "RR32Can/RR32Can.h"
+#include "RR32Can/StlAdapter.h"
+#include "RR32Can_config.h"
+#include "StationCbk.h"
+
+using Hal_t = hal::LibOpencm3Hal;
 
 extern "C" {
 #include "microrl.h"
 }
 
-#include "RR32Can/StlAdapter.h"
-
-#include "StationCbk.h"
-
+#include "ConsoleManager.h"
+#include "DataModel.h"
+#include "StatusIndicator.h"
 #include "tasks/ConsoleTask/ConsoleTask.h"
 #include "tasks/RoutingTask/RoutingTask.h"
-
-#include "RR32Can/RR32Can.h"
-#include "RR32Can_config.h"
-
-#include <FreeRTOS.h>
-#include "OsTask.h"
-#include "OsTimer.h"
-#include "timers.h"
 
 // ******** Variables and Constans********
 Hal_t halImpl;
@@ -54,10 +52,13 @@ freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
 
 freertossupport::StaticOsTimer stopGoTimer;
 freertossupport::StaticOsTimer canEngineDbTimer;
+freertossupport::StaticOsTimer statusTimer;
 
 hal::CanTxCbk canTxCbk;
 
 LocoNetTx lnTx;
+
+StatusIndicator statusIndicator;
 
 // Dummy variable that allows the toolchain to compile static variables that have destructors.
 void* __dso_handle;
@@ -90,6 +91,8 @@ namespace {
 void setup() {
   // Setup I2C & CAN
   halImpl.begin();
+  statusIndicator.begin(statusTimer, halImpl);
+  statusIndicator.setState(StatusIndicator::State::IDLE);
   hal::beginSerial();
   hal::beginEE();
   hal::beginI2C(dataModel.kMyAddr, routingTask);
@@ -125,6 +128,7 @@ void setup() {
 void setupOsResources() {
   stopGoTimer.Create("StopGo", 1000, true, &routingTask.stopGoStateM_);
   canEngineDbTimer.Create("CanDb", 1000, true, &routingTask.canEngineDBStateM_);
+  statusTimer.Create("StatusLED", 1000, true, &statusIndicator);
 }
 
 void setupOsTasks() {
