@@ -14,8 +14,7 @@ template <uint32_t port, uint32_t pin>
 class Led {
  public:
   void init() {
-    gpio_set_mode(port, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN,
-                  pin);
+    gpio_set_mode(port, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, pin);
     off();  // Turn the LED off.
   }
 

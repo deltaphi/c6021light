@@ -109,7 +109,6 @@ constexpr lnMsg Ln_LongAck(uint8_t lopc, bool success) {
   return LnPacket;
 }
 
-
 lnMsg Ln_LocoAddr(const RR32Can::MachineLocomotiveAddress& address);
 lnMsg Ln_SlotMove(uint8_t src, uint8_t dest);
 lnMsg Ln_RequestSlotData(uint8_t slot);

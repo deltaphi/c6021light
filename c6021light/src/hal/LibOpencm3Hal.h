@@ -20,12 +20,11 @@ class LibOpencm3Hal {
 
   Led<kStartStopLEDBank, kStartStopLEDPin> startStopLed;
   Led<kStatusLEDBank, kStatusLEDPin> statusLed;
-  
+
  private:
   void beginClock();
   void beginGpio();
   void beginLocoNet();
-
 };
 
 }  // namespace hal
