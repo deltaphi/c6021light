@@ -8,5 +8,5 @@ void AccessoryCbk::begin(hal::LibOpencm3Hal& hal) { this->hal_ = &hal; }
 
 void AccessoryCbk::setSystemState(bool onOff, bool) {
   // When the system is stopped, turn on the LED.
-  hal_->led(!onOff);
+  hal_->startStopLed.onOff(!onOff);
 }
