@@ -112,8 +112,6 @@ add_executable(c6021lightTest
 
     "src/MarklinI2C/Messages/AccessoryMsg.cpp"
 
-    "src/XpressNet/XpressNetMsg.cpp"
-
     "${RR32CAN_LIB_SRCS}"
     "${RR32CANENGINEDB_LIB_SRCS}"
 )

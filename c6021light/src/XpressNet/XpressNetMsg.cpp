@@ -8,14 +8,12 @@ constexpr static const uint8_t kXNQueueSize = 5;
 
 using QueueType = AtomicRingBuffer::ObjectRingBuffer<XN_Msg_t, kXNQueueSize>;
 
+void freeXNRXMessage(XN_MsgPtr_t msgPtr);
+
 QueueType XN_RxQueue;
 
 XN_RxMsgPtr_t getXNMessage() {
   return XN_RxMsgPtr_t{XN_RxQueue.peek().ptr, freeXNRXMessage};
-}
-
-void freeXNRXMessage(XN_MsgPtr_t msgPtr) {
-  XN_RxQueue.consume(QueueType::MemoryRange{msgPtr, 1});
 }
 
 void forwardRx(XN_Msg_t& msg) {
@@ -25,6 +23,10 @@ void forwardRx(XN_Msg_t& msg) {
     *memory.ptr = msg;
     XN_RxQueue.publish(memory);
   }
+}
+
+void freeXNRXMessage(XN_MsgPtr_t msgPtr) {
+  XN_RxQueue.consume(QueueType::MemoryRange{msgPtr, 1});
 }
 
 }  // namespace XpressNetMsg

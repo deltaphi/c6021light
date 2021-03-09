@@ -35,7 +35,6 @@ using XN_MsgPtr_t = XN_Msg_t*;
 
 XN_RxMsgPtr_t getXNMessage();
 void forwardRx(XN_Msg_t& msg);
-void freeXNRXMessage(XN_MsgPtr_t msgPtr);
 
 }  // namespace XpressNetMsg
 
