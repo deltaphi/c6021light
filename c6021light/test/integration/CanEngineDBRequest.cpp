@@ -6,7 +6,12 @@
 #include "mocks/RoutingTaskFixture.h"
 #include "mocks/SequenceMaker.h"
 
-class CanEngineDBStateMachine : public mocks::RoutingTaskFixture {};
+class CanEngineDBStateMachine : public mocks::RoutingTaskFixture {
+  void TearDown() {
+    mocks::RoutingTaskFixture::TearDown();
+    std::cout << std::endl;  // Workaround for Eclipse having trouble parsing STDOUT.
+  }
+};
 
 TEST_F(CanEngineDBStateMachine, NotStarted) {
   mocks::makeSequence(i2cHal);
