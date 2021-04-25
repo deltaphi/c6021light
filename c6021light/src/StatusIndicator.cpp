@@ -1,5 +1,25 @@
 #include "StatusIndicator.h"
 
+void StatusIndicator::setError() {
+  error = true;
+  updateState();
+}
+
+void StatusIndicator::clearError() {
+  error = false;
+  updateState();
+}
+
+void StatusIndicator::setCanDbDownload() {
+  canDbDownload = true;
+  updateState();
+}
+
+void StatusIndicator::clearCanDbDownload() {
+  canDbDownload = false;
+  updateState();
+}
+
 void StatusIndicator::setState(StatusIndicator::State state) {
   state_ = state;
   switch (state) {

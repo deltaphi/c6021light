@@ -4,6 +4,8 @@
 #include "tasks/RoutingTask/CanEngineDB.h"
 #include "tasks/RoutingTask/StateMachineBase.h"
 
+#include "IStatusIndicator.h"
+
 namespace tasks {
 namespace RoutingTask {
 
@@ -21,6 +23,9 @@ class CanEngineDBStateMachine : public StateMachineBase {
 
   void startRequesting() {
     requestState_ = RequestState::REQUESTING;
+    if (statusIndicator != nullptr) {
+      statusIndicator->setCanDbDownload();
+    }
     tries = 0;
     startTimerImmediate();
   }
@@ -55,14 +60,22 @@ class CanEngineDBStateMachine : public StateMachineBase {
     }
   }
 
+  void setStatusIndicator(IStatusIndicator& statusIndicator) {
+    this->statusIndicator = &statusIndicator;
+  }
+
  private:
   RequestState requestState_{RequestState::IDLE};
   uint8_t tries = 0;
   CanEngineDB& engineDb_;
+  IStatusIndicator* statusIndicator{nullptr};
 
   void stopRequesting() {
     requestState_ = RequestState::IDLE;
     stopTimer();
+    if (statusIndicator != nullptr) {
+      statusIndicator->clearCanDbDownload();
+    }
   }
 
   bool isFirstPacketInConfigDataStream(RR32Can::CanFrame& frame) {

@@ -40,6 +40,7 @@ TEST_F(CanEngineDBStateMachine, Started_WithoutTimerExpiryRequestSent) {
   mocks::makeSequence(lnHal);
   mocks::makeSequence(canHal);
 
+  EXPECT_CALL(statusIndicator, setCanDbDownload());
   EXPECT_CALL(canEngineDBTimer, Start());
 
   // Expect request to be sent.
@@ -67,6 +68,7 @@ TEST_F(CanEngineDBStateMachine, Started_OnTimerExpiryRequestSent) {
   mocks::makeSequence(canHal);
 
   // Setup expectations
+  EXPECT_CALL(statusIndicator, setCanDbDownload());
   EXPECT_CALL(canEngineDBTimer, Start());
   EXPECT_CALL(routingTask, notify()).Times(2);
   EXPECT_CALL(canTx, SendPacket(RR32Can::util::Request_Config_Data(RR32Can::Filenames::kEngineNames,
@@ -90,6 +92,7 @@ TEST_F(CanEngineDBStateMachine, Started_RequestSentOnlyOnExpiry) {
 
   EXPECT_CALL(routingTask, notify()).Times(3);
   EXPECT_CALL(canEngineDBTimer, Start());
+  EXPECT_CALL(statusIndicator, setCanDbDownload());
   EXPECT_CALL(canTx, SendPacket(RR32Can::util::Request_Config_Data(RR32Can::Filenames::kEngineNames,
                                                                    RR32Can::CanDataMaxLength)))
       .Times(2);
@@ -117,6 +120,7 @@ TEST_F(CanEngineDBStateMachine, Started_ReceiveFirstPacket_TransitionToDownloadi
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
 
+  EXPECT_CALL(statusIndicator, setCanDbDownload());
   EXPECT_CALL(canEngineDBTimer, Start());
 
   RR32Can::CanFrame canSequence[]{RR32Can::util::Config_Data_Stream(5, 0xAFFE)};
@@ -142,6 +146,7 @@ TEST_F(CanEngineDBStateMachine, Started_ReceiveFirstPacket_NoFurtherRequest) {
       .RetiresOnSaturation();
   mocks::makeSequence(lnHal, kLoopCount);
 
+  EXPECT_CALL(statusIndicator, setCanDbDownload());
   EXPECT_CALL(canEngineDBTimer, Start());
 
   RR32Can::CanFrame canSequence[]{RR32Can::util::Config_Data_Stream(5, 0xAFFE)};
@@ -190,6 +195,7 @@ TEST_F(CanEngineDBStateMachine, Started_DownloadComplete_TransitionToIdle) {
 
   Sequence canSequence;
 
+  EXPECT_CALL(statusIndicator, setCanDbDownload()).InSequence(canSequence);
   EXPECT_CALL(canEngineDBTimer, Start()).InSequence(canSequence);
 
   EXPECT_CALL(canHal, getCanMessage())
@@ -213,6 +219,8 @@ TEST_F(CanEngineDBStateMachine, Started_DownloadComplete_TransitionToIdle) {
       .RetiresOnSaturation();
 
   EXPECT_CALL(canEngineDBTimer, Stop()).InSequence(canSequence);
+
+  EXPECT_CALL(statusIndicator, clearCanDbDownload()).InSequence(canSequence);
 
   EXPECT_CALL(routingTask, notify()).Times(2);
 

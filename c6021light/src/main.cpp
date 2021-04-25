@@ -92,7 +92,6 @@ void setup() {
   // Setup I2C & CAN
   halImpl.begin();
   statusIndicator.begin(statusTimer, halImpl);
-  statusIndicator.setState(StatusIndicator::State::IDLE);
   hal::beginSerial();
   hal::beginEE();
   hal::beginI2C(dataModel.kMyAddr, routingTask);
@@ -104,7 +103,7 @@ void setup() {
   // Load Configuration
   printf("Reading Configuration.\n");
   dataModel = hal::LoadConfig();
-  routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDbTimer);
+  routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDbTimer, statusIndicator);
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");

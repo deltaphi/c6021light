@@ -1,13 +1,14 @@
 #ifndef __STATUSINDICATOR_H__
 #define __STATUSINDICATOR_H__
 
+#include "IStatusIndicator.h"
 #include "OsTimer.h"
 #include "hal/LibOpencm3Hal.h"
 
 /*
  * \brief Class StatusIndicator
  */
-class StatusIndicator : public freertossupport::TimerCallbackBase {
+class StatusIndicator : public freertossupport::TimerCallbackBase, public IStatusIndicator {
  public:
   enum class State { OFF, IDLE, CANDB_DL, ERROR };
 
@@ -18,10 +19,14 @@ class StatusIndicator : public freertossupport::TimerCallbackBase {
     timer_ = timer;
     hal_ = &hal;
 
-    setState(State::OFF);
+    updateState();
   }
 
-  void setState(State state);
+  void setError() override;
+  void clearError() override;
+
+  void setCanDbDownload() override;
+  void clearCanDbDownload() override;
 
   void TimerCallback(TimerHandle_t) override;
 
@@ -29,6 +34,25 @@ class StatusIndicator : public freertossupport::TimerCallbackBase {
   State state_;
   freertossupport::OsTimer timer_;
   hal::LibOpencm3Hal* hal_;
+
+  bool error{false};
+  bool canDbDownload{false};
+
+  void updateState() { setState(compileState()); }
+
+  State compileState() const {
+    if (error) {
+      return State::ERROR;
+    } else {
+      if (canDbDownload) {
+        return State::CANDB_DL;
+      } else {
+        return State::IDLE;
+      }
+    }
+  }
+
+  void setState(State state);
 };
 
 #endif  // __STATUSINDICATOR_H__
