@@ -103,6 +103,9 @@ void CanEngineDB::fetchNextEngine() {
     fetchEngine(*loco);
   } else {
     dbState_ = DBState::COMPLETE;
+    if (statusIndicator != nullptr) {
+      statusIndicator->clearCanDbDownload();
+    }
   }
 }
 

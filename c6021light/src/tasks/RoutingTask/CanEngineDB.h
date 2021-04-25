@@ -10,6 +10,7 @@
 #include "RR32CanEngineDb/util/ConfigDataEndStreamCallback.h"
 #include "RR32CanEngineDb/util/ConfigDataStreamParser.h"
 
+#include "IStatusIndicator.h"
 #include "RoutingForwarder.h"
 
 namespace tasks {
@@ -34,6 +35,8 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
 
     bool hasUpdate() const { return diff.hasDiff(); }
   };
+
+  void init(IStatusIndicator& si) { this->statusIndicator = &si; }
 
   using DB_t = std::array<DbEntry_t, kMaxNumDbEntries>;
 
@@ -77,6 +80,7 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
   RR32Can::LocoConsumer locoConsumer_;
   DB_t db_;
   DBState dbState_{DBState::EMPTY};
+  IStatusIndicator* statusIndicator{nullptr};
 
   DB_t::iterator getEntry(const RR32Can::Locomotive::Uid_t uid);
   RR32Can::Locomotive* findFirstIncompleteEngine();

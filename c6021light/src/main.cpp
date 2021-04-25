@@ -186,6 +186,7 @@ int run_ln_slot_server_dispatch(int argc, const char* const* argv, int argcMatch
 }
 
 int run_app_download_enginedb_can(int, const char* const*, int) {
+  statusIndicator.setCanDbDownload();
   routingTask.getCANEngineDB().fetchEngineDB();
   return 0;
 }

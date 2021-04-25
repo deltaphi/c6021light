@@ -218,9 +218,8 @@ TEST_F(CanEngineDBStateMachine, Started_DownloadComplete_TransitionToIdle) {
       .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})))
       .RetiresOnSaturation();
 
-  EXPECT_CALL(canEngineDBTimer, Stop()).InSequence(canSequence);
-
-  EXPECT_CALL(statusIndicator, clearCanDbDownload()).InSequence(canSequence);
+  EXPECT_CALL(statusIndicator, clearCanDbDownload()).Times(2);
+  EXPECT_CALL(canEngineDBTimer, Stop()).InSequence(canSequence).RetiresOnSaturation();
 
   EXPECT_CALL(routingTask, notify()).Times(2);
 

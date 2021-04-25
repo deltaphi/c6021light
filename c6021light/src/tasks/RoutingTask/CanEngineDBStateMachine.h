@@ -60,9 +60,7 @@ class CanEngineDBStateMachine : public StateMachineBase {
     }
   }
 
-  void setStatusIndicator(IStatusIndicator& statusIndicator) {
-    this->statusIndicator = &statusIndicator;
-  }
+  void setStatusIndicator(IStatusIndicator& si) { this->statusIndicator = &si; }
 
  private:
   RequestState requestState_{RequestState::IDLE};
