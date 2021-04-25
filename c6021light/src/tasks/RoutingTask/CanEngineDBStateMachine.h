@@ -22,8 +22,7 @@ class CanEngineDBStateMachine : public StateMachineBase {
   void startRequesting() {
     requestState_ = RequestState::REQUESTING;
     tries = 0;
-    startTimer();
-    timerExpired_ = true;
+    startTimerImmediate();
   }
 
   void loop() {

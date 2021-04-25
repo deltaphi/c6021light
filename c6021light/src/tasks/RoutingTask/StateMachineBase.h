@@ -24,10 +24,15 @@ class StateMachineBase : public freertossupport::TimerCallbackBase {
  protected:
   std::atomic_bool timerExpired_{false};
 
-  void startTimer() {
+  void startTimerDelayed() {
     if (timer_ != nullptr) {
       timer_->Start();
     }
+  }
+
+  void startTimerImmediate() {
+    startTimerDelayed();
+    TimerCallback(timer_->getHandle());
   }
 
   void stopTimer() {

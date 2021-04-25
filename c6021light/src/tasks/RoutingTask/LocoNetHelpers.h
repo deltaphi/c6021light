@@ -73,7 +73,7 @@ lnMsg Ln_TurnoutStatusResponse(RR32Can::MachineTurnoutAddress address,
                                RR32Can::TurnoutDirection direction, bool power);
 lnMsg Ln_Sensor(RR32Can::MachineTurnoutAddress address, RR32Can::SensorState state);
 
-constexpr lnMsg Ln_On() {
+inline lnMsg Ln_On() {
   lnMsg LnPacket{};
   LnPacket.ir.command = OPC_GPON;
   LnPacket.ir.in1 = 0U;
@@ -83,7 +83,7 @@ constexpr lnMsg Ln_On() {
   return LnPacket;
 }
 
-constexpr lnMsg Ln_Off() {
+inline lnMsg Ln_Off() {
   lnMsg LnPacket{};
   LnPacket.ir.command = OPC_GPOFF;
   LnPacket.ir.in1 = 0U;
@@ -100,7 +100,7 @@ constexpr lnMsg Ln_Off() {
  * @param success Whether the Acknowledgemet is positive (true) or negative (false).
  * @return
  */
-constexpr lnMsg Ln_LongAck(uint8_t lopc, bool success) {
+inline lnMsg Ln_LongAck(uint8_t lopc, bool success) {
   lnMsg LnPacket{};
   LnPacket.lack.command = OPC_LONG_ACK;
   LnPacket.lack.opcode = lopc & 0x7fU;

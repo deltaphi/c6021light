@@ -20,6 +20,7 @@ class OsTimer {
  public:
   MOCK_METHOD(void, Start, (), ());
   MOCK_METHOD(void, Stop, (), ());
+  int getHandle() const { return 0; }
 
  private:
 };
