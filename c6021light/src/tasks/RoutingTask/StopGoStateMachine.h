@@ -26,8 +26,7 @@ class StopGoStateMachine : public StateMachineBase {
   void startRequesting() {
     state_ = State::REQUESTING;
     tries = 0;
-    timerExpired_ = true;
-    startTimer();
+    startTimerImmediate();
   }
 
   void loop() {

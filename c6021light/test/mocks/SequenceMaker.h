@@ -37,7 +37,8 @@ inline void makeSequence(hal::CANHalMock& mock, RR32Can::CanFrame& frame) {
 }
 
 template <size_t numMessages>
-void makeSequence(hal::CANHalMock& mock, RR32Can::CanFrame (&messages)[numMessages]) {
+void makeSequence(hal::CANHalMock& mock, RR32Can::CanFrame (&messages)[numMessages],
+                  uint_least32_t emptyMessageCount = 1) {
   Sequence s_;
 
   for (size_t i = 0U; i < numMessages; ++i) {
@@ -46,9 +47,11 @@ void makeSequence(hal::CANHalMock& mock, RR32Can::CanFrame (&messages)[numMessag
         .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{&(messages[i]), hal::canRxDeleter})));
   }
 
-  EXPECT_CALL(mock, getCanMessage())
-      .InSequence(s_)
-      .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
+  for (size_t i = 0U; i < emptyMessageCount; ++i) {
+    EXPECT_CALL(mock, getCanMessage())
+        .InSequence(s_)
+        .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})));
+  }
 }
 
 //
