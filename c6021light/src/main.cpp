@@ -24,7 +24,6 @@ extern "C" {
 #include "RR32Can/RR32Can.h"
 #include "RR32Can/StlAdapter.h"
 #include "RR32Can_config.h"
-#include "StationCbk.h"
 
 using Hal_t = hal::LibOpencm3Hal;
 
@@ -34,13 +33,13 @@ extern "C" {
 
 #include "ConsoleManager.h"
 #include "DataModel.h"
+#include "StartStopIndicator.h"
 #include "StatusIndicator.h"
 #include "tasks/ConsoleTask/ConsoleTask.h"
 #include "tasks/RoutingTask/RoutingTask.h"
 
 // ******** Variables and Constans********
 Hal_t halImpl;
-AccessoryCbk accessoryCbk;
 
 DataModel dataModel;
 freertossupport::StaticOsTask<tasks::RoutingTask::RoutingTask,
@@ -53,12 +52,14 @@ freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
 freertossupport::StaticOsTimer stopGoTimer;
 freertossupport::StaticOsTimer canEngineDbTimer;
 freertossupport::StaticOsTimer statusTimer;
+freertossupport::StaticOsTimer startStopTimer;
 
 hal::CanTxCbk canTxCbk;
 
 LocoNetTx lnTx;
 
 StatusIndicator statusIndicator;
+StartStopIndicator startStopIndicator;
 
 // Dummy variable that allows the toolchain to compile static variables that have destructors.
 void* __dso_handle;
@@ -92,6 +93,7 @@ void setup() {
   // Setup I2C & CAN
   halImpl.begin();
   statusIndicator.begin(statusTimer, halImpl);
+  startStopIndicator.begin(startStopTimer, halImpl);
   hal::beginSerial();
   hal::beginEE();
   hal::beginI2C(dataModel.kMyAddr, routingTask);
@@ -107,11 +109,10 @@ void setup() {
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");
-  accessoryCbk.begin(halImpl);
 
   RR32Can::Station::CallbackStruct callbacks;
   callbacks.tx = &canTxCbk;
-  callbacks.system = &accessoryCbk;
+  callbacks.system = &startStopIndicator;
   callbacks.engine = &routingTask.getCANEngineDB();
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
@@ -128,6 +129,7 @@ void setupOsResources() {
   stopGoTimer.Create("StopGo", 1000, true, &routingTask.stopGoStateM_);
   canEngineDbTimer.Create("CanDb", 1000, true, &routingTask.canEngineDBStateM_);
   statusTimer.Create("StatusLED", 1000, true, &statusIndicator);
+  startStopTimer.Create("StartStop", 1000, true, &startStopIndicator);
 }
 
 void setupOsTasks() {
