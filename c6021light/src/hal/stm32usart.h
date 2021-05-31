@@ -17,12 +17,11 @@ void beginSerial();
  *
  * \param src The string to print.
  * \param len The length of the string (strlen(src)).
- * \param doReplace Whether to replace the character denoted by search.
  * \param search The character to replace.
  *
  * \return The number of bytes read from src.
  */
-std::size_t SerialWrite(const char* src, std::size_t len, bool doReplace, const char search);
+std::size_t SerialWrite(const char* src, std::size_t len, const char search);
 
 /**
  * \brief Poll the serial peripheral whether a character was received.

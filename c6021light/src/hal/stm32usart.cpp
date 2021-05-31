@@ -24,6 +24,8 @@ namespace hal {
 namespace {
 void startSerialTx();
 
+std::size_t SerialWrite(const char* src, std::size_t len, bool doReplace, const char search);
+
 freertossupport::OsMutexStatic serialWriteMutex_;
 
 // Definition of Module-private data
@@ -83,13 +85,7 @@ extern "C" {
 int _write(int file, char* ptr, int len) {
   constexpr static char kEndlSearch = '\n';
   if (file == STDOUT_FILENO || file == STDERR_FILENO) {
-    int bytesLeft = len;
-    while (bytesLeft > 0) {
-      AtomicRingBuffer::AtomicRingBuffer::size_type bytesWritten =
-          SerialWrite(ptr, bytesLeft, true, kEndlSearch);
-      bytesLeft -= bytesWritten;
-    }
-    return len - bytesLeft;
+    SerialWrite(ptr, len, kEndlSearch);
   }
   errno = EIO;
   return -1;
@@ -114,6 +110,17 @@ void dma1_channel4_isr(void) {
 }
 }  // extern "C"
 
+std::size_t SerialWrite(const char* src, std::size_t len, const char search) {
+  auto bytesLeft = len;
+  while (bytesLeft > 0) {
+    const auto bytesWritten = SerialWrite(src, bytesLeft, true, search);
+    bytesLeft -= bytesWritten;
+    src += bytesWritten;
+  }
+  return len - bytesLeft;
+}
+
+namespace {
 std::size_t SerialWrite(const char* src, std::size_t srcLen, bool doReplace, const char search) {
   const bool srcIsEmpty = srcLen < 1 || src == nullptr;
   if (srcIsEmpty) {
@@ -149,10 +156,13 @@ std::size_t SerialWrite(const char* src, std::size_t srcLen, bool doReplace, con
           auto replaceResult = AtomicRingBuffer::memcpyCharReplace(
               reinterpret_cast<char*>(dest.ptr), &src[srcBytesConsumed], search, replacePtr,
               dest.len, srcLen);
-          bytesConsumed = reinterpret_cast<uint8_t*>(replaceResult.nextByte) - dest.ptr;
+          bytesConsumed = replaceResult.len;
+          const auto bytesWritten = reinterpret_cast<uint8_t*>(replaceResult.nextByte) - dest.ptr;
+          expectedDestLen -= bytesWritten;
         } else {
           memcpy(dest.ptr, &src[srcBytesConsumed], dest.len);
           bytesConsumed = dest.len;
+          expectedDestLen -= bytesConsumed;
         }
 
         serialBuffer_.publish(dest);
@@ -160,7 +170,6 @@ std::size_t SerialWrite(const char* src, std::size_t srcLen, bool doReplace, con
       startSerialTx();
 
       srcBytesConsumed += bytesConsumed;
-      expectedDestLen -= bytesConsumed;
     }
     bool replaceIncomplete = replacePtr != replace;
 
@@ -175,7 +184,6 @@ std::size_t SerialWrite(const char* src, std::size_t srcLen, bool doReplace, con
   return srcBytesConsumed;
 }
 
-namespace {
 void startSerialTx() {
   if (serialBuffer_.size() > 0) {
     // There is data to be transferred.

@@ -156,7 +156,8 @@ static void microrl_print_cbk(const char* s) {
    * While the remainder of the code uses \n as newline, microrl might use \r. Therefore,
    * we use an alternate replacement scheme here.
    */
-  hal::SerialWrite(s, strlen(s), true, ENDL[0]);
+  const std::size_t len = strlen(s);
+  hal::SerialWrite(s, len, ENDL[0]);
 #else
   printf(s);
   fflush(stdout);
