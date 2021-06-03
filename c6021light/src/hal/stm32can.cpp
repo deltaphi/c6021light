@@ -91,6 +91,12 @@ void usb_lp_can_rx0_isr(void) {
 }
 
 void CanTxCbk::SendPacket(const RR32Can::CanFrame& frame) {
+#if LOG_CAN_OUT_MSG == STD_ON
+  printf("Can TX: ");
+  frame.id.printAll();
+  printf("\n");
+#endif
+
   uint32_t packetId = frame.id.makeIdentifier();
   int txMailbox = -1;
   while (txMailbox == -1) {
