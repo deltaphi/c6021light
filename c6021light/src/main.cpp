@@ -50,9 +50,9 @@ freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
     consoleTask;
 
 freertossupport::StaticOsTimer stopGoTimer;
-freertossupport::StaticOsTimer canEngineDbTimer;
-freertossupport::StaticOsTimer statusTimer;
-freertossupport::StaticOsTimer startStopTimer;
+freertossupport::StaticOsTimer canEngineDbRequestTimer;
+freertossupport::StaticOsTimer statusLedTimer;
+freertossupport::StaticOsTimer stopGoLedTimer;
 
 hal::CanTxCbk canTxCbk;
 
@@ -92,8 +92,8 @@ namespace {
 void setup() {
   // Setup I2C & CAN
   halImpl.begin();
-  statusIndicator.begin(statusTimer, halImpl);
-  startStopIndicator.begin(startStopTimer, halImpl);
+  statusIndicator.begin(statusLedTimer, halImpl);
+  startStopIndicator.begin(stopGoLedTimer, halImpl);
   hal::beginSerial();
   hal::beginEE();
   hal::beginI2C(dataModel.kMyAddr, routingTask);
@@ -105,7 +105,7 @@ void setup() {
   // Load Configuration
   printf("Reading Configuration.\n");
   dataModel = hal::LoadConfig();
-  routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDbTimer, statusIndicator);
+  routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDbRequestTimer, statusIndicator);
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");
@@ -127,9 +127,9 @@ void setup() {
 
 void setupOsResources() {
   stopGoTimer.Create("StopGo", 1000, true, &routingTask.stopGoStateM_);
-  canEngineDbTimer.Create("CanDb", 1000, true, &routingTask.canEngineDBStateM_);
-  statusTimer.Create("StatusLED", 1000, true, &statusIndicator);
-  startStopTimer.Create("StartStop", 1000, true, &startStopIndicator);
+  canEngineDbRequestTimer.Create("CanDb", 1000, true, &routingTask.canEngineDBStateM_);
+  statusLedTimer.Create("StatusLED", 1000, true, &statusIndicator);
+  stopGoLedTimer.Create("StartStop", 1000, true, &startStopIndicator);
 }
 
 void setupOsTasks() {
