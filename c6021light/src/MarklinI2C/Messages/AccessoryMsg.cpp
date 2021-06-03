@@ -18,63 +18,15 @@ uint8_t AccessoryMsg::getDecoderOutput() const {
   return addr;
 }
 
-RR32Can::MachineTurnoutAddress AccessoryMsg::getTurnoutAddr() const {
+RR32Can::MachineTurnoutAddress AccessoryMsg::getTurnoutAddr(const uint8_t keyboardAddr) const {
   uint8_t addr = 0;
-  addr |= getSender();
+  addr |= keyboardAddr;
   addr <<= 4;
   addr |= getDecoderOutput();
   return RR32Can::MachineTurnoutAddress(addr);
 }
 
-void AccessoryMsg::print() const {
-#ifdef ARDUINO
-  // Actual output currently available on Arduino only.
-  Serial.print('[');
-  Serial.print(destination_, BIN);
-  Serial.print(' ');
-  Serial.print(source_, BIN);
-  Serial.print(' ');
-  Serial.print(data_, BIN);
-  Serial.print(']');
-
-  // Sender
-  Serial.print(F(" Keyboard: "));
-  Serial.print(getSender(), DEC);
-
-  Serial.print(F(" Decoder: "));
-  Serial.print(getDecoderOutput(), DEC);
-
-  Serial.print(F(" (Turnout Addr: "));
-  Serial.print(getTurnoutAddr(), DEC);
-
-  Serial.print(F(") Direction: "));
-  switch (getDirection()) {
-    case kDataDirRed:
-      Serial.print(F("RED  "));
-      break;
-    case kDataDirGreen:
-      Serial.print(F("GREEN"));
-      break;
-    default:
-      Serial.print(F("WTF"));
-      break;
-  }
-
-  Serial.print(F(" Power: "));
-  switch (getPower()) {
-    case 0:
-      Serial.print(F("OFF"));
-      break;
-    case 1:
-      Serial.print(F("ON "));
-      break;
-    default:
-      Serial.print(F("WTF"));
-      break;
-  }
-
-  Serial.println();
-#else
+void AccessoryMsg::print(bool isRx) const {
   const char* directionString;
   const char* powerString;
 
@@ -102,11 +54,16 @@ void AccessoryMsg::print() const {
       break;
   }
 
-  printf("[0x%x 0x%x 0x%x] - Keyboard: %i, Decoder: %i, (Turnout: %" PRId32
-         ", Direction: %s, Power: %s)\n",
-         destination_, source_, data_, getSender(), getDecoderOutput(), getTurnoutAddr().value(),
-         directionString, powerString);
-#endif
+  constexpr static const char* formatString =
+      "[0x%x, 0x%x, 0x%x] - Keyboard: %i, Decoder: %i, (Turnout: %" PRId32
+      ", Direction: %s, Power: %s)\n";
+  if (isRx) {
+    printf(formatString, destination_, source_, data_, getInboundSender(), getDecoderOutput(),
+           getInboundTurnoutAddr().value(), directionString, powerString);
+  } else {
+    printf(formatString, destination_, source_, data_, getOutboundDestination(), getDecoderOutput(),
+           getOutboundTurnoutAddr().value(), directionString, powerString);
+  }
 }
 
 }  // namespace Messages

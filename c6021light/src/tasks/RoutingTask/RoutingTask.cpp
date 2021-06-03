@@ -39,7 +39,7 @@ void RoutingTask::processI2CMessages() {
   for (auto messagePtr = hal::getI2CMessage(); messagePtr != nullptr;
        messagePtr = hal::getI2CMessage()) {
     printf("I2C RX: ");
-    messagePtr->print();
+    messagePtr->print(true);
 
     RR32Can::CanFrame frame;
 
