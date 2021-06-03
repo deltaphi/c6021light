@@ -15,6 +15,9 @@ namespace RoutingTask {
 class CanEngineDBStateMachine : public StateMachineBase {
  public:
   constexpr static const uint8_t kMaxDownloadTries = 10;
+  constexpr static const uint8_t kDownloadTimeout =
+      3;  // After this many timer expiries in the download state without incoming messages, start
+          // another request.
 
   enum class RequestState { IDLE, REQUESTING, DOWNLOADING };
 
@@ -23,6 +26,7 @@ class CanEngineDBStateMachine : public StateMachineBase {
 
   void startRequesting() {
     requestState_ = RequestState::REQUESTING;
+    printf("CanEngineDBStateMachine: startRequesting()\n");
     if (statusIndicator != nullptr) {
       statusIndicator->setCanDbDownload();
     }
@@ -32,15 +36,27 @@ class CanEngineDBStateMachine : public StateMachineBase {
 
   void loop() {
     if (timerExpired_) {
+      printf("CanEngineDBStateMachine: Timer! ");
+      if (requestState_ == RequestState::DOWNLOADING) {
+        ++downloadTime;
+        if (downloadTime > kDownloadTimeout) {
+          printf("Download Timeout expired. ");
+          requestState_ = RequestState::REQUESTING;
+        }
+      }
+
       if (requestState_ == RequestState::REQUESTING) {
         if (tries < kMaxDownloadTries) {
+          printf("Requesting try %d. ", tries);
           RR32Can::RR32Can.AbortCurrentConfigRequest();
           engineDb_.fetchEngineDB();
           ++tries;
         } else {
+          printf("Giving up. ");
           stopRequesting();
         }
       }
+      printf("\n");
       timerExpired_ = false;
     }
   }
@@ -50,8 +66,14 @@ class CanEngineDBStateMachine : public StateMachineBase {
   RequestState GetState() const { return requestState_; }
 
   void handlePacket(RR32Can::CanFrame& frame) {
-    if (!isIdle() && isFirstPacketInConfigDataStream(frame)) {
-      requestState_ = RequestState::DOWNLOADING;
+    if (!isIdle()) {
+      if (isFirstPacketInConfigDataStream(frame)) {
+        printf("CanEngineDBStateMachine: Now downloading.\n");
+        requestState_ = RequestState::DOWNLOADING;
+        downloadTime = 0;
+      } else if (isConfigDataStream(frame)) {
+        downloadTime = 0;
+      }
     }
   }
 
@@ -66,10 +88,12 @@ class CanEngineDBStateMachine : public StateMachineBase {
  private:
   RequestState requestState_{RequestState::IDLE};
   uint8_t tries = 0;
+  uint8_t downloadTime = 0;
   CanEngineDB& engineDb_;
   IStatusIndicator* statusIndicator{nullptr};
 
   void stopRequesting() {
+    printf("CanEngineDBStateMachine: stopRequesting()\n");
     requestState_ = RequestState::IDLE;
     stopTimer();
     if (statusIndicator != nullptr) {
@@ -77,9 +101,12 @@ class CanEngineDBStateMachine : public StateMachineBase {
     }
   }
 
-  bool isFirstPacketInConfigDataStream(RR32Can::CanFrame& frame) {
-    return (frame.id.getCommand() == RR32Can::Command::CONFIG_DATA_STREAM) &&
-           (frame.data.dlc == 6 || frame.data.dlc == 7);
+  static bool isConfigDataStream(RR32Can::CanFrame& frame) {
+    return frame.id.getCommand() == RR32Can::Command::CONFIG_DATA_STREAM;
+  }
+
+  static bool isFirstPacketInConfigDataStream(RR32Can::CanFrame& frame) {
+    return isConfigDataStream(frame) && (frame.data.dlc == 6 || frame.data.dlc == 7);
   }
 };
 
