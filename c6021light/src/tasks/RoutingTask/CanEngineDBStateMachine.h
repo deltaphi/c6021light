@@ -34,6 +34,7 @@ class CanEngineDBStateMachine : public StateMachineBase {
     if (timerExpired_) {
       if (requestState_ == RequestState::REQUESTING) {
         if (tries < kMaxDownloadTries) {
+          RR32Can::RR32Can.AbortCurrentConfigRequest();
           engineDb_.fetchEngineDB();
           ++tries;
         } else {
