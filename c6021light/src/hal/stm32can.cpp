@@ -12,6 +12,7 @@
 
 #include "RR32Can/RR32Can.h"
 #include "RR32Can/messages/Identifier.h"
+#include "RR32Can_config.h"
 
 namespace hal {
 
