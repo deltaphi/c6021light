@@ -6,6 +6,7 @@
 
 #include "mocks/LocoNet.h"
 #include "mocks/RoutingForwarderMock.h"
+#include "mocks/StatusIndicator.h"
 #include "mocks/XpressNetMaster.h"
 
 #include "RR32Can/RR32Can.h"
@@ -29,7 +30,7 @@ class RoutingTaskFixture : public Test {
     hal::canMock = &canHal;
     hal::i2cMock = &i2cHal;
 
-    routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDBTimer);
+    routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDBTimer, statusIndicator);
 
     RR32Can::Station::CallbackStruct callbacks;
     callbacks.tx = &canTx;
@@ -45,6 +46,7 @@ class RoutingTaskFixture : public Test {
   }
 
   DataModel dataModel;
+  StrictMock<mocks::StatusIndicator> statusIndicator;
   StrictMock<hal::I2CHalMock> i2cHal;
   StrictMock<hal::CANHalMock> canHal;
   StrictMock<hal::CanTxMock> canTx;

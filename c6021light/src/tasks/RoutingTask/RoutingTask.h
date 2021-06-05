@@ -25,12 +25,14 @@ class RoutingTask : public freertossupport::OsTask {
   static constexpr const uint32_t kStackSize = 256;
 
   void begin(DataModel& dataModel, LocoNetTx& lnTx, freertossupport::OsTimer& stopGoTimer,
-             freertossupport::OsTimer& canEngineDBTimer) {
+             freertossupport::OsTimer& canEngineDBTimer, IStatusIndicator& statusIndicator) {
     lnForwarder_.init(dataModel, slotServer_, lnTx);
     i2cForwarder_.init(dataModel);
     slotServer_.init(dataModel, lnTx);
+    engineDb_.init(statusIndicator);
     stopGoStateM_.setTimer(stopGoTimer);
     canEngineDBStateM_.setTimer(canEngineDBTimer);
+    canEngineDBStateM_.setStatusIndicator(statusIndicator);
   };
 
   void TaskMain();

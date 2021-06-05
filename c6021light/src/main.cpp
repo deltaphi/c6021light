@@ -16,33 +16,30 @@ extern "C" {
 #include "hal/stm32eepromEmulation.h"
 #include "hal/stm32usart.h"
 
-using Hal_t = hal::LibOpencm3Hal;
-
-#include "ConsoleManager.h"
-#include "DataModel.h"
-
-extern "C" {
-#include "microrl.h"
-}
-
-#include "RR32Can/StlAdapter.h"
-
-#include "StationCbk.h"
-
-#include "tasks/ConsoleTask/ConsoleTask.h"
-#include "tasks/RoutingTask/RoutingTask.h"
-
-#include "RR32Can/RR32Can.h"
-#include "RR32Can_config.h"
-
 #include <FreeRTOS.h>
 #include "OsTask.h"
 #include "OsTimer.h"
 #include "timers.h"
 
+#include "RR32Can/RR32Can.h"
+#include "RR32Can/StlAdapter.h"
+#include "RR32Can_config.h"
+
+using Hal_t = hal::LibOpencm3Hal;
+
+extern "C" {
+#include "microrl.h"
+}
+
+#include "ConsoleManager.h"
+#include "DataModel.h"
+#include "StartStopIndicator.h"
+#include "StatusIndicator.h"
+#include "tasks/ConsoleTask/ConsoleTask.h"
+#include "tasks/RoutingTask/RoutingTask.h"
+
 // ******** Variables and Constans********
 Hal_t halImpl;
-AccessoryCbk accessoryCbk;
 
 DataModel dataModel;
 freertossupport::StaticOsTask<tasks::RoutingTask::RoutingTask,
@@ -53,11 +50,16 @@ freertossupport::StaticOsTask<tasks::ConsoleTask::ConsoleTask,
     consoleTask;
 
 freertossupport::StaticOsTimer stopGoTimer;
-freertossupport::StaticOsTimer canEngineDbTimer;
+freertossupport::StaticOsTimer canEngineDbRequestTimer;
+freertossupport::StaticOsTimer statusLedTimer;
+freertossupport::StaticOsTimer stopGoLedTimer;
 
 hal::CanTxCbk canTxCbk;
 
 LocoNetTx lnTx;
+
+StatusIndicator statusIndicator;
+StartStopIndicator startStopIndicator;
 
 // Dummy variable that allows the toolchain to compile static variables that have destructors.
 void* __dso_handle;
@@ -90,6 +92,8 @@ namespace {
 void setup() {
   // Setup I2C & CAN
   halImpl.begin();
+  statusIndicator.begin(statusLedTimer, halImpl);
+  startStopIndicator.begin(stopGoLedTimer, halImpl);
   hal::beginSerial();
   hal::beginEE();
   hal::beginI2C(dataModel.kMyAddr, routingTask);
@@ -101,15 +105,14 @@ void setup() {
   // Load Configuration
   printf("Reading Configuration.\n");
   dataModel = hal::LoadConfig();
-  routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDbTimer);
+  routingTask.begin(dataModel, lnTx, stopGoTimer, canEngineDbRequestTimer, statusIndicator);
 
   // Tie callbacks together
   printf("Setting up callbacks.\n");
-  accessoryCbk.begin(halImpl);
 
   RR32Can::Station::CallbackStruct callbacks;
   callbacks.tx = &canTxCbk;
-  callbacks.system = &accessoryCbk;
+  callbacks.system = &startStopIndicator;
   callbacks.engine = &routingTask.getCANEngineDB();
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
@@ -124,7 +127,9 @@ void setup() {
 
 void setupOsResources() {
   stopGoTimer.Create("StopGo", 1000, true, &routingTask.stopGoStateM_);
-  canEngineDbTimer.Create("CanDb", 1000, true, &routingTask.canEngineDBStateM_);
+  canEngineDbRequestTimer.Create("CanDb", 1000, true, &routingTask.canEngineDBStateM_);
+  statusLedTimer.Create("StatusLED", 1000, true, &statusIndicator);
+  stopGoLedTimer.Create("StartStop", 1000, true, &startStopIndicator);
 }
 
 void setupOsTasks() {
@@ -186,6 +191,7 @@ int run_ln_slot_server_dispatch(int argc, const char* const* argv, int argcMatch
 }
 
 int run_app_download_enginedb_can(int, const char* const*, int) {
+  statusIndicator.setCanDbDownload();
   routingTask.getCANEngineDB().fetchEngineDB();
   return 0;
 }

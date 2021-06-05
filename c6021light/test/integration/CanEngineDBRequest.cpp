@@ -6,9 +6,18 @@
 #include "mocks/RoutingTaskFixture.h"
 #include "mocks/SequenceMaker.h"
 
-class CanEngineDBStateMachine : public mocks::RoutingTaskFixture {};
+class CanEngineDBStateMachine : public mocks::RoutingTaskFixture {
+  void TearDown() {
+    mocks::RoutingTaskFixture::TearDown();
+    std::cout << std::endl;  // Workaround for Eclipse having trouble parsing STDOUT.
+  }
+};
 
-TEST_F(CanEngineDBStateMachine, NotStarted) {
+//
+// Tests without response
+//
+
+TEST_F(CanEngineDBStateMachine, NotStarted_OnTimerNoRequest) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
@@ -25,41 +34,43 @@ TEST_F(CanEngineDBStateMachine, NotStarted) {
   EXPECT_TRUE(routingTask.canEngineDBStateM_.isIdle());
 }
 
-TEST_F(CanEngineDBStateMachine, Requesting_InitialExpiry) {
+TEST_F(CanEngineDBStateMachine, Started_WithoutTimerExpiryRequestSent) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
   mocks::makeSequence(canHal);
 
+  EXPECT_CALL(statusIndicator, setCanDbDownload());
   EXPECT_CALL(canEngineDBTimer, Start());
 
-  // Setup expectations
+  // Expect request to be sent.
   auto frame1{RR32Can::util::Request_Config_Data(RR32Can::Filenames::kEngineNames,
                                                  RR32Can::CanDataMaxLength)};
-  // frame1.id.setResponse(true);
   EXPECT_CALL(canTx, SendPacket(frame1));
 
   auto frame2{RR32Can::util::Request_Config_Data("0 2", 3)};
-  // frame2.id.setResponse(true);
   EXPECT_CALL(canTx, SendPacket(frame2));
 
   // Run!
   EXPECT_TRUE(routingTask.canEngineDBStateM_.isIdle());
-  routingTask.canEngineDBStateM_.startRequesting();
+  routingTask.canEngineDBStateM_.startRequesting();  // Start asking for a CanDB
   EXPECT_FALSE(routingTask.canEngineDBStateM_.isIdle());
-  routingTask.loop();
+  // Requests are only sent when loop() is called - regardless of how often the timer expired in the
+  // meantime.
+  routingTask.loop();  // Receive & Process messages
   EXPECT_FALSE(routingTask.canEngineDBStateM_.isIdle());
 }
 
-TEST_F(CanEngineDBStateMachine, Requesting_Expiry) {
+TEST_F(CanEngineDBStateMachine, Started_OnTimerExpiryRequestSent) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
   mocks::makeSequence(canHal);
 
   // Setup expectations
+  EXPECT_CALL(statusIndicator, setCanDbDownload());
   EXPECT_CALL(canEngineDBTimer, Start());
-  EXPECT_CALL(routingTask, notify());
+  EXPECT_CALL(routingTask, notify()).Times(2);
   EXPECT_CALL(canTx, SendPacket(RR32Can::util::Request_Config_Data(RR32Can::Filenames::kEngineNames,
                                                                    RR32Can::CanDataMaxLength)));
   EXPECT_CALL(canTx, SendPacket(RR32Can::util::Request_Config_Data("0 2", 3)));
@@ -68,17 +79,20 @@ TEST_F(CanEngineDBStateMachine, Requesting_Expiry) {
   routingTask.canEngineDBStateM_.startRequesting();
   EXPECT_FALSE(routingTask.canEngineDBStateM_.isIdle());
   routingTask.canEngineDBStateM_.TimerCallback(0);
+  // Requests are only sent when loop() is called - regardless of how often the timer expired in the
+  // meantime.
   routingTask.loop();
 }
 
-TEST_F(CanEngineDBStateMachine, Requesting_DoubleExpiry) {
+TEST_F(CanEngineDBStateMachine, Started_RequestSentOnlyOnExpiry) {
   mocks::makeSequence(i2cHal, 3);
   EXPECT_CALL(i2cHal, getStopGoRequest()).Times(3).WillRepeatedly(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal, 3);
   mocks::makeSequence(canHal, 3);
 
-  EXPECT_CALL(routingTask, notify()).Times(2);
+  EXPECT_CALL(routingTask, notify()).Times(3);
   EXPECT_CALL(canEngineDBTimer, Start());
+  EXPECT_CALL(statusIndicator, setCanDbDownload());
   EXPECT_CALL(canTx, SendPacket(RR32Can::util::Request_Config_Data(RR32Can::Filenames::kEngineNames,
                                                                    RR32Can::CanDataMaxLength)))
       .Times(2);
@@ -97,11 +111,16 @@ TEST_F(CanEngineDBStateMachine, Requesting_DoubleExpiry) {
   routingTask.loop();
 }
 
-TEST_F(CanEngineDBStateMachine, TransitionToDownloadingOnRx) {
+//
+// Tests with response
+//
+
+TEST_F(CanEngineDBStateMachine, Started_ReceiveFirstPacket_TransitionToDownloading) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
 
+  EXPECT_CALL(statusIndicator, setCanDbDownload());
   EXPECT_CALL(canEngineDBTimer, Start());
 
   RR32Can::CanFrame canSequence[]{RR32Can::util::Config_Data_Stream(5, 0xAFFE)};
@@ -110,13 +129,48 @@ TEST_F(CanEngineDBStateMachine, TransitionToDownloadingOnRx) {
   // Run!
   routingTask.canEngineDBStateM_.startRequesting();
   EXPECT_FALSE(routingTask.canEngineDBStateM_.isIdle());
+  // Request is ommited
   routingTask.loop();
   EXPECT_FALSE(routingTask.canEngineDBStateM_.isIdle());
   EXPECT_EQ(routingTask.canEngineDBStateM_.GetState(),
             tasks::RoutingTask::CanEngineDBStateMachine::RequestState::DOWNLOADING);
 }
 
-TEST_F(CanEngineDBStateMachine, NoTransitionFromIdleOnRX) {
+TEST_F(CanEngineDBStateMachine, Started_ReceiveFirstPacket_NoFurtherRequest) {
+  constexpr static const uint8_t kLoopCount = 2;
+
+  mocks::makeSequence(i2cHal, kLoopCount);
+  EXPECT_CALL(i2cHal, getStopGoRequest())
+      .Times(kLoopCount)
+      .WillRepeatedly(Return(hal::StopGoRequest{}))
+      .RetiresOnSaturation();
+  mocks::makeSequence(lnHal, kLoopCount);
+
+  EXPECT_CALL(statusIndicator, setCanDbDownload());
+  EXPECT_CALL(canEngineDBTimer, Start());
+
+  RR32Can::CanFrame canSequence[]{RR32Can::util::Config_Data_Stream(5, 0xAFFE)};
+  mocks::makeSequence(canHal, canSequence, kLoopCount);
+  EXPECT_CALL(routingTask, notify()).Times(2);
+
+  // Run!
+  routingTask.canEngineDBStateM_.startRequesting();
+  // First request is ommited, there is already a response pending
+  routingTask.loop();
+  EXPECT_FALSE(routingTask.canEngineDBStateM_.isIdle());
+  EXPECT_EQ(routingTask.canEngineDBStateM_.GetState(),
+            tasks::RoutingTask::CanEngineDBStateMachine::RequestState::DOWNLOADING);
+
+  // While a download is ongoing, additional timeouts should not cause additional transmissions.
+  routingTask.canEngineDBStateM_.TimerCallback(0);
+  routingTask.loop();
+
+  EXPECT_FALSE(routingTask.canEngineDBStateM_.isIdle());
+  EXPECT_EQ(routingTask.canEngineDBStateM_.GetState(),
+            tasks::RoutingTask::CanEngineDBStateMachine::RequestState::DOWNLOADING);
+}
+
+TEST_F(CanEngineDBStateMachine, NotStarted_ReceiveFirstPacket_NoTransition) {
   mocks::makeSequence(i2cHal);
   EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
   mocks::makeSequence(lnHal);
@@ -130,7 +184,7 @@ TEST_F(CanEngineDBStateMachine, NoTransitionFromIdleOnRX) {
   EXPECT_TRUE(routingTask.canEngineDBStateM_.isIdle());
 }
 
-TEST_F(CanEngineDBStateMachine, TransitionToIdleOnDLEnd) {
+TEST_F(CanEngineDBStateMachine, Started_DownloadComplete_TransitionToIdle) {
   constexpr static const uint8_t kLoopCount = 2;
 
   mocks::makeSequence(i2cHal, kLoopCount);
@@ -141,6 +195,7 @@ TEST_F(CanEngineDBStateMachine, TransitionToIdleOnDLEnd) {
 
   Sequence canSequence;
 
+  EXPECT_CALL(statusIndicator, setCanDbDownload()).InSequence(canSequence);
   EXPECT_CALL(canEngineDBTimer, Start()).InSequence(canSequence);
 
   EXPECT_CALL(canHal, getCanMessage())
@@ -163,13 +218,15 @@ TEST_F(CanEngineDBStateMachine, TransitionToIdleOnDLEnd) {
       .WillOnce(Return(ByMove(hal::CanRxMessagePtr_t{nullptr, hal::canRxDeleter})))
       .RetiresOnSaturation();
 
-  EXPECT_CALL(canEngineDBTimer, Stop()).InSequence(canSequence);
+  EXPECT_CALL(statusIndicator, clearCanDbDownload()).Times(2);
+  EXPECT_CALL(canEngineDBTimer, Stop()).InSequence(canSequence).RetiresOnSaturation();
+
+  EXPECT_CALL(routingTask, notify()).Times(2);
 
   // Run!
   EXPECT_TRUE(routingTask.getCANEngineDB().isEmpty());
   routingTask.canEngineDBStateM_.startRequesting();
   EXPECT_FALSE(routingTask.canEngineDBStateM_.isIdle());
-  EXPECT_CALL(routingTask, notify());
 
   routingTask.canEngineDBStateM_.TimerCallback(0);
   routingTask.loop();

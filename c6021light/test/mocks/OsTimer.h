@@ -5,6 +5,7 @@
 #define __MOCKS__OSTIMER_H__
 
 using TimerHandle_t = uint8_t;
+using TickType_t = uint32_t;
 
 namespace freertossupport {
 
@@ -20,6 +21,7 @@ class OsTimer {
  public:
   MOCK_METHOD(void, Start, (), ());
   MOCK_METHOD(void, Stop, (), ());
+  TimerHandle_t getHandle() const { return 0; }
 
  private:
 };

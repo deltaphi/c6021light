@@ -1,6 +1,10 @@
 #ifndef __HAL__LIBOPENCM3HAL_H__
 #define __HAL__LIBOPENCM3HAL_H__
 
+#include "hal/Led.h"
+
+#include "c6021lightConfig.h"
+
 namespace hal {
 
 /*
@@ -15,8 +19,8 @@ class LibOpencm3Hal {
     beginXpressNet();
   }
 
-  void led(bool on);
-  void toggleLed();
+  Led<kStartStopLEDBank, kStartStopLEDPin> startStopLed;
+  Led<kStatusLEDBank, kStatusLEDPin> statusLed;
 
  private:
   void beginClock();

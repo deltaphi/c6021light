@@ -13,14 +13,6 @@
 
 namespace hal {
 
-void LibOpencm3Hal::led(bool on) {
-  if (on) {
-    gpio_clear(GPIOC, GPIO13);
-  } else {
-    gpio_set(GPIOC, GPIO13);
-  }
-}
-
 void LibOpencm3Hal::beginClock() {
   // Enable the overall clock.
   rcc_clock_setup_in_hse_8mhz_out_72mhz();
@@ -47,11 +39,8 @@ void LibOpencm3Hal::beginClock() {
 }
 
 void LibOpencm3Hal::beginGpio() {
-  gpio_set_mode(GPIOC, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO13);
-  gpio_set(GPIOC, GPIO13);  // Turn the LED off.
-
-  gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_OPENDRAIN, GPIO0);  // Extra LED
-  gpio_set(GPIOA, GPIO0);  // Set Idle High (TODO: Correct?)
+  startStopLed.init();
+  statusLed.init();
 
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL,
                 GPIO4 | GPIO5 | GPIO6);  // Debug I/O
@@ -65,8 +54,6 @@ void LibOpencm3Hal::beginGpio() {
 void LibOpencm3Hal::beginLocoNet() { LocoNet.init(PinNames::PB15); }
 
 void LibOpencm3Hal::beginXpressNet() { XpressNet.setup(Loco128, PinNames::PA1); }
-
-void LibOpencm3Hal::toggleLed() { gpio_toggle(GPIOC, GPIO13); }
 
 extern "C" {
 void exti14_isr();

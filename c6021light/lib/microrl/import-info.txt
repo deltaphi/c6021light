@@ -1,6 +1,0 @@
-https://github.com/deltaphi/microrl/commit/a16e8a5e69b14194f6451f367090c1203f4aa4b3
-
-Note that this project has the following changes over the original version from https://github.com/Helius/microrl/
-
-* Removed examples folder to avoid confusing PlatformIO.
-* Fixed compiler warnings in microrl.c

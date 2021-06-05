@@ -7,6 +7,7 @@
 #include "cliSupport.h"
 
 #include "hal/stm32eepromEmulation.h"
+#include "hal/stm32usart.h"
 
 #define NUM_COMPLETIONS (6)
 
@@ -148,8 +149,19 @@ static void microrl_print_cbk(const char* s);
 static int microrl_execute_callback(int argc, const char* const* argv);
 
 static void microrl_print_cbk(const char* s) {
+#if defined(_ENDL_CR) || defined(_ENDL_LF)
+  /* Microrl is configured for CR or LF as line-end.
+   * The hal has logic to convert a single-character line-end to \r\n, to be compatible with
+   * more serial adapters.
+   * While the remainder of the code uses \n as newline, microrl might use \r. Therefore,
+   * we use an alternate replacement scheme here.
+   */
+  const std::size_t len = strlen(s);
+  hal::SerialWrite(s, len, ENDL[0]);
+#else
   printf(s);
   fflush(stdout);
+#endif
 }
 
 static int microrl_execute_callback(int argc, const char* const* argv) {

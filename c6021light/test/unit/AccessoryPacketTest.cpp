@@ -19,7 +19,7 @@ class AccessoryPacketFixture : public TestWithParam<AccessoryPacketFixture_TestP
 TEST_P(AccessoryPacketFixture, ReceivedPacket) {
   AccessoryMsg msg =
       AccessoryMsg::makeInbound(getTurnout(), RR32Can::TurnoutDirection::GREEN, true);
-  EXPECT_EQ(msg.getTurnoutAddr().value(), getTurnout().value());
+  EXPECT_EQ(msg.getInboundTurnoutAddr().value(), getTurnout().value());
   EXPECT_EQ(msg.getDirection(), RR32Can::TurnoutDirection::GREEN);
   EXPECT_TRUE(msg.getPower());
 }

@@ -37,12 +37,24 @@ class AccessoryMsg {
   }
 
   /**
-   * \brief Obtain the complete turnout address.
+   * \brief Obtain the complete turnout address for an inbound message (to central).
    *
    * The result is 0-based. Pressing a button for Turnout 1
    * on the first Keyboard is Address 0.
    */
-  RR32Can::MachineTurnoutAddress getTurnoutAddr() const;
+  RR32Can::MachineTurnoutAddress getInboundTurnoutAddr() const {
+    return getTurnoutAddr(getInboundSender());
+  }
+
+  /**
+   * \brief Obtain the complete turnout address for an outbound message (from central).
+   *
+   * The result is 0-based. Pressing a button for Turnout 1
+   * on the first Keyboard is Address 0.
+   */
+  RR32Can::MachineTurnoutAddress getOutboundTurnoutAddr() const {
+    return getTurnoutAddr(getOutboundDestination());
+  }
 
   constexpr RR32Can::TurnoutDirection getDirection() const {
     return (((data_ & kDataDirMask) == 0) ? RR32Can::TurnoutDirection::RED
@@ -87,12 +99,12 @@ class AccessoryMsg {
   }
 
   static AccessoryMsg makeOutbound(const AccessoryMsg& inboundMsg) {
-    AccessoryMsg msg =
-        makeOutbound(inboundMsg.getTurnoutAddr(), inboundMsg.getDirection(), inboundMsg.getPower());
+    AccessoryMsg msg = makeOutbound(inboundMsg.getInboundTurnoutAddr(), inboundMsg.getDirection(),
+                                    inboundMsg.getPower());
     return msg;
   }
 
-  void print() const;
+  void print(bool isRx) const;
 
   uint8_t destination_ = 0;
   uint8_t source_ = 0;
@@ -102,7 +114,10 @@ class AccessoryMsg {
   /// Obtian the de-masked decoder output address.
   uint8_t getDecoderOutput() const;
 
-  constexpr uint8_t getSender() const { return (source_ & kSenderAddrMask) >> 1; }
+  RR32Can::MachineTurnoutAddress getTurnoutAddr(const uint8_t keyboardAddr) const;
+
+  constexpr uint8_t getInboundSender() const { return (source_ & kSenderAddrMask) >> 1; }
+  constexpr uint8_t getOutboundDestination() const { return (destination_ & kSenderAddrMask) >> 1; }
 
   constexpr static uint8_t makeAddressField(const RR32Can::MachineTurnoutAddress& address) {
     return 0x20 | ((address.value() & (kSenderAddrMask << 3)) >> 3);
