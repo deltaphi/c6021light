@@ -16,11 +16,11 @@ void ConsoleTask::TaskMain() {
 
     // Abuse polling ConsoleTask as a blocking LnTx handler
     lnTx_->DoBlockingSend();
-	
+
     /* TODO hacky solution for first XN trials
      * It is doable to trigger a notifier whenever update() needs to be called,
      * which then triggers a task which will call update().
-     */ 
+     */
     XpressNet.update();
   }
 }

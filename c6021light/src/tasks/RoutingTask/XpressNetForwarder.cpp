@@ -7,7 +7,6 @@
 #include "RR32Can/messages/SystemMessage.h"
 #include "RR32Can/messages/TurnoutPacket.h"
 
-
 namespace tasks {
 namespace RoutingTask {
 
@@ -24,12 +23,13 @@ void XpressNetForwarder::forward(const RR32Can::CanFrame& frame) {
         } else {
           xn_direction = 0;
         }
-        
-        XpressNet.SetTrntPos(turnoutPacket.getLocid().getNumericAddress().value() + 4, xn_direction, turnoutPacket.getPower());
+
+        XpressNet.SetTrntPos(turnoutPacket.getLocid().getNumericAddress().value() + 4, xn_direction,
+                             turnoutPacket.getPower());
       }
       break;
     }
-    
+
     case RR32Can::Command::SYSTEM_COMMAND: {
       const RR32Can::SystemMessage systemMessage(const_cast<RR32Can::Data&>(frame.data));
       switch (systemMessage.getSubcommand()) {
@@ -58,9 +58,10 @@ void XpressNetForwarder::forwardLocoChange(const RR32Can::LocomotiveData& loco, 
   // nothing here yet..
 }
 
-bool XpressNetForwarder::MakeRR32CanMsg(const XpressNetMsg::XN_Msg_t& XnPacket, RR32Can::CanFrame& frame) {
+bool XpressNetForwarder::MakeRR32CanMsg(const XpressNetMsg::XN_Msg_t& XnPacket,
+                                        RR32Can::CanFrame& frame) {
   // Decode the message type
-  switch(XnPacket.header) {
+  switch (XnPacket.header) {
     case XpressNetMsg::POWER: {
       frame.id.setCommand(RR32Can::Command::SYSTEM_COMMAND);
       frame.id.setResponse(false);

@@ -5,8 +5,8 @@
 #include "gtest/gtest.h"
 
 #include "mocks/LocoNet.h"
-#include "mocks/XpressNetMaster.h"
 #include "mocks/RoutingForwarderMock.h"
+#include "mocks/XpressNetMaster.h"
 
 #include "RR32Can/RR32Can.h"
 

@@ -12,9 +12,7 @@ void freeXNRXMessage(XN_MsgPtr_t msgPtr);
 
 QueueType XN_RxQueue;
 
-XN_RxMsgPtr_t getXNMessage() {
-  return XN_RxMsgPtr_t{XN_RxQueue.peek().ptr, freeXNRXMessage};
-}
+XN_RxMsgPtr_t getXNMessage() { return XN_RxMsgPtr_t{XN_RxQueue.peek().ptr, freeXNRXMessage}; }
 
 void forwardRx(XN_Msg_t& msg) {
   // Simply put the message into the queue
@@ -25,9 +23,7 @@ void forwardRx(XN_Msg_t& msg) {
   }
 }
 
-void freeXNRXMessage(XN_MsgPtr_t msgPtr) {
-  XN_RxQueue.consume(QueueType::MemoryRange{msgPtr, 1});
-}
+void freeXNRXMessage(XN_MsgPtr_t msgPtr) { XN_RxQueue.consume(QueueType::MemoryRange{msgPtr, 1}); }
 
 }  // namespace XpressNetMsg
 
@@ -38,6 +34,7 @@ void notifyXNetPower(uint8_t State) {
   XN_Msg.data.powerData = State;
   XpressNetMsg::forwardRx(XN_Msg);
 
-  if (notifyXNetGlobal)
+  if (notifyXNetGlobal) {
     notifyXNetGlobal();
+  }
 }

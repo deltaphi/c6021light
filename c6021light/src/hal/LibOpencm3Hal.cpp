@@ -54,7 +54,7 @@ void LibOpencm3Hal::beginGpio() {
   gpio_set(GPIOA, GPIO0);  // Set Idle High (TODO: Correct?)
 
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL,
-                GPIO4 | GPIO5 | GPIO6); // Debug I/O
+                GPIO4 | GPIO5 | GPIO6);  // Debug I/O
   gpio_set(GPIOA, GPIO4 | GPIO5 | GPIO6);
 
   // Tx Ena Xpressnet

@@ -14,10 +14,7 @@
 
 namespace XpressNetMsg {
 
-typedef enum {
-  POWER,
-  ACCESSORY_NOTIFY
-} XN_Header_t;
+typedef enum { POWER, ACCESSORY_NOTIFY } XN_Header_t;
 
 typedef union {
   uint8_t powerData;
@@ -28,7 +25,6 @@ typedef struct {
   XN_Header_t header;
   XN_MsgBody_t data;
 } XN_Msg_t;
-
 
 using XN_RxMsgPtr_t = std::unique_ptr<XN_Msg_t, void (*)(XN_Msg_t*)>;
 using XN_MsgPtr_t = XN_Msg_t*;

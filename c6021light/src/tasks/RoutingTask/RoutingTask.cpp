@@ -125,22 +125,21 @@ void RoutingTask::matchEnginesFromLocoNetAndCan() {
 void RoutingTask::processXpressNet() {
   for (auto messagePtr = XpressNetMsg::getXNMessage(); messagePtr != nullptr;
        messagePtr = XpressNetMsg::getXNMessage()) {
+    RR32Can::CanFrame frame;
 
-  RR32Can::CanFrame frame;
+    // Convert to generic CAN representation
+    if (xnForwarder_.MakeRR32CanMsg(*messagePtr, frame)) {
+      i2cForwarder_.forward(frame);
+      lnForwarder_.forward(frame);
+      // Forward to CAN
+      RR32Can::RR32Can.SendPacket(frame);
 
-  // Convert to generic CAN representation
-  if (xnForwarder_.MakeRR32CanMsg(*messagePtr, frame)) {
-    i2cForwarder_.forward(frame);
-    lnForwarder_.forward(frame);
-    // Forward to CAN
-    RR32Can::RR32Can.SendPacket(frame);
+      // Forward to self
+      RR32Can::RR32Can.HandlePacket(frame);
+    }
 
-    // Forward to self
-    RR32Can::RR32Can.HandlePacket(frame);
-  }
-
-  // Explicitly reset framePtr so that getXNMessage can produce a new message
-  messagePtr.reset(); 
+    // Explicitly reset framePtr so that getXNMessage can produce a new message
+    messagePtr.reset();
   }
 }
 
