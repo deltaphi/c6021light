@@ -6,6 +6,7 @@
 #include "RR32Can/messages/S88Event.h"
 #include "RR32Can/messages/SystemMessage.h"
 #include "RR32Can/messages/TurnoutPacket.h"
+#include "RR32Can/util/constexpr.h"
 
 namespace tasks {
 namespace RoutingTask {
@@ -67,15 +68,10 @@ bool XpressNetForwarder::MakeRR32CanMsg(const XpressNetMsg::XN_Msg_t& XnPacket,
   // Decode the message type
   switch (XnPacket.header) {
     case XpressNetMsg::POWER: {
-      frame.id.setCommand(RR32Can::Command::SYSTEM_COMMAND);
-      frame.id.setResponse(false);
-      RR32Can::SystemMessage systemMessage(frame.data);
-      systemMessage.initData();
-
       if (XnPacket.data.powerData == csNormal) {
-        systemMessage.setSubcommand(RR32Can::SystemSubcommand::SYSTEM_GO);
+        frame = RR32Can::util::System_Go(false);
       } else if (XnPacket.data.powerData == csTrackVoltageOff) {
-        systemMessage.setSubcommand(RR32Can::SystemSubcommand::SYSTEM_STOP);
+        frame = RR32Can::util::System_Stop(false);
       } else {
         return false;
         break;
