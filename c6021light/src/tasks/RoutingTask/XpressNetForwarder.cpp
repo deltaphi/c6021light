@@ -34,11 +34,15 @@ void XpressNetForwarder::forward(const RR32Can::CanFrame& frame) {
       const RR32Can::SystemMessage systemMessage(const_cast<RR32Can::Data&>(frame.data));
       switch (systemMessage.getSubcommand()) {
         case RR32Can::SystemSubcommand::SYSTEM_STOP: {
-          if (!frame.id.isResponse()) XpressNet.setPower(csTrackVoltageOff);
+          if (!frame.id.isResponse()) {
+            XpressNet.setPower(csTrackVoltageOff);
+          }
           break;
         }
         case RR32Can::SystemSubcommand::SYSTEM_GO: {
-          if (!frame.id.isResponse()) XpressNet.setPower(csNormal);
+          if (!frame.id.isResponse()) {
+            XpressNet.setPower(csNormal);
+          }
           break;
         }
         default:
