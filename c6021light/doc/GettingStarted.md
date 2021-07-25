@@ -52,13 +52,17 @@ At the top of the BluePill board, there is another Micro-USB port. This port is 
 
 ### On-Board Interfaces
 
-The c6021light and the BluePill board feature a number of LEDs for information output as well as buttons and jumpers for configuration. Currently, most of these are unused. However, we will cover all of them for completeness. We begin by looking at the LEDs and then move on to the buttons and jumpers.
+The c6021light and the BluePill board feature a number of LEDs for information output as well as buttons and jumpers for configuration. 
+We begin by looking at the LEDs and then move on to the buttons and jumpers.
 
 #### LEDs
 
-Starting at the bottom of the BluePill board, we first see two LEDs right above the debugger port. The red LED on the right indicates whether the BluePill board is powered (LED lights up). The yellow LED on the left is currently used to indicate the Stop/Go state of the system (i.e., whether track power is off or on), if that information is known to the c6021light.
+Starting at the bottom of the BluePill board, we first see two LEDs right above the debugger port.
+The red LED on the right indicates whether the BluePill board is powered (LED lights up).
+The yellow LED on the left gives status information on the system, e.g., whether a CAN Engine Database download is ongoing (Blinks slowly) or whether an error occured (blinks quickly).
 
-Off to the right, next to J52, there is another red LED. This LED is currently unused.
+Off to the right, next to J52, there is another red LED.
+This LED indicates the Stop/Go state of the system (i.e., whether track power is off or on), if that information is known to the c6021light.
 
 Below the red LED, next to the LocoNet port, there are two more LEDs. These LEDs indicate message transmission (LED to the right) and message reception (led to the left) on the LocoNet port.
 
@@ -94,7 +98,10 @@ If the display of the Mobile Station 2 lights up but the Mobile Station 2 does n
 
 ## First operation
 
-A freshly installed c6021light runs at its default settings. This means that it will transfer turout control commands, S88 sensor reports and the Stop/Go state between all attached busses. Turnout Control commands on the CAN bus are sent to turnout decoders using the MM2 protocol by default.
+A freshly installed c6021light runs at its default settings.
+This means that it will transfer turout control commands, S88 sensor reports and the Stop/Go state between all attached busses.
+Turnout Control commands on the CAN bus are sent to turnout decoders using the MM2 protocol by default.
+Locomotive Control is disabled.
 
 If your turnout decoders are using the MM2 protocol, you are now ready to test out the c6021light. Start by ensuring that system is in the "Go" state (track power is on, even if no track is connected). To this end, verify that the display of the Mobile Station 2 does *not* say "STOP". If it does, press the "STOP" button to put the system in the "Go" state. For reference, see images of the Mobile Station 2 on the default locomotive control screen in the [Stop mode](images/ms2_loco_stop.jpg) and the [Go mode](images/ms2_loco_go.jpg), as well as on the turnout control screen in the [Stop mode](images/ms2_turnout_stop.jpg) and the [Go mode](images/ms2_turnout_go.jpg). Next, bring up the turnout screen on the Mobile Station 2 by pressing the turnout button. You should see two turnouts presented in the screen. The label at the top indicates that you are seeing turnouts 1 and 2.
 
