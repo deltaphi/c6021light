@@ -44,7 +44,7 @@ http://dl1zax.selfhost.de/ATMega/PDF/6022.pdf
 
 ## I2C Bus Communication
 
-Zitat von [Dr. König's Märklin-Digital-Page](http://www.drkoenig.de/digital/i2c.htm):
+Zitat von [Dr. König's Märklin-Digital-Page (Text von Walter Fiedler)](http://www.drkoenig.de/digital/i2c.htm):
 ```
 Für die Übertragung von Weichenstellbefehlen genügen drei Byte als Schaltanforderung.
 Es sind dies die Bytes für Empfänger (Zentrale), Keyboard-Nr. (0 bis 15) und das Datenbyte.
