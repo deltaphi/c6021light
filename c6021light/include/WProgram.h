@@ -9,13 +9,22 @@
 #include <type_traits>
 
 #include <FreeRTOS.h>
+#include <task.h>
 #include <portmacro.h>
+
+typedef uint8_t byte; // Arduino pre-defined data types
 
 /// The I/O mode of a GPIO
 enum PinMode {
   OUTPUT = 0,  // Assume Push-Pull
   INPUT,
   INPUT_PULLUP
+};
+
+/// The I/O value of a GPIO
+enum PinValue {
+  LOW = 0,
+  HIGH
 };
 
 /**
@@ -35,6 +44,9 @@ enum PinNames : uint8_t {
 /// Macro to define ISR functions.
 #define ISR(f) extern "C" void f(void)
 
+/// Arduino uses function-style casts..
+#define word(h, l) ((uint16_t) ((h << 8) | (l & 0xFF)))
+
 /// Macro to obtain the contents of the output register for a GPIO*
 #define portOutputRegister(port) (&(GPIO_ODR(port)))
 
@@ -42,6 +54,7 @@ enum PinNames : uint8_t {
 #define portInputRegister(port) (&(GPIO_IDR(port)))
 uint32_t digitalPinToPort(PinNames pin);
 uint16_t digitalPinToBitMask(PinNames pin);
+void digitalWrite(PinNames pin, PinValue value);
 void pinMode(PinNames pin, PinMode mode);
 
 /// Forwarding functions for implicit conversion
@@ -59,10 +72,24 @@ inline uint16_t digitalPinToBitMask(std::underlying_type<PinNames>::type pin) {
   return digitalPinToBitMask(static_cast<PinNames>(pin));
 }
 
+inline void digitalWrite(std::underlying_type<PinNames>::type pin, PinValue value) {
+  return digitalWrite(static_cast<PinNames>(pin), value);
+}
+
 #define noInterrupts() (portDISABLE_INTERRUPTS())
 #define interrupts() (portENABLE_INTERRUPTS())
 
 #define delay(ms) (vTaskDelay(pdMS_TO_TICKS(ms)))
+
+/// Dirty emulation of Arduino tick functions
+inline uint32_t millis(void) {
+  return xTaskGetTickCount() * portTICK_PERIOD_MS;
+}
+
+/// TODO this needs to be done properly, millis resolution is not sufficient
+inline uint32_t micros(void) {
+  return millis() * 1000;
+}
 
 /*
 01 VBAT

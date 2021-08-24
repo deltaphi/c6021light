@@ -16,6 +16,7 @@ class LibOpencm3Hal {
     beginClock();
     beginGpio();
     beginLocoNet();
+    beginXpressNet();
   }
 
   Led<kStartStopLEDBank, kStartStopLEDPin> startStopLed;
@@ -25,6 +26,7 @@ class LibOpencm3Hal {
   void beginClock();
   void beginGpio();
   void beginLocoNet();
+  void beginXpressNet();
 };
 
 }  // namespace hal

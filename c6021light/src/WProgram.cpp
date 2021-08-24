@@ -43,3 +43,17 @@ void pinMode(PinNames pin, PinMode mode) {
       break;
   }
 }
+
+void digitalWrite(PinNames pin, PinValue value) {
+  uint32_t port = digitalPinToPort(pin);
+  uint16_t pinMask = digitalPinToBitMask(pin);
+
+  switch (value) {
+    case PinValue::HIGH:
+      gpio_set(port, pinMask);
+      break;
+    case PinValue::LOW:
+      gpio_clear(port, pinMask);
+      break;
+  }
+}

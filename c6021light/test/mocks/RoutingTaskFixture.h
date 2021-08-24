@@ -7,6 +7,7 @@
 #include "mocks/LocoNet.h"
 #include "mocks/RoutingForwarderMock.h"
 #include "mocks/StatusIndicator.h"
+#include "mocks/XpressNetMaster.h"
 
 #include "RR32Can/RR32Can.h"
 
@@ -25,6 +26,7 @@ class RoutingTaskFixture : public Test {
  public:
   void SetUp() {
     mocks::LocoNetInstance = &lnHal;
+    mocks::XpressNetMasterInstance = &xnHal;
     hal::canMock = &canHal;
     hal::i2cMock = &i2cHal;
 
@@ -40,6 +42,7 @@ class RoutingTaskFixture : public Test {
     hal::canMock = nullptr;
     hal::i2cMock = nullptr;
     mocks::LocoNetInstance = nullptr;
+    mocks::XpressNetMasterInstance = nullptr;
   }
 
   DataModel dataModel;
@@ -49,6 +52,7 @@ class RoutingTaskFixture : public Test {
   StrictMock<hal::CanTxMock> canTx;
   StrictMock<mocks::LocoNetClass> lnHal;
   StrictMock<mocks::LocoNetTx> lnTx;
+  StrictMock<mocks::XpressNetMasterClass> xnHal;
   tasks::RoutingTask::RoutingTask routingTask;
   StrictMock<freertossupport::OsTimer> stopGoTimer;
   StrictMock<freertossupport::OsTimer> canEngineDBTimer;
