@@ -44,6 +44,8 @@ jobs:
     # Runs a single command using the runners shell
     - uses: lukka/run-cmake@v10
       with:
+        cmakeGenerator: VS17Win64
+        cmakeListsOrSettingsJson: CMakeListsTxtBasic
         cmakeListsTxtPath: ${{ github.workspace }}/c6021light/CMakeLists.txt
         configurePreset: "Windows"
         buildPreset: "Windows"
