@@ -1,6 +1,7 @@
 #include "tasks/RoutingTask/LocoNetSlotServer.h"
 
 #include <algorithm>
+#include <cstdio>
 
 #include "RR32Can/RR32Can.h"
 
