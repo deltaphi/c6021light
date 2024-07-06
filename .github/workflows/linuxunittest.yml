@@ -7,7 +7,7 @@ name: Linux Unit Testing
 on:
   push:
     branches:
-      - "*"
+      - master
   pull_request:
     branches:
       - "*"
@@ -17,36 +17,37 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         submodules: true
 
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5.1.0
+      with:
+        cache: 'pip'
+        python-version: '3.9'
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install platformio
+        pip install -r requirements.txt
+
     - name: Run PlatformIO to fetch libraries for Bluepill
-      run: | 
+      run: |
         cd ${{ github.workspace }}/c6021light
-        platformio lib -e bluepill install
+        platformio pkg install -e bluepill
 
     # Runs a single command using the runners shell
-    - uses: lukka/run-cmake@v2.5
+    - uses: lukka/run-cmake@v10
       with:
-        cmakeGenerator: UnixMakefiles
-        cmakeListsOrSettingsJson: CMakeListsTxtBasic
         cmakeListsTxtPath: ${{ github.workspace }}/c6021light/CMakeLists.txt
-        cmakeBuildType: Release
-        buildDirectory: ${{ runner.temp }}/c6021light/build
-        buildWithCMake: true
+        configurePreset: "Linux"
+        buildPreset: "Linux"
 
     # Actual testing happening
     - name: Run Unittest
-      run: ${{ runner.temp }}/c6021light/build/c6021lightTest
+      run: ${{ github.workspace }}/../c6021light-build-linux/c6021lightTest
