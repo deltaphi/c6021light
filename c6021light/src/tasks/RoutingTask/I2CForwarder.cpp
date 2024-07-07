@@ -32,8 +32,8 @@ void I2CForwarder::forward(const RR32Can::CanFrame& frame) {
         // Responses are forwarded to I2C
         printf(" Got an Accessory packet!\n");
 
-        if (turnoutPacket.getRailProtocol() != RR32Can::RailProtocol::MM1) {
-          // Not an MM2 packet
+        if (turnoutPacket.getRailProtocol() != dataModel_->accessoryRailProtocol) {
+          // Not a packet of the expected accessory protocol
           return;
         }
 
