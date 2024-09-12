@@ -10,6 +10,7 @@
 #include "CANForwarder.h"
 #include "I2CForwarder.h"
 #include "LocoNetForwarder.h"
+#include "XpressNetForwarder.h"
 
 #include "CanEngineDB.h"
 #include "CanEngineDBStateMachine.h"
@@ -49,11 +50,13 @@ class RoutingTask : public freertossupport::OsTask {
   CANForwarder canForwarder_;
   I2CForwarder i2cForwarder_;
   LocoNetForwarder lnForwarder_;
+  XpressNetForwarder xnForwarder_;
 
   void processCAN();
   void processI2CMessages();
   void processI2CStopGo();
   void processLocoNet();
+  void processXpressNet();
   void matchEnginesFromLocoNetAndCan();
 
   void processStateMachines();

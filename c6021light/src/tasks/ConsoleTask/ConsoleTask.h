@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#include <XpressNetMaster.h>
 #include "OsTask.h"
 
 #include "LocoNetTx.h"

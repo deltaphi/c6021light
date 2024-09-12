@@ -33,10 +33,13 @@ class TurnoutRoutingFixture : public mocks::RoutingTaskFixture,
   lnMsg LnPacket{Ln_Turnout(turnout, direction, power)};
 };
 
-TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
+TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNetandXn) {
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(canFrame));
   EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
+  EXPECT_CALL(xnHal, SetTrntPos(turnout.getNumericAddress().value() + 4,
+                                TurnoutDirectionToIntegral(direction),
+                                power));  // Addr, State, Active
 
   mocks::makeSequence(canHal);
   mocks::makeSequence(lnHal);
@@ -48,9 +51,12 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet) {
   routingTask.loop();
 }
 
-TEST_P(TurnoutRoutingFixture, TurnoutRequest_CANtoLocoNetAndI2C) {
+TEST_P(TurnoutRoutingFixture, TurnoutRequest_CANtoLocoNetAndI2CAndXn) {
   // Setup expectations
   EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
+  EXPECT_CALL(xnHal, SetTrntPos(turnout.getNumericAddress().value() + 4,
+                                TurnoutDirectionToIntegral(direction),
+                                power));  // Addr, State, Active
 
   mocks::makeSequence(i2cHal);
   mocks::makeSequence(lnHal);
@@ -62,10 +68,12 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_CANtoLocoNetAndI2C) {
   routingTask.loop();
 }
 
-TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCANandI2C) {
+TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCANandI2CandXn) {
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(canFrame));
-
+  EXPECT_CALL(xnHal, SetTrntPos(turnout.getNumericAddress().value() + 4,
+                                TurnoutDirectionToIntegral(direction),
+                                power));  // Addr, State, Active
   mocks::makeSequence(i2cHal);
   mocks::makeSequence(canHal);
 
@@ -76,7 +84,7 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_LocoNetToCANandI2C) {
   routingTask.loop();
 }
 
-TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet_WithGeneratedResponse) {
+TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNetandXn_WithGeneratedResponse) {
   // Configure data model
   dataModel.generateI2CTurnoutResponse = true;
 
@@ -86,6 +94,9 @@ TEST_P(TurnoutRoutingFixture, TurnoutRequest_I2CtoCANandLocoNet_WithGeneratedRes
       MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnout, direction, power);
   EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessage));
   EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
+  EXPECT_CALL(xnHal, SetTrntPos(turnout.getNumericAddress().value() + 4,
+                                TurnoutDirectionToIntegral(direction),
+                                power));  // Addr, State, Active
 
   mocks::makeSequence(canHal);
   mocks::makeSequence(lnHal);
@@ -179,9 +190,10 @@ class PowerRoutingFixture : public mocks::RoutingTaskFixture,
   hal::StopGoRequest stopGoRequest;
 };
 
-TEST_P(PowerRoutingFixture, PowerRequest_CANtoLocoNet) {
+TEST_P(PowerRoutingFixture, PowerRequest_CANtoLocoNetAndXn) {
   // Setup expectations
   EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
+  EXPECT_CALL(xnHal, setPower(power ? csNormal : csTrackVoltageOff));
 
   mocks::makeSequence(i2cHal);
   mocks::makeSequence(lnHal);
@@ -208,9 +220,10 @@ TEST_P(PowerRoutingFixture, PowerResponse_CANtoLocoNet) {
   routingTask.loop();
 }
 
-TEST_P(PowerRoutingFixture, PowerRequest_LocoNetToCAN) {
+TEST_P(PowerRoutingFixture, PowerRequest_LocoNetToCANAndXn) {
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(canFrame));
+  EXPECT_CALL(xnHal, setPower(power ? csNormal : csTrackVoltageOff));
 
   mocks::makeSequence(i2cHal);
   mocks::makeSequence(canHal);
@@ -227,6 +240,7 @@ TEST_P(PowerRoutingFixture, PowerRequest_FromI2C) {
   // Expoected output packets
   EXPECT_CALL(canTx, SendPacket(canFrame));
   EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
+  EXPECT_CALL(xnHal, setPower(power ? csNormal : csTrackVoltageOff));
 
   // Expected input packets
   mocks::makeSequence(i2cHal);
