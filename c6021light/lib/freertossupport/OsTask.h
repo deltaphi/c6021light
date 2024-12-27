@@ -43,7 +43,7 @@ class StaticOsTask : public TaskClass {
                 "TaskClass must extend freertossupport::OsTask.");
 
   void Create(const char* taskName, UBaseType_t priority) {
-    this->handle_ = xTaskCreateStatic((void (*)(void*)) & TaskClass::TaskMain, taskName, StackSize,
+    this->handle_ = xTaskCreateStatic((void (*)(void*))&TaskClass::TaskMain, taskName, StackSize,
                                       this, priority, stack_, &tcb_);
     configASSERT(this->handle_ != NULL);
   }
