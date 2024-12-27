@@ -56,7 +56,7 @@ class DataModelStoreVisitor {
 
   class iterator {
    public:
-    iterator(const DataModel& model, size_type index) : model_(model), index_(index){};
+    iterator(const DataModel& model, size_type index) : model_(model), index_(index) {};
 
     bool operator!=(const iterator& other) const {
       return this->index_ != other.index_ || &(this->model_) != &(other.model_);
