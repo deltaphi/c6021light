@@ -7,7 +7,7 @@ on:
 jobs:
   generate:
     name: Create release-artifacts
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
     - uses: actions/checkout@v4
@@ -26,9 +26,11 @@ jobs:
 
     - name: Run PlatformIO for Bluepill
       run: platformio run -d ${{ github.workspace }}/c6021light
+
     - name: Gather the Release artifacts
       shell: bash
       run: ${{ github.workspace }}/.github/copy-release-files.sh
+      
     - name: Upload the artifacts
       uses: skx/github-action-publish-binaries@master
       env:
