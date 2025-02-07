@@ -29,6 +29,8 @@ bool isMatchingTurnoutRailProtocol(const RR32Can::RailProtocol left,
     return true;
   } else if (left == RR32Can::RailProtocol::MM1 || left == RR32Can::RailProtocol::MM2) {
     return (right == RR32Can::RailProtocol::MM1 || right == RR32Can::RailProtocol::MM2);
+  } else {
+    return false;
   }
 }
 
