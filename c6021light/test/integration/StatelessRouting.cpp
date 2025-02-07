@@ -101,10 +101,10 @@ INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture,
                          Values(MM2_Turnout(0u), MM2_Turnout(1u), MM2_Turnout(5u), MM2_Turnout(10u),
                                 MM2_Turnout(42u), MM2_Turnout(100u), MM2_Turnout(255u)));
 
-using SenorTestParam_t = std::tuple<RR32Can::MachineTurnoutAddress, RR32Can::SensorState>;
+using SensorTestParam_t = std::tuple<RR32Can::MachineTurnoutAddress, RR32Can::SensorState>;
 
-class SenorRoutingFixture : public mocks::RoutingTaskFixture,
-                            public WithParamInterface<SenorTestParam_t> {
+class SensorRoutingFixture : public mocks::RoutingTaskFixture,
+                            public WithParamInterface<SensorTestParam_t> {
  public:
   void SetUp() {
     mocks::RoutingTaskFixture::SetUp();
@@ -118,9 +118,9 @@ class SenorRoutingFixture : public mocks::RoutingTaskFixture,
   lnMsg LnPacket{Ln_Sensor(sensor, newState)};
 };
 
-const RR32Can::MachineTurnoutAddress SenorRoutingFixture::ZeroAddress;
+const RR32Can::MachineTurnoutAddress SensorRoutingFixture::ZeroAddress;
 
-TEST_P(SenorRoutingFixture, SensorRequest_CANtoLocoNet) {
+TEST_P(SensorRoutingFixture, SensorRequest_CANtoLocoNet) {
   // Setup expectations
   EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
 
@@ -134,7 +134,7 @@ TEST_P(SenorRoutingFixture, SensorRequest_CANtoLocoNet) {
   routingTask.loop();
 }
 
-TEST_P(SenorRoutingFixture, SensorRequest_LocoNetToCAN) {
+TEST_P(SensorRoutingFixture, SensorRequest_LocoNetToCAN) {
   // Setup expectations
   canFrame.id.setResponse(true);
   EXPECT_CALL(canTx, SendPacket(canFrame));
@@ -151,7 +151,7 @@ TEST_P(SenorRoutingFixture, SensorRequest_LocoNetToCAN) {
 
 using Addr = RR32Can::MachineTurnoutAddress;
 
-INSTANTIATE_TEST_SUITE_P(SensorTest, SenorRoutingFixture,
+INSTANTIATE_TEST_SUITE_P(SensorTest, SensorRoutingFixture,
                          Combine(Values(Addr(0), Addr(1), Addr(2), Addr(3), Addr(4), Addr(10),
                                         Addr(100), Addr(255), Addr(0x7FF)),
                                  Values(RR32Can::SensorState::OPEN, RR32Can::SensorState::CLOSED)));
