@@ -26,6 +26,8 @@ class I2CForwarder final : public RoutingForwarder {
 
   void sendI2CResponseIfEnabled(const MarklinI2C::Messages::AccessoryMsg& i2cMsg);
 
+  RR32Can::MachineTurnoutAddress remapTurnoutAddress(const RR32Can::MachineTurnoutAddress& turnoutAddress) const;
+
  private:
   RR32Can::MachineTurnoutAddress lastPowerOnTurnoutAddr;
   RR32Can::TurnoutDirection lastPowerOnDirection;
