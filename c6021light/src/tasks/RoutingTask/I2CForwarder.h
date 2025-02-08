@@ -31,7 +31,7 @@ class I2CForwarder final : public RoutingForwarder {
  private:
   RR32Can::MachineTurnoutAddress lastPowerOnTurnoutAddr;
   RR32Can::TurnoutDirection lastPowerOnDirection;
-  DataModel* dataModel_;
+  DataModel* dataModel_{nullptr};
 };
 
 }  // namespace RoutingTask
