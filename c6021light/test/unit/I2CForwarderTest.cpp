@@ -3,22 +3,27 @@
 
 #include "tasks/RoutingTask/I2CForwarder.h"
 
-TEST(I2CForwarderTest, Remap_Unmapped) {
-  auto i2cForwarder = tasks::RoutingTask::I2CForwarder();
+class I2CForwarderFixture: public ::testing::Test {
+public:
+  
   DataModel model;
-  i2cForwarder.init(model);
+  tasks::RoutingTask::I2CForwarder i2cForwarder;
+  
+  void SetUp() {
+    i2cForwarder.init(model);
 
+  }
+
+};
+
+TEST_F(I2CForwarderFixture, Remap_Unmapped) {
   const RR32Can::MachineTurnoutAddress turnoutAddress{0xAAu};
   const RR32Can::MachineTurnoutAddress actual{i2cForwarder.remapTurnoutAddress(turnoutAddress)};
 
   EXPECT_EQ(actual, turnoutAddress);
 }
 
-TEST(I2CForwarderTest, Remap_Remapped) {
-  auto i2cForwarder = tasks::RoutingTask::I2CForwarder();
-  DataModel model;
-  i2cForwarder.init(model);
-
+TEST_F(I2CForwarderFixture, Remap_Remapped) {
   const RR32Can::MachineTurnoutAddress turnoutAddress{0xAAu};
   const RR32Can::MachineTurnoutAddress expected{0xBBu};
 
@@ -29,11 +34,7 @@ TEST(I2CForwarderTest, Remap_Remapped) {
   EXPECT_EQ(actual, expected);
 }
 
-TEST(I2CForwarderTest, Remap_Umapped_Remapped_Unmapped) {
-  auto i2cForwarder = tasks::RoutingTask::I2CForwarder();
-  DataModel model;
-  i2cForwarder.init(model);
-
+TEST_F(I2CForwarderFixture, Remap_Umapped_Remapped_Unmapped) {
   const RR32Can::MachineTurnoutAddress turnoutAddress{0xAAu};
   const RR32Can::MachineTurnoutAddress remappedAddress{0xBBu};
 
