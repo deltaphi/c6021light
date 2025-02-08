@@ -101,6 +101,51 @@ INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture,
                          Values(MM2_Turnout(0u), MM2_Turnout(1u), MM2_Turnout(5u), MM2_Turnout(10u),
                                 MM2_Turnout(42u), MM2_Turnout(100u), MM2_Turnout(255u)));
 
+class TurnoutRoutingWithRemappingFixture : public mocks::RoutingTaskFixture {
+ public:
+  constexpr static const RR32Can::TurnoutDirection direction = RR32Can::TurnoutDirection::GREEN;
+  constexpr static const bool power = true;
+
+  void SetUp() {
+    mocks::RoutingTaskFixture::SetUp();
+    EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
+
+    // Configure data model
+    dataModel.generateI2CTurnoutResponse = true;
+    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::MM2;
+    dataModel.i2cTurnoutMap.insert({turnoutButton, turnoutRemapped});
+  }
+
+  // Turnout should bey keyboard 2, switch 14 -> 16+14 = human(30)
+  RR32Can::MachineTurnoutAddress turnoutButton{RR32Can::HumanTurnoutAddress{30}};
+
+  // Address is remapped to Keyboard 3, switch 4 -> 16+16+4 = human(36);
+  RR32Can::MachineTurnoutAddress turnoutRemapped{RR32Can::HumanTurnoutAddress{36}};
+
+  RR32Can::CanFrame canFrame{Turnout(false, MM2_Turnout(turnoutRemapped), direction, power)};
+  hal::I2CMessage_t i2cMessage{
+      MarklinI2C::Messages::AccessoryMsg::makeInbound(turnoutButton, direction, power)};
+  lnMsg LnPacket{Ln_Turnout(turnoutRemapped, direction, power)};
+};
+
+TEST_F(TurnoutRoutingWithRemappingFixture, Remapped_On) {
+  // Setup expectations
+  EXPECT_CALL(canTx, SendPacket(canFrame));
+  hal::I2CMessage_t i2cResponseMessage =
+      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnoutButton, direction, power);
+  EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessage));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
+
+  mocks::makeSequence(canHal);
+  mocks::makeSequence(lnHal);
+
+  // Inject I2C message
+  mocks::makeSequence(i2cHal, i2cMessage);
+
+  // Run!
+  routingTask.loop();
+}
+
 using SensorTestParam_t = std::tuple<RR32Can::MachineTurnoutAddress, RR32Can::SensorState>;
 
 class SensorRoutingFixture : public mocks::RoutingTaskFixture,
