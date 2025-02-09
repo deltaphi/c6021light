@@ -104,7 +104,8 @@ INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture,
 class TurnoutRoutingWithRemappingFixture : public mocks::RoutingTaskFixture {
  public:
   constexpr static const RR32Can::TurnoutDirection direction = RR32Can::TurnoutDirection::GREEN;
-  constexpr static const bool power = true;
+  constexpr static const bool powerOn = true;
+  constexpr static const bool powerOff = true;
 
   void SetUp() {
     mocks::RoutingTaskFixture::SetUp();
@@ -118,29 +119,38 @@ class TurnoutRoutingWithRemappingFixture : public mocks::RoutingTaskFixture {
 
   // Turnout should bey keyboard 2, switch 14 -> 16+14 = human(30)
   RR32Can::MachineTurnoutAddress turnoutButton{RR32Can::HumanTurnoutAddress{30}};
+  // Turnout off is 16+12 = human(28)
+  RR32Can::MachineTurnoutAddress turnoutOffAddress{RR32Can::HumanTurnoutAddress{28}};
 
   // Address is remapped to Keyboard 3, switch 4 -> 16+16+4 = human(36);
   RR32Can::MachineTurnoutAddress turnoutRemapped{RR32Can::HumanTurnoutAddress{36}};
 
-  RR32Can::CanFrame canFrame{Turnout(false, MM2_Turnout(turnoutRemapped), direction, power)};
-  hal::I2CMessage_t i2cMessage{
-      MarklinI2C::Messages::AccessoryMsg::makeInbound(turnoutButton, direction, power)};
-  lnMsg LnPacket{Ln_Turnout(turnoutRemapped, direction, power)};
+  RR32Can::CanFrame canFrameOn{Turnout(false, MM2_Turnout(turnoutRemapped), direction, powerOn)};
+  hal::I2CMessage_t i2cMessageOn{
+      MarklinI2C::Messages::AccessoryMsg::makeInbound(turnoutButton, direction, powerOn)};
+  lnMsg LnPacketOn{Ln_Turnout(turnoutRemapped, direction, powerOn)};
+
+
+
+  RR32Can::CanFrame canFrameOff{Turnout(false, MM2_Turnout(turnoutRemapped), direction, powerOff)};
+  hal::I2CMessage_t i2cMessageOff{
+      MarklinI2C::Messages::AccessoryMsg::makeInbound(turnoutOffAddress, direction, powerOff)};
+  lnMsg LnPacketOff{Ln_Turnout(turnoutRemapped, direction, powerOff)};
 };
 
 TEST_F(TurnoutRoutingWithRemappingFixture, Remapped_On) {
   // Setup expectations
-  EXPECT_CALL(canTx, SendPacket(canFrame));
+  EXPECT_CALL(canTx, SendPacket(canFrameOn));
   hal::I2CMessage_t i2cResponseMessage =
-      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnoutButton, direction, power);
+      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnoutButton, direction, powerOn);
   EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessage));
-  EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacketOn));
 
   mocks::makeSequence(canHal);
   mocks::makeSequence(lnHal);
 
   // Inject I2C message
-  mocks::makeSequence(i2cHal, i2cMessage);
+  mocks::makeSequence(i2cHal, i2cMessageOn);
 
   // Run!
   routingTask.loop();
