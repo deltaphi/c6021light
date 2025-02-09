@@ -1,6 +1,8 @@
 #ifndef __DATAMODEL_H__
 #define __DATAMODEL_H__
 
+#include <map>
+
 #include "MarklinI2C/Constants.h"
 #include "RR32Can/Constants.h"
 #include "tasks/RoutingTask/LocoNetSlotServer.h"
@@ -30,6 +32,8 @@ struct DataModel {
   tasks::RoutingTask::LocoNetSlotServer::SlotServerState lnSlotServerState =
       tasks::RoutingTask::LocoNetSlotServer::SlotServerState::DISABLED;
   bool generateI2CTurnoutResponse = false;
+
+  std::map<RR32Can::MachineTurnoutAddress, RR32Can::MachineTurnoutAddress> i2cTurnoutMap;
 
   template <typename T>
   T getValueForKey(uint8_t key) const {

@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.6)
+cmake_minimum_required (VERSION 3.10)
 project (c6021light)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -90,6 +90,7 @@ add_executable(c6021lightTest
     "test/unit/AccessoryPacketTest.cpp"
     "test/unit/SlotServer.cpp"
     "test/unit/VelocityConversion.cpp"
+    "test/unit/I2CForwarderTest.cpp"
     "test/integration/StatelessRouting.cpp"
     "test/integration/LnSwitchRequest.cpp"
     "test/integration/StopGoRequest.cpp"

@@ -15,16 +15,26 @@
             "name": "Windows",
             "generator": "Visual Studio 17 2022",
             "binaryDir": "${sourceDir}/../../c6021light-build-windows"
+        },
+        {
+            "name": "osx",
+            "generator": "Xcode",
+            "binaryDir": "${sourceDir}/../../c6021light-build-xcode"
         }
     ],
     "buildPresets": [
         {
             "name": "Linux",
-            "configurePreset": "Linux"
+            "configurePreset": "Linux",
+            "jobs": 0
         },
         {
             "name": "Windows",
             "configurePreset": "Windows"
+        },
+        {
+            "name": "osx",
+            "configurePreset": "osx"
         }
     ]
 }

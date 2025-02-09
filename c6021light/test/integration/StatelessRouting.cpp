@@ -101,10 +101,97 @@ INSTANTIATE_TEST_SUITE_P(TurnoutTest, TurnoutRoutingFixture,
                          Values(MM2_Turnout(0u), MM2_Turnout(1u), MM2_Turnout(5u), MM2_Turnout(10u),
                                 MM2_Turnout(42u), MM2_Turnout(100u), MM2_Turnout(255u)));
 
-using SenorTestParam_t = std::tuple<RR32Can::MachineTurnoutAddress, RR32Can::SensorState>;
+class TurnoutRoutingWithRemappingFixture : public mocks::RoutingTaskFixture {
+ public:
+  constexpr static const RR32Can::TurnoutDirection direction = RR32Can::TurnoutDirection::GREEN;
+  constexpr static const bool powerOn = true;
+  constexpr static const bool powerOff = false;
 
-class SenorRoutingFixture : public mocks::RoutingTaskFixture,
-                            public WithParamInterface<SenorTestParam_t> {
+  void SetUp() {
+    mocks::RoutingTaskFixture::SetUp();
+    EXPECT_CALL(i2cHal, getStopGoRequest()).WillRepeatedly(Return(hal::StopGoRequest{}));
+
+    // Configure data model
+    dataModel.generateI2CTurnoutResponse = true;
+    dataModel.accessoryRailProtocol = RR32Can::RailProtocol::MM2;
+    dataModel.i2cTurnoutMap.insert({turnoutButton, turnoutRemapped});
+  }
+
+  // Turnout should bey keyboard 2, switch 14 -> 16+14 = human(30) (hex 1E, machine hex 1D)
+  RR32Can::MachineTurnoutAddress turnoutButton{RR32Can::HumanTurnoutAddress{30}};
+  // Turnout off is 16+12 = human(28) (hex 1C, machine hex 1B)
+  RR32Can::MachineTurnoutAddress turnoutOffAddress{DecoderBaseAddress(turnoutButton)};
+
+  // Address is remapped to Keyboard 3, switch 4 -> 16+16+4 = human(36); (hex 24, machine hex 23)
+  RR32Can::MachineTurnoutAddress turnoutRemapped{RR32Can::HumanTurnoutAddress{36}};
+
+  RR32Can::CanFrame canFrameOn{Turnout(false, MM2_Turnout(turnoutRemapped), direction, powerOn)};
+  hal::I2CMessage_t i2cMessageOn{
+      MarklinI2C::Messages::AccessoryMsg::makeInbound(turnoutButton, direction, powerOn)};
+  lnMsg LnPacketOn{Ln_Turnout(turnoutRemapped, direction, powerOn)};
+
+  RR32Can::CanFrame canFrameOff{Turnout(false, MM2_Turnout(turnoutRemapped), direction, powerOff)};
+  hal::I2CMessage_t i2cMessageOff{
+      MarklinI2C::Messages::AccessoryMsg::makeInbound(turnoutOffAddress, direction, powerOff)};
+  lnMsg LnPacketOff{Ln_Turnout(turnoutRemapped, direction, powerOff)};
+};
+
+TEST_F(TurnoutRoutingWithRemappingFixture, Remapped_On) {
+  // Setup expectations
+  EXPECT_CALL(canTx, SendPacket(canFrameOn));
+  hal::I2CMessage_t i2cResponseMessage =
+      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnoutButton, direction, powerOn);
+  EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessage));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacketOn));
+
+  mocks::makeSequence(canHal);
+  mocks::makeSequence(lnHal);
+
+  // Inject I2C message
+  mocks::makeSequence(i2cHal, i2cMessageOn);
+
+  // Run!
+  routingTask.loop();
+}
+
+TEST_F(TurnoutRoutingWithRemappingFixture, Remapped_Off) {
+  // Setup expectations
+  EXPECT_CALL(canTx, SendPacket(canFrameOn));
+  hal::I2CMessage_t i2cResponseMessageOn =
+      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnoutButton, direction, powerOn);
+  EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessageOn));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacketOn));
+
+  mocks::makeSequence(canHal);
+  mocks::makeSequence(lnHal);
+
+  // Inject I2C message
+  mocks::makeSequence(i2cHal, i2cMessageOn);
+
+  // Run!
+  routingTask.loop();
+
+  // Setup expectations
+  EXPECT_CALL(canTx, SendPacket(canFrameOff));
+  hal::I2CMessage_t i2cResponseMessageOff =
+      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnoutOffAddress, direction, powerOff);
+  EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessageOff));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacketOff));
+
+  mocks::makeSequence(canHal);
+  mocks::makeSequence(lnHal);
+
+  // Now expect the turn-off messages
+  mocks::makeSequence(i2cHal, i2cMessageOff);
+
+  // Run!
+  routingTask.loop();
+}
+
+using SensorTestParam_t = std::tuple<RR32Can::MachineTurnoutAddress, RR32Can::SensorState>;
+
+class SensorRoutingFixture : public mocks::RoutingTaskFixture,
+                             public WithParamInterface<SensorTestParam_t> {
  public:
   void SetUp() {
     mocks::RoutingTaskFixture::SetUp();
@@ -118,9 +205,9 @@ class SenorRoutingFixture : public mocks::RoutingTaskFixture,
   lnMsg LnPacket{Ln_Sensor(sensor, newState)};
 };
 
-const RR32Can::MachineTurnoutAddress SenorRoutingFixture::ZeroAddress;
+const RR32Can::MachineTurnoutAddress SensorRoutingFixture::ZeroAddress;
 
-TEST_P(SenorRoutingFixture, SensorRequest_CANtoLocoNet) {
+TEST_P(SensorRoutingFixture, SensorRequest_CANtoLocoNet) {
   // Setup expectations
   EXPECT_CALL(lnTx, DoAsyncSend(LnPacket));
 
@@ -134,7 +221,7 @@ TEST_P(SenorRoutingFixture, SensorRequest_CANtoLocoNet) {
   routingTask.loop();
 }
 
-TEST_P(SenorRoutingFixture, SensorRequest_LocoNetToCAN) {
+TEST_P(SensorRoutingFixture, SensorRequest_LocoNetToCAN) {
   // Setup expectations
   canFrame.id.setResponse(true);
   EXPECT_CALL(canTx, SendPacket(canFrame));
@@ -151,7 +238,7 @@ TEST_P(SenorRoutingFixture, SensorRequest_LocoNetToCAN) {
 
 using Addr = RR32Can::MachineTurnoutAddress;
 
-INSTANTIATE_TEST_SUITE_P(SensorTest, SenorRoutingFixture,
+INSTANTIATE_TEST_SUITE_P(SensorTest, SensorRoutingFixture,
                          Combine(Values(Addr(0), Addr(1), Addr(2), Addr(3), Addr(4), Addr(10),
                                         Addr(100), Addr(255), Addr(0x7FF)),
                                  Values(RR32Can::SensorState::OPEN, RR32Can::SensorState::CLOSED)));

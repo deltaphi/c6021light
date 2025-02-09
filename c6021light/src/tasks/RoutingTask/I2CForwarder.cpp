@@ -29,6 +29,8 @@ bool isMatchingTurnoutRailProtocol(const RR32Can::RailProtocol left,
     return true;
   } else if (left == RR32Can::RailProtocol::MM1 || left == RR32Can::RailProtocol::MM2) {
     return (right == RR32Can::RailProtocol::MM1 || right == RR32Can::RailProtocol::MM2);
+  } else {
+    return false;
   }
 }
 
@@ -86,9 +88,10 @@ bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& requ
   // If this is a power ON packet: Send directly to CAN
   if (request.getPower()) {
     lastPowerOnDirection = request.getDirection();
-    lastPowerOnTurnoutAddr = RR32Can::MachineTurnoutAddress(request.getInboundTurnoutAddr());
+    lastPowerOnTurnoutAddri2C = RR32Can::MachineTurnoutAddress(request.getInboundTurnoutAddr());
+    lastPowerOnTurnoutAddrRemapped = remapTurnoutAddress(lastPowerOnTurnoutAddri2C);
 
-    RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddr;
+    RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddrRemapped;
     protocolAddr.setProtocol(dataModel_->accessoryRailProtocol);
 
     turnoutPacket.setLocid(protocolAddr);
@@ -102,8 +105,8 @@ bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& requ
     // Note that we store the last direction where power was applied and only turn off that.
     // The CAN side interprets a "Power Off" as "Flip the switch" anyways.
     RR32Can::MachineTurnoutAddress i2cAddr = request.getInboundTurnoutAddr();
-    if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddr)) {
-      RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddr;
+    if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddri2C)) {
+      RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddrRemapped;
       protocolAddr.setProtocol(dataModel_->accessoryRailProtocol);
 
       turnoutPacket.setLocid(protocolAddr);
@@ -112,6 +115,7 @@ bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& requ
 
     } else {
       printf("PowerOff for wrong decoder.\n");
+      return false;
     }
   }
   return true;
@@ -134,6 +138,16 @@ void I2CForwarder::sendI2CResponseIfEnabled(const MarklinI2C::Messages::Accessor
   if (dataModel_->generateI2CTurnoutResponse) {
     const auto response = MarklinI2C::Messages::AccessoryMsg::makeOutbound(i2cMsg);
     hal::sendI2CMessage(response);
+  }
+}
+
+RR32Can::MachineTurnoutAddress I2CForwarder::remapTurnoutAddress(
+    const RR32Can::MachineTurnoutAddress& turnoutAddress) const {
+  const auto it = dataModel_->i2cTurnoutMap.find(turnoutAddress);
+  if (it == dataModel_->i2cTurnoutMap.cend()) {
+    return turnoutAddress;
+  } else {
+    return it->second;
   }
 }
 

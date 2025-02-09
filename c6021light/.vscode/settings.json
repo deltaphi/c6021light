@@ -1,0 +1,4 @@
+{
+    "cmake.ctest.testExplorerIntegrationEnabled": false,
+    "testMate.cpp.test.executables": "../../c6021light-build-*/**/*{test,Test,TEST}*"
+}
