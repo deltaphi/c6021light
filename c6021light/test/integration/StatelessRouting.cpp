@@ -105,7 +105,7 @@ class TurnoutRoutingWithRemappingFixture : public mocks::RoutingTaskFixture {
  public:
   constexpr static const RR32Can::TurnoutDirection direction = RR32Can::TurnoutDirection::GREEN;
   constexpr static const bool powerOn = true;
-  constexpr static const bool powerOff = true;
+  constexpr static const bool powerOff = false;
 
   void SetUp() {
     mocks::RoutingTaskFixture::SetUp();
@@ -117,12 +117,12 @@ class TurnoutRoutingWithRemappingFixture : public mocks::RoutingTaskFixture {
     dataModel.i2cTurnoutMap.insert({turnoutButton, turnoutRemapped});
   }
 
-  // Turnout should bey keyboard 2, switch 14 -> 16+14 = human(30)
+  // Turnout should bey keyboard 2, switch 14 -> 16+14 = human(30) (hex 1E, machine hex 1D)
   RR32Can::MachineTurnoutAddress turnoutButton{RR32Can::HumanTurnoutAddress{30}};
-  // Turnout off is 16+12 = human(28)
-  RR32Can::MachineTurnoutAddress turnoutOffAddress{RR32Can::HumanTurnoutAddress{28}};
+  // Turnout off is 16+12 = human(28) (hex 1C, machine hex 1B)
+  RR32Can::MachineTurnoutAddress turnoutOffAddress{DecoderBaseAddress(turnoutButton)};
 
-  // Address is remapped to Keyboard 3, switch 4 -> 16+16+4 = human(36);
+  // Address is remapped to Keyboard 3, switch 4 -> 16+16+4 = human(36); (hex 24, machine hex 23)
   RR32Can::MachineTurnoutAddress turnoutRemapped{RR32Can::HumanTurnoutAddress{36}};
 
   RR32Can::CanFrame canFrameOn{Turnout(false, MM2_Turnout(turnoutRemapped), direction, powerOn)};
@@ -174,7 +174,7 @@ TEST_F(TurnoutRoutingWithRemappingFixture, Remapped_Off) {
   // Setup expectations
   EXPECT_CALL(canTx, SendPacket(canFrameOff));
   hal::I2CMessage_t i2cResponseMessageOff =
-      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnoutOffAddress, direction, powerOn);
+      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnoutOffAddress, direction, powerOff);
   EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessageOff));
   EXPECT_CALL(lnTx, DoAsyncSend(LnPacketOff));
 
