@@ -109,7 +109,7 @@ class TurnoutRoutingWithRemappingFixture : public mocks::RoutingTaskFixture {
 
   void SetUp() {
     mocks::RoutingTaskFixture::SetUp();
-    EXPECT_CALL(i2cHal, getStopGoRequest()).WillOnce(Return(hal::StopGoRequest{}));
+    EXPECT_CALL(i2cHal, getStopGoRequest()).WillRepeatedly(Return(hal::StopGoRequest{}));
 
     // Configure data model
     dataModel.generateI2CTurnoutResponse = true;
@@ -129,8 +129,6 @@ class TurnoutRoutingWithRemappingFixture : public mocks::RoutingTaskFixture {
   hal::I2CMessage_t i2cMessageOn{
       MarklinI2C::Messages::AccessoryMsg::makeInbound(turnoutButton, direction, powerOn)};
   lnMsg LnPacketOn{Ln_Turnout(turnoutRemapped, direction, powerOn)};
-
-
 
   RR32Can::CanFrame canFrameOff{Turnout(false, MM2_Turnout(turnoutRemapped), direction, powerOff)};
   hal::I2CMessage_t i2cMessageOff{
@@ -156,10 +154,44 @@ TEST_F(TurnoutRoutingWithRemappingFixture, Remapped_On) {
   routingTask.loop();
 }
 
+TEST_F(TurnoutRoutingWithRemappingFixture, Remapped_Off) {
+  // Setup expectations
+  EXPECT_CALL(canTx, SendPacket(canFrameOn));
+  hal::I2CMessage_t i2cResponseMessageOn =
+      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnoutButton, direction, powerOn);
+  EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessageOn));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacketOn));
+
+  mocks::makeSequence(canHal);
+  mocks::makeSequence(lnHal);
+
+  // Inject I2C message
+  mocks::makeSequence(i2cHal, i2cMessageOn);
+
+  // Run!
+  routingTask.loop();
+
+  // Setup expectations
+  EXPECT_CALL(canTx, SendPacket(canFrameOff));
+  hal::I2CMessage_t i2cResponseMessageOff =
+      MarklinI2C::Messages::AccessoryMsg::makeOutbound(turnoutOffAddress, direction, powerOn);
+  EXPECT_CALL(i2cHal, sendI2CMessage(i2cResponseMessageOff));
+  EXPECT_CALL(lnTx, DoAsyncSend(LnPacketOff));
+
+  mocks::makeSequence(canHal);
+  mocks::makeSequence(lnHal);
+
+  // Now expect the turn-off messages
+  mocks::makeSequence(i2cHal, i2cMessageOff);
+
+  // Run!
+  routingTask.loop();
+}
+
 using SensorTestParam_t = std::tuple<RR32Can::MachineTurnoutAddress, RR32Can::SensorState>;
 
 class SensorRoutingFixture : public mocks::RoutingTaskFixture,
-                            public WithParamInterface<SensorTestParam_t> {
+                             public WithParamInterface<SensorTestParam_t> {
  public:
   void SetUp() {
     mocks::RoutingTaskFixture::SetUp();

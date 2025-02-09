@@ -29,7 +29,8 @@ class I2CForwarder final : public RoutingForwarder {
   RR32Can::MachineTurnoutAddress remapTurnoutAddress(const RR32Can::MachineTurnoutAddress& turnoutAddress) const;
 
  private:
-  RR32Can::MachineTurnoutAddress lastPowerOnTurnoutAddr;
+  RR32Can::MachineTurnoutAddress lastPowerOnTurnoutAddri2C;
+  RR32Can::MachineTurnoutAddress lastPowerOnTurnoutAddrRemapped;
   RR32Can::TurnoutDirection lastPowerOnDirection;
   DataModel* dataModel_{nullptr};
 };

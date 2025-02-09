@@ -85,15 +85,13 @@ bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& requ
   RR32Can::TurnoutPacket turnoutPacket(frame.data);
   turnoutPacket.initData();
 
-  RR32Can::MachineTurnoutAddress turnoutAddress = request.getInboundTurnoutAddr();
-  turnoutAddress = remapTurnoutAddress(turnoutAddress);
-
   // If this is a power ON packet: Send directly to CAN
   if (request.getPower()) {
     lastPowerOnDirection = request.getDirection();
-    lastPowerOnTurnoutAddr = turnoutAddress;
+    lastPowerOnTurnoutAddri2C = RR32Can::MachineTurnoutAddress(request.getInboundTurnoutAddr());
+    lastPowerOnTurnoutAddrRemapped = remapTurnoutAddress(lastPowerOnTurnoutAddri2C);
 
-    RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddr;
+    RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddrRemapped;
     protocolAddr.setProtocol(dataModel_->accessoryRailProtocol);
 
     turnoutPacket.setLocid(protocolAddr);
@@ -106,8 +104,9 @@ bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& requ
     //
     // Note that we store the last direction where power was applied and only turn off that.
     // The CAN side interprets a "Power Off" as "Flip the switch" anyways.
-    if (sameDecoder(turnoutAddress, lastPowerOnTurnoutAddr)) {
-      RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddr;
+    RR32Can::MachineTurnoutAddress i2cAddr = request.getInboundTurnoutAddr();
+    if (sameDecoder(i2cAddr, lastPowerOnTurnoutAddri2C)) {
+      RR32Can::MachineTurnoutAddress protocolAddr = lastPowerOnTurnoutAddrRemapped;
       protocolAddr.setProtocol(dataModel_->accessoryRailProtocol);
 
       turnoutPacket.setLocid(protocolAddr);
@@ -141,7 +140,8 @@ void I2CForwarder::sendI2CResponseIfEnabled(const MarklinI2C::Messages::Accessor
   }
 }
 
-RR32Can::MachineTurnoutAddress I2CForwarder::remapTurnoutAddress(const RR32Can::MachineTurnoutAddress& turnoutAddress) const {
+RR32Can::MachineTurnoutAddress I2CForwarder::remapTurnoutAddress(
+    const RR32Can::MachineTurnoutAddress& turnoutAddress) const {
   const auto it = dataModel_->i2cTurnoutMap.find(turnoutAddress);
   if (it == dataModel_->i2cTurnoutMap.cend()) {
     return turnoutAddress;
@@ -149,7 +149,6 @@ RR32Can::MachineTurnoutAddress I2CForwarder::remapTurnoutAddress(const RR32Can::
     return it->second;
   }
 }
-
 
 }  // namespace RoutingTask
 }  // namespace tasks
