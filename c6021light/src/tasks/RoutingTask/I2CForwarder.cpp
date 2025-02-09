@@ -115,6 +115,7 @@ bool I2CForwarder::MakeRR32CanMsg(const MarklinI2C::Messages::AccessoryMsg& requ
 
     } else {
       printf("PowerOff for wrong decoder.\n");
+      return false;
     }
   }
   return true;
