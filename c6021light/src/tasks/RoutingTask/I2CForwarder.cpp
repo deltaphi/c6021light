@@ -22,6 +22,16 @@ bool sameDecoder(const RR32Can::MachineTurnoutAddress left,
   constexpr const uint8_t mask = 0xFC;
   return (left.value() & mask) == (right.value() & mask);
 }
+
+bool isMatchingTurnoutRailProtocol(const RR32Can::RailProtocol left,
+                                   const RR32Can::RailProtocol right) {
+  if (left == right) {
+    return true;
+  } else if (left == RR32Can::RailProtocol::MM1 || left == RR32Can::RailProtocol::MM2) {
+    return (right == RR32Can::RailProtocol::MM1 || right == RR32Can::RailProtocol::MM2);
+  }
+}
+
 }  // namespace
 
 void I2CForwarder::forward(const RR32Can::CanFrame& frame) {
@@ -32,8 +42,9 @@ void I2CForwarder::forward(const RR32Can::CanFrame& frame) {
         // Responses are forwarded to I2C
         printf(" Got an Accessory packet!\n");
 
-        if (turnoutPacket.getRailProtocol() != RR32Can::RailProtocol::MM1) {
-          // Not an MM2 packet
+        if (!isMatchingTurnoutRailProtocol(turnoutPacket.getRailProtocol(),
+                                           dataModel_->accessoryRailProtocol)) {
+          // Not a packet of the expected accessory protocol
           return;
         }
 

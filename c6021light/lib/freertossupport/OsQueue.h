@@ -32,7 +32,7 @@ class OsQueue {
     BaseType_t higherPriorityTaskWoken;
   };
 
-  OsQueue() : handle_(NULL){};
+  OsQueue() : handle_(NULL) {};
 
   OsQueue(QueueHandle_t handle) : handle_(handle) { configASSERT(handle_ != NULL); }
 

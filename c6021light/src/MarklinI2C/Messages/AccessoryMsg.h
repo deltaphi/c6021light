@@ -20,7 +20,7 @@ class AccessoryMsg {
  public:
   constexpr static const uint8_t kAccesoryMessageBytes = 3;
 
-  constexpr AccessoryMsg(){};
+  constexpr AccessoryMsg() {};
 
   constexpr AccessoryMsg(const AccessoryMsg&) = default;
   constexpr AccessoryMsg& operator=(const AccessoryMsg&) = default;
@@ -29,7 +29,7 @@ class AccessoryMsg {
   constexpr AccessoryMsg& operator=(AccessoryMsg&&) = default;
 
   constexpr AccessoryMsg(uint8_t destination, uint8_t source, uint8_t data)
-      : destination_(destination), source_(source), data_(data){};
+      : destination_(destination), source_(source), data_(data) {};
 
   constexpr bool operator==(const AccessoryMsg& other) const {
     return this->destination_ == other.destination_ && this->source_ == other.source_ &&

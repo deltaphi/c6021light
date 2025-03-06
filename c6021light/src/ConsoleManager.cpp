@@ -269,7 +269,7 @@ int run_app_set_turnout_protocol(int argc, const char* const* argv, int argcMatc
     printf("%s%s'%s'.\n", appName, text, protocolArgument);
   } else if (strncasecmp(protocolArgument, DCCName, strlen(DCCName)) == 0) {
     dataModel_->accessoryRailProtocol = RR32Can::RailProtocol::DCC;
-    printf("%s%s'%s'.\n", appName, text, argv[argcMatched + 1]);
+    printf("%s%s'%s'.\n", appName, text, protocolArgument);
   } else if (strncasecmp(protocolArgument, SX1Name, strlen(SX1Name)) == 0) {
     dataModel_->accessoryRailProtocol = RR32Can::RailProtocol::SX1;
     printf("%s%s'%s'.\n", appName, text, protocolArgument);
