@@ -156,6 +156,9 @@ int main(void) {
 
 extern "C" void notifyLnByteReceived() { routingTask.notifyFromISRWithWake(); }
 
+// single function that gets called from all relevant XNet notifiers
+void notifyXNetGlobal() { routingTask.notify(); }
+
 namespace ConsoleManager {
 
 int run_ln_slot_server_dump(int argc, const char* const* argv, int argcMatched) {
