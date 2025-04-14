@@ -20,6 +20,7 @@ extern microrl_t microrl;
 void begin(DataModel* dataModel);
 
 void display_help(int argc, const char* const* argv);
+void display_version(int argc, const char* const* argv);
 
 /**
  * \brief Verify that the expected (range of) number(s) of arguments is available.
