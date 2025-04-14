@@ -9,6 +9,7 @@
 #include <cstdio>
 
 #include <LocoNet.h>
+#include <XpressNetMaster.h>
 
 namespace hal {
 
@@ -25,6 +26,7 @@ void LibOpencm3Hal::beginClock() {
 
   // Enable the UART clock
   rcc_periph_clock_enable(RCC_USART1);
+  rcc_periph_clock_enable(RCC_USART2);
 
   // Enable the I2C clock
   rcc_periph_clock_enable(RCC_I2C1);
@@ -41,11 +43,17 @@ void LibOpencm3Hal::beginGpio() {
   statusLed.init();
 
   gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL,
-                GPIO4 | GPIO5 | GPIO6);  // Extra LED
+                GPIO4 | GPIO5 | GPIO6);  // Debug I/O
   gpio_set(GPIOA, GPIO4 | GPIO5 | GPIO6);
+
+  // Tx Ena Xpressnet
+  gpio_set_mode(XN_TXEN_BANK, GPIO_MODE_OUTPUT_2_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, XN_TXEN_PIN);
+  gpio_clear(XN_TXEN_BANK, XN_TXEN_PIN);
 }
 
 void LibOpencm3Hal::beginLocoNet() { LocoNet.init(PinNames::PB15); }
+
+void LibOpencm3Hal::beginXpressNet() { XpressNet.setup(Loco128, PinNames::PA1); }
 
 extern "C" {
 void exti14_isr();

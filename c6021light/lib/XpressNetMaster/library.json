@@ -1,0 +1,8 @@
+{
+    "name": "XpressNetMaster",
+    "version": "2.9.1",
+    "dependencies":
+    {
+        "freertos" : "10.4.1"
+    }
+}
