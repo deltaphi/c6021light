@@ -1,0 +1,51 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Europe/Berlin",
+  "schedule": ["* 0-5 * * 1"],
+  "prConcurrentLimit": 5,
+  "automerge": false,
+  "packageRules": [
+    {
+      "description": "GoogleTest 1.15 and newer require C++17; this project uses C++14.",
+      "matchPackageNames": ["google/googletest"],
+      "allowedVersions": "<1.15.0"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Keep PlatformIO library SHAs pinned while tracking each repository's default branch.",
+      "managerFilePatterns": ["/^c6021light/platformio\\.ini$/"],
+      "matchStrings": [
+        "https://github\\.com/(?<depName>[^/\\s]+/[^#\\s]+)#(?<currentDigest>[a-f0-9]{40})"
+      ],
+      "packageNameTemplate": "https://github.com/{{{depName}}}",
+      "datasourceTemplate": "git-refs",
+      "currentValueTemplate": "HEAD"
+    },
+    {
+      "customType": "regex",
+      "description": "Track STM32 PlatformIO platform releases through upstream version tags.",
+      "managerFilePatterns": ["/^c6021light/platformio\\.ini$/"],
+      "matchStrings": [
+        "platform\\s*=\\s*ststm32@(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "platformio/platform-ststm32",
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^v(?<version>\\d+\\.\\d+\\.\\d+)$",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "Track GoogleTest release tags in the CMake download template.",
+      "managerFilePatterns": ["/^c6021light/CMakeLists\\.txt\\.in$/"],
+      "matchStrings": [
+        "GIT_REPOSITORY\\s+https://github\\.com/google/googletest\\.git\\s+GIT_TAG\\s+(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "google/googletest",
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "semver"
+    }
+  ]
+}
