@@ -218,7 +218,10 @@ void startSerialTx() {
         dma_enable_channel(DMA1, DMA_CHANNEL4);
 
         usart_enable_tx_dma(USART1);
+        return;
       }
+    } else {
+      return;
     }
   }
 }
