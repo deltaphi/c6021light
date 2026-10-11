@@ -185,33 +185,40 @@ std::size_t SerialWrite(const char* src, std::size_t srcLen, bool doReplace, con
 }
 
 void startSerialTx() {
-  if (serialBuffer_.size() > 0) {
+  while (serialBuffer_.size() > 0) {
     // There is data to be transferred.
     bool dmaBusy = false;
     if (serialDmaBusy_.compare_exchange_strong(dmaBusy, true, std::memory_order_acq_rel)) {
       serialDmaMemory_ = serialBuffer_.peek(
           std::numeric_limits<AtomicRingBuffer::AtomicRingBuffer::size_type>::max(), true);
 
-      dma_channel_reset(DMA1, DMA_CHANNEL4);
+      // The completion ISR may have drained the buffer before we acquired DMA ownership.
+      // A zero-length DMA transfer would never complete and leave serialDmaBusy_ set.
+      if (serialDmaMemory_.len == 0) {
+        serialDmaBusy_.store(false, std::memory_order_release);
+        // Recheck after releasing ownership in case a writer published data while we held it.
+      } else {
+        dma_channel_reset(DMA1, DMA_CHANNEL4);
 
-      dma_set_peripheral_address(DMA1, DMA_CHANNEL4, (uint32_t)&USART1_DR);
-      dma_set_memory_address(DMA1, DMA_CHANNEL4, (uint32_t)serialDmaMemory_.ptr);
-      dma_set_number_of_data(DMA1, DMA_CHANNEL4, serialDmaMemory_.len);
+        dma_set_peripheral_address(DMA1, DMA_CHANNEL4, (uint32_t)&USART1_DR);
+        dma_set_memory_address(DMA1, DMA_CHANNEL4, (uint32_t)serialDmaMemory_.ptr);
+        dma_set_number_of_data(DMA1, DMA_CHANNEL4, serialDmaMemory_.len);
 
-      dma_set_read_from_memory(DMA1, DMA_CHANNEL4);
-      dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL4);
+        dma_set_read_from_memory(DMA1, DMA_CHANNEL4);
+        dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL4);
 
-      // dma_enable_peripheral_increment_mode(DMA1, DMA_CHANNEL4);
+        // dma_enable_peripheral_increment_mode(DMA1, DMA_CHANNEL4);
 
-      dma_set_peripheral_size(DMA1, DMA_CHANNEL4, DMA_CCR_PSIZE_8BIT);
-      dma_set_memory_size(DMA1, DMA_CHANNEL4, DMA_CCR_MSIZE_8BIT);
-      dma_set_priority(DMA1, DMA_CHANNEL4, DMA_CCR_PL_VERY_HIGH);
+        dma_set_peripheral_size(DMA1, DMA_CHANNEL4, DMA_CCR_PSIZE_8BIT);
+        dma_set_memory_size(DMA1, DMA_CHANNEL4, DMA_CCR_MSIZE_8BIT);
+        dma_set_priority(DMA1, DMA_CHANNEL4, DMA_CCR_PL_VERY_HIGH);
 
-      dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL4);
+        dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL4);
 
-      dma_enable_channel(DMA1, DMA_CHANNEL4);
+        dma_enable_channel(DMA1, DMA_CHANNEL4);
 
-      usart_enable_tx_dma(USART1);
+        usart_enable_tx_dma(USART1);
+      }
     }
   }
 }
