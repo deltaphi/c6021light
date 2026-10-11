@@ -144,7 +144,12 @@ std::size_t SerialWrite(const char* src, std::size_t srcLen, bool doReplace, con
       {
         std::lock_guard<freertossupport::OsMutex> guard{serialWriteMutex_};
         const size_type remainingSrcLen = srcLen - srcBytesConsumed;
-        const MemoryRange dest = serialBuffer_.allocate(remainingSrcLen, true);
+        // Include room for one replacement in the common case of a trailing newline.
+        size_type extraReplaceLen = 0;
+        if (doReplace && src[srcLen - 1] == search) {
+          extraReplaceLen = replaceLen - 1;
+        }
+        const MemoryRange dest = serialBuffer_.allocate(remainingSrcLen + extraReplaceLen, true);
 
         if (dest.len > 0) {
           if (doReplace) {
@@ -158,7 +163,7 @@ std::size_t SerialWrite(const char* src, std::size_t srcLen, bool doReplace, con
             bytesConsumed = dest.len;
           }
 
-          // Replacement only expands the input, so this allocation is completely filled.
+          // The trailing replacement covers any extra space requested, so this is filled.
           serialBuffer_.publish(dest);
         }
       }
