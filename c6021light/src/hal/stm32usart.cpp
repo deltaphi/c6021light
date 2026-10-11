@@ -134,49 +134,42 @@ std::size_t SerialWrite(const char* src, std::size_t srcLen, bool doReplace, con
   constexpr static uint8_t replaceLen = strlen(replace);
   static_assert(replaceLen == 2, "strlen(replace) does not work as expected.");
 
-  // Optimization for a common case: When the input string end in a newline, request enough
-  // additional characters to fit at least one replace.
-  size_type expectedDestLen = srcLen;
-  if (src[srcLen - 1] == search) {
-    expectedDestLen += replaceLen - 1;
-  }
-
   size_type srcBytesConsumed = 0;
 
   while (srcBytesConsumed < srcLen) {
-    const char* replacePtr = replace;
+    const char* partialReplace = nullptr;
     {
       size_type bytesConsumed = 0;
 
       {
         std::lock_guard<freertossupport::OsMutex> guard{serialWriteMutex_};
-        const MemoryRange dest = serialBuffer_.allocate(expectedDestLen, true);
+        const size_type remainingSrcLen = srcLen - srcBytesConsumed;
+        const MemoryRange dest = serialBuffer_.allocate(remainingSrcLen, true);
 
-        if (doReplace) {
-          auto replaceResult = AtomicRingBuffer::memcpyCharReplace(
-              reinterpret_cast<char*>(dest.ptr), &src[srcBytesConsumed], search, replacePtr,
-              dest.len, srcLen);
-          bytesConsumed = replaceResult.len;
-          const auto bytesWritten = reinterpret_cast<uint8_t*>(replaceResult.nextByte) - dest.ptr;
-          expectedDestLen -= bytesWritten;
-        } else {
-          memcpy(dest.ptr, &src[srcBytesConsumed], dest.len);
-          bytesConsumed = dest.len;
-          expectedDestLen -= bytesConsumed;
+        if (dest.len > 0) {
+          if (doReplace) {
+            auto replaceResult = AtomicRingBuffer::memcpyCharReplace(
+                reinterpret_cast<char*>(dest.ptr), &src[srcBytesConsumed], search, replace,
+                dest.len, remainingSrcLen);
+            bytesConsumed = replaceResult.len;
+            partialReplace = replaceResult.partialReplace;
+          } else {
+            memcpy(dest.ptr, &src[srcBytesConsumed], dest.len);
+            bytesConsumed = dest.len;
+          }
+
+          // Replacement only expands the input, so this allocation is completely filled.
+          serialBuffer_.publish(dest);
         }
-
-        serialBuffer_.publish(dest);
       }
       startSerialTx();
 
       srcBytesConsumed += bytesConsumed;
     }
-    bool replaceIncomplete = replacePtr != replace;
-
-    if (replaceIncomplete && doReplace) {
+    if (partialReplace != nullptr) {
       // There were bytes left, try to send those *without* replacement.
-      size_type remainingReplaceLen = replaceLen - (replacePtr - replace);
-      SerialWrite(replacePtr, remainingReplaceLen, false, search);
+      size_type remainingReplaceLen = replaceLen - (partialReplace - replace);
+      SerialWrite(partialReplace, remainingReplaceLen, false, search);
     }
   }
   // Return how many bytes were sent off
