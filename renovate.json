@@ -15,14 +15,25 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Keep PlatformIO library SHAs pinned while tracking each repository's default branch.",
+      "description": "Update library commit pins from master.",
       "managerFilePatterns": ["/^c6021light/platformio\\.ini$/"],
       "matchStrings": [
-        "https://github\\.com/(?<depName>[^/\\s]+/[^#\\s]+)#(?<currentDigest>[a-f0-9]{40})"
+        "https://github\\.com/(?<depName>deltaphi/(?:RR32CanLibrary\\.git|LocoNet))#(?<currentDigest>[a-f0-9]{40})"
       ],
       "packageNameTemplate": "https://github.com/{{{depName}}}",
       "datasourceTemplate": "git-refs",
-      "currentValueTemplate": "HEAD"
+      "currentValueTemplate": "master"
+    },
+    {
+      "customType": "regex",
+      "description": "Update library commit pins from main.",
+      "managerFilePatterns": ["/^c6021light/platformio\\.ini$/"],
+      "matchStrings": [
+        "https://github\\.com/(?<depName>deltaphi/(?:AtomicRingBuffer|FlashFairyPP))#(?<currentDigest>[a-f0-9]{40})"
+      ],
+      "packageNameTemplate": "https://github.com/{{{depName}}}",
+      "datasourceTemplate": "git-refs",
+      "currentValueTemplate": "main"
     },
     {
       "customType": "regex",
