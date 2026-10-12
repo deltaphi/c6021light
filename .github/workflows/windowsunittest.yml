@@ -43,7 +43,7 @@ jobs:
         platformio pkg install -e bluepill
 
     # Runs a single command using the runners shell
-    - uses: lukka/run-cmake@v10
+    - uses: lukka/run-cmake@v10.9
       with:
         cmakeListsTxtPath: ${{ github.workspace }}/c6021light/CMakeLists.txt
         configurePreset: "Windows"
