@@ -134,49 +134,47 @@ std::size_t SerialWrite(const char* src, std::size_t srcLen, bool doReplace, con
   constexpr static uint8_t replaceLen = strlen(replace);
   static_assert(replaceLen == 2, "strlen(replace) does not work as expected.");
 
-  // Optimization for a common case: When the input string end in a newline, request enough
-  // additional characters to fit at least one replace.
-  size_type expectedDestLen = srcLen;
-  if (src[srcLen - 1] == search) {
-    expectedDestLen += replaceLen - 1;
-  }
-
   size_type srcBytesConsumed = 0;
 
   while (srcBytesConsumed < srcLen) {
-    const char* replacePtr = replace;
+    const char* partialReplace = nullptr;
     {
       size_type bytesConsumed = 0;
 
       {
         std::lock_guard<freertossupport::OsMutex> guard{serialWriteMutex_};
-        const MemoryRange dest = serialBuffer_.allocate(expectedDestLen, true);
-
-        if (doReplace) {
-          auto replaceResult = AtomicRingBuffer::memcpyCharReplace(
-              reinterpret_cast<char*>(dest.ptr), &src[srcBytesConsumed], search, replacePtr,
-              dest.len, srcLen);
-          bytesConsumed = replaceResult.len;
-          const auto bytesWritten = reinterpret_cast<uint8_t*>(replaceResult.nextByte) - dest.ptr;
-          expectedDestLen -= bytesWritten;
-        } else {
-          memcpy(dest.ptr, &src[srcBytesConsumed], dest.len);
-          bytesConsumed = dest.len;
-          expectedDestLen -= bytesConsumed;
+        const size_type remainingSrcLen = srcLen - srcBytesConsumed;
+        // Include room for one replacement in the common case of a trailing newline.
+        size_type extraReplaceLen = 0;
+        if (doReplace && src[srcLen - 1] == search) {
+          extraReplaceLen = replaceLen - 1;
         }
+        const MemoryRange dest = serialBuffer_.allocate(remainingSrcLen + extraReplaceLen, true);
 
-        serialBuffer_.publish(dest);
+        if (dest.len > 0) {
+          if (doReplace) {
+            auto replaceResult = AtomicRingBuffer::memcpyCharReplace(
+                reinterpret_cast<char*>(dest.ptr), &src[srcBytesConsumed], search, replace,
+                dest.len, remainingSrcLen);
+            bytesConsumed = replaceResult.len;
+            partialReplace = replaceResult.partialReplace;
+          } else {
+            memcpy(dest.ptr, &src[srcBytesConsumed], dest.len);
+            bytesConsumed = dest.len;
+          }
+
+          // The trailing replacement covers any extra space requested, so this is filled.
+          serialBuffer_.publish(dest);
+        }
       }
       startSerialTx();
 
       srcBytesConsumed += bytesConsumed;
     }
-    bool replaceIncomplete = replacePtr != replace;
-
-    if (replaceIncomplete && doReplace) {
+    if (partialReplace != nullptr) {
       // There were bytes left, try to send those *without* replacement.
-      size_type remainingReplaceLen = replaceLen - (replacePtr - replace);
-      SerialWrite(replacePtr, remainingReplaceLen, false, search);
+      size_type remainingReplaceLen = replaceLen - (partialReplace - replace);
+      SerialWrite(partialReplace, remainingReplaceLen, false, search);
     }
   }
   // Return how many bytes were sent off
@@ -185,33 +183,43 @@ std::size_t SerialWrite(const char* src, std::size_t srcLen, bool doReplace, con
 }
 
 void startSerialTx() {
-  if (serialBuffer_.size() > 0) {
+  while (serialBuffer_.size() > 0) {
     // There is data to be transferred.
     bool dmaBusy = false;
     if (serialDmaBusy_.compare_exchange_strong(dmaBusy, true, std::memory_order_acq_rel)) {
       serialDmaMemory_ = serialBuffer_.peek(
           std::numeric_limits<AtomicRingBuffer::AtomicRingBuffer::size_type>::max(), true);
 
-      dma_channel_reset(DMA1, DMA_CHANNEL4);
+      // The completion ISR may have drained the buffer before we acquired DMA ownership.
+      // A zero-length DMA transfer would never complete and leave serialDmaBusy_ set.
+      if (serialDmaMemory_.len == 0) {
+        serialDmaBusy_.store(false, std::memory_order_release);
+        // Recheck after releasing ownership in case a writer published data while we held it.
+      } else {
+        dma_channel_reset(DMA1, DMA_CHANNEL4);
 
-      dma_set_peripheral_address(DMA1, DMA_CHANNEL4, (uint32_t)&USART1_DR);
-      dma_set_memory_address(DMA1, DMA_CHANNEL4, (uint32_t)serialDmaMemory_.ptr);
-      dma_set_number_of_data(DMA1, DMA_CHANNEL4, serialDmaMemory_.len);
+        dma_set_peripheral_address(DMA1, DMA_CHANNEL4, (uint32_t)&USART1_DR);
+        dma_set_memory_address(DMA1, DMA_CHANNEL4, (uint32_t)serialDmaMemory_.ptr);
+        dma_set_number_of_data(DMA1, DMA_CHANNEL4, serialDmaMemory_.len);
 
-      dma_set_read_from_memory(DMA1, DMA_CHANNEL4);
-      dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL4);
+        dma_set_read_from_memory(DMA1, DMA_CHANNEL4);
+        dma_enable_memory_increment_mode(DMA1, DMA_CHANNEL4);
 
-      // dma_enable_peripheral_increment_mode(DMA1, DMA_CHANNEL4);
+        // dma_enable_peripheral_increment_mode(DMA1, DMA_CHANNEL4);
 
-      dma_set_peripheral_size(DMA1, DMA_CHANNEL4, DMA_CCR_PSIZE_8BIT);
-      dma_set_memory_size(DMA1, DMA_CHANNEL4, DMA_CCR_MSIZE_8BIT);
-      dma_set_priority(DMA1, DMA_CHANNEL4, DMA_CCR_PL_VERY_HIGH);
+        dma_set_peripheral_size(DMA1, DMA_CHANNEL4, DMA_CCR_PSIZE_8BIT);
+        dma_set_memory_size(DMA1, DMA_CHANNEL4, DMA_CCR_MSIZE_8BIT);
+        dma_set_priority(DMA1, DMA_CHANNEL4, DMA_CCR_PL_VERY_HIGH);
 
-      dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL4);
+        dma_enable_transfer_complete_interrupt(DMA1, DMA_CHANNEL4);
 
-      dma_enable_channel(DMA1, DMA_CHANNEL4);
+        dma_enable_channel(DMA1, DMA_CHANNEL4);
 
-      usart_enable_tx_dma(USART1);
+        usart_enable_tx_dma(USART1);
+        return;
+      }
+    } else {
+      return;
     }
   }
 }
