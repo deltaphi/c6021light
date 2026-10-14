@@ -12,7 +12,28 @@
       "allowedVersions": "<1.15.0"
     }
   ],
+  "customDatasources": {
+    "platformio-tool": {
+      "defaultRegistryUrlTemplate": "https://api.registry.platformio.org/v3/packages/platformio/tool/{{packageName}}",
+      "format": "json",
+      "transformTemplates": [
+        "{\"releases\": [versions.{\"version\": name}]}"
+      ]
+    }
+  },
   "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track OpenOCD package releases in the PlatformIO registry.",
+      "managerFilePatterns": ["/^c6021light/platformio\\.ini$/"],
+      "matchStrings": [
+        "platformio/tool-openocd@(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "platformio/tool-openocd",
+      "packageNameTemplate": "tool-openocd",
+      "datasourceTemplate": "custom.platformio-tool",
+      "versioningTemplate": "semver"
+    },
     {
       "customType": "regex",
       "description": "Update library commit pins from master.",
