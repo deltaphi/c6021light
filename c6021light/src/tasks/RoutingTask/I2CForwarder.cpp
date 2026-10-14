@@ -25,12 +25,11 @@ bool sameDecoder(const RR32Can::MachineTurnoutAddress left,
 
 bool isMatchingTurnoutRailProtocol(const RR32Can::RailProtocol left,
                                    const RR32Can::RailProtocol right) {
-  if (left == right) {
-    return true;
-  } else if (left == RR32Can::RailProtocol::MM1 || left == RR32Can::RailProtocol::MM2) {
+
+  if (left == RR32Can::RailProtocol::MM1 || left == RR32Can::RailProtocol::MM2) {
     return (right == RR32Can::RailProtocol::MM1 || right == RR32Can::RailProtocol::MM2);
   } else {
-    return false;
+    return (left == right)
   }
 }
 
