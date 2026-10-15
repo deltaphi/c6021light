@@ -35,6 +35,7 @@ extern "C" {
 #include "DataModel.h"
 #include "StartStopIndicator.h"
 #include "StatusIndicator.h"
+#include "build_version.h"
 #include "tasks/ConsoleTask/ConsoleTask.h"
 #include "tasks/RoutingTask/RoutingTask.h"
 
@@ -100,7 +101,7 @@ void setup() {
   hal::beginCan(routingTask);
 
   // Setup Serial
-  printf("Connect6021Light Initializing...\n");
+  printf("Connect6021Light " BUILD_GIT_REVISION " Initializing...\n");
 
   // Load Configuration
   printf("Reading Configuration.\n");
