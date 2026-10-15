@@ -7,18 +7,18 @@ on:
 jobs:
   generate:
     name: Create release-artifacts
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-26.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         submodules: true
 
     - name: Set up Python
-      uses: actions/setup-python@v5.1.0
+      uses: actions/setup-python@v7.0.0
       with:
         cache: 'pip'
-        python-version: '3.9'
+        python-version: '3.15'
 
     - name: Install dependencies
       run: |
@@ -26,9 +26,11 @@ jobs:
 
     - name: Run PlatformIO for Bluepill
       run: platformio run -d ${{ github.workspace }}/c6021light
+
     - name: Gather the Release artifacts
       shell: bash
       run: ${{ github.workspace }}/.github/copy-release-files.sh
+      
     - name: Upload the artifacts
       uses: skx/github-action-publish-binaries@master
       env:
