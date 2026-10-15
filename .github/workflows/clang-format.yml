@@ -1,0 +1,36 @@
+name: Clang Format
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang-format-18
+
+      - name: Format project sources
+        shell: bash
+        run: |
+          # Keep vendored libraries outside the project's formatting scope.
+          git ls-files -z -- \
+            '*.c' '*.h' '*.cc' '*.hh' '*.cpp' '*.hpp' '*.cxx' '*.hxx' \
+            ':!c6021light/lib/freertos/**' \
+            ':!c6021light/lib/microrl/**' \
+            | xargs -0 -r clang-format-18 --style=file -i
+
+      - name: Check for formatting changes
+        run: git diff --exit-code
