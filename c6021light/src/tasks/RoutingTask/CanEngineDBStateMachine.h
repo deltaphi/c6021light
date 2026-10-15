@@ -1,6 +1,7 @@
 #ifndef __TASKS__ROUTINGTASK__CANENGINEDBSTATEMACHINE_H__
 #define __TASKS__ROUTINGTASK__CANENGINEDBSTATEMACHINE_H__
 
+#include "RR32Can/RR32Can.h"
 #include "tasks/RoutingTask/CanEngineDB.h"
 #include "tasks/RoutingTask/StateMachineBase.h"
 
@@ -21,14 +22,7 @@ class CanEngineDBStateMachine : public StateMachineBase {
   CanEngineDBStateMachine(CanEngineDB& engineDb, freertossupport::OsTask& parentTask)
       : StateMachineBase(parentTask), engineDb_(engineDb) {}
 
-  void startRequesting() {
-    requestState_ = RequestState::REQUESTING;
-    if (statusIndicator != nullptr) {
-      statusIndicator->setCanDbDownload();
-    }
-    tries = 0;
-    startTimerImmediate();
-  }
+  void startRequesting();
 
   void loop() {
     if (timerExpired_) {

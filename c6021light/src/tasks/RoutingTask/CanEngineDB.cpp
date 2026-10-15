@@ -104,6 +104,8 @@ void CanEngineDB::fetchNextEngine() {
     fetchEngine(*loco);
   } else {
     dbState_ = DBState::COMPLETE;
+    printf("\nCAN engine database download completed: %u engines.\n",
+           listConsumer_.getNumEnginesKnownByMaster());
     if (statusIndicator != nullptr) {
       statusIndicator->clearCanDbDownload();
     }
