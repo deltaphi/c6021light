@@ -1,17 +1,11 @@
 #!/bin/sh
 
-PATH=$PATH:"/c/Program Files/LLVM/bin/":"/d/Program Files/LLVM/bin/"
+set -eu
 
-CLANG_BINARY="clang-format.exe"
+cd "$(dirname "$0")/.."
 
-for filename in `find src test -iname "*.cpp" -o -iname "*.h"`
-do
-    echo "Formatting $filename"
-    "$CLANG_BINARY" -i "$filename"
-done
-
-for filename in `find lib/freertossupport lib/cliSupport -iname "*.cpp" -o -iname "*.h"`
-do
-    echo "Formatting $filename"
-    "$CLANG_BINARY" -i "$filename"
-done
+git ls-files -z -- \
+  '*.c' '*.h' '*.cc' '*.hh' '*.cpp' '*.hpp' '*.cxx' '*.hxx' \
+  ':!c6021light/lib/freertos/**' \
+  ':!c6021light/lib/microrl/**' \
+  | xargs -0 uvx --from clang-format==18.1.8 clang-format --style=file -i
