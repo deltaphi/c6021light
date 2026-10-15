@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "RR32Can/Constants.h"
+#include "build_version.h"
 #include "cliSupport.h"
 
 #include "hal/stm32eepromEmulation.h"
@@ -242,7 +243,7 @@ void display_help(int argc, const char* const* argv) {
 
 void display_version(int, const char* const*) {
   puts("Current Version:");
-  puts("fd469d610a70e3e384686cecfb074ee3d4c389b5");
+  puts(BUILD_GIT_REVISION);
   printf("\n");
 }
 
