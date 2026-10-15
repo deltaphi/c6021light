@@ -1,0 +1,23 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# Match .clang-format: IndentWidth, UseTab, TabWidth, ColumnLimit.
+[*.{c,h,cc,hh,cpp,hpp,cxx,hxx}]
+indent_style = space
+indent_size = 2
+tab_width = 8
+max_line_length = 100
+
+[*.py]
+indent_size = 4
+
+# Preserve Markdown hard line breaks.
+[*.md]
+trim_trailing_whitespace = false
