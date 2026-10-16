@@ -4,6 +4,9 @@ on:
   release:
     types: [created, published, edited]
 
+permissions:
+  contents: write
+
 jobs:
   generate:
     name: Create release-artifacts
@@ -32,8 +35,8 @@ jobs:
       run: ${{ github.workspace }}/.github/copy-release-files.sh
       
     - name: Upload the artifacts
-      uses: skx/github-action-publish-binaries@master
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        args: '.github/releasefiles/*'
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_REPO: ${{ github.repository }}
+        RELEASE_TAG: ${{ github.event.release.tag_name }}
+      run: gh release upload "$RELEASE_TAG" .github/releasefiles/* --clobber
