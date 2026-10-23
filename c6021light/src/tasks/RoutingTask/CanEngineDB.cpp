@@ -99,7 +99,7 @@ void CanEngineDB::fetchLokliste() {
 }
 
 RR32Can::Locomotive* CanEngineDB::findFirstIncompleteEngine() {
-  const auto db_end = std::next(db_.begin(), listConsumer_.getNumEnginesKnownByMaster());
+  const auto db_end = db_.end();
   const auto incompleteEntry = std::find_if(
       db_.begin(), db_end, [](const auto& entry) { return entry.loco.isNameOnlyKnown(); });
   if (incompleteEntry != db_end) {
@@ -155,7 +155,7 @@ void CanEngineDB::streamComplete(RR32Can::ConfigDataConsumer* consumer) {
     } else {
       fetchEnginesFromOffset(nextRequestedStreamOffset);
     }
-  } else if (consumer == &locoConsumer_) {
+  } else if (consumer == &locoConsumer_ || consumer == &loklisteConsumer_) {
     fetchNextEngine();
   }
 }
