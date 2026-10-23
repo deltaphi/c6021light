@@ -84,7 +84,18 @@ void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
   RR32Can::RR32Can.RequestEngineList(offset, &streamParser_);
 }
 
-void CanEngineDB::fetchEngineDB() { fetchEnginesFromOffset(0); }
+void CanEngineDB::fetchEngineDB() {
+  //fetchEnginesFromOffset(0);
+  fetchLokliste();
+}
+
+void CanEngineDB::fetchLokliste() {
+  dbState_ = DBState::DOWNLOADING;
+  streamParser_.reset();
+  loklisteConsumer_.setStreamEndCallback(this);
+  streamParser_.startStream(&loklisteConsumer_);
+  RR32Can::RR32Can.RequestLokliste(&streamParser_);
+}
 
 RR32Can::Locomotive* CanEngineDB::findFirstIncompleteEngine() {
   const auto db_end = std::next(db_.begin(), listConsumer_.getNumEnginesKnownByMaster());
