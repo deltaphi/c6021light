@@ -85,12 +85,12 @@ void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
 }
 
 void CanEngineDB::fetchEngineDB() {
-  fetchEnginesFromOffset(0);
-  // fetchLokliste();
+  clear();
+  // fetchEnginesFromOffset(0);
+  fetchLokliste();
 }
 
 void CanEngineDB::fetchLokliste() {
-  clear();
   dbState_ = DBState::DOWNLOADING;
   streamParser_.reset();
   loklisteConsumer_.setStreamEndCallback(this);
