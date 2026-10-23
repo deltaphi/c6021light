@@ -85,8 +85,8 @@ void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
 }
 
 void CanEngineDB::fetchEngineDB() {
-  //fetchEnginesFromOffset(0);
-  fetchLokliste();
+  fetchEnginesFromOffset(0);
+  //fetchLokliste();
 }
 
 void CanEngineDB::fetchLokliste() {
