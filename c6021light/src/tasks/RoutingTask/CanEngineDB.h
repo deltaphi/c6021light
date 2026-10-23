@@ -77,6 +77,12 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
   bool isDownloading() const { return dbState_ == DBState::DOWNLOADING; }
   bool isComplete() const { return dbState_ == DBState::COMPLETE; }
 
+  void clear() {
+    for (auto it = db_.begin(); it != db_.end(); ++it) {
+      it->reset();
+    }
+  }
+
   RR32Can::LocomotiveShortInfo* getLokInfoShort(uint32_t index) override {
     if (index >= db_.size()) {
       return nullptr;

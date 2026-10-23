@@ -90,6 +90,7 @@ void CanEngineDB::fetchEngineDB() {
 }
 
 void CanEngineDB::fetchLokliste() {
+  clear();
   dbState_ = DBState::DOWNLOADING;
   streamParser_.reset();
   loklisteConsumer_.setStreamEndCallback(this);
