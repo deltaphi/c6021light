@@ -38,6 +38,8 @@ DEFINE_COMMAND_STRING(turnoutProtocol);
 
 DEFINE_COMMAND_STRING(lnSlotServer);
 DEFINE_COMMAND_STRING(canEngineDB);
+DEFINE_COMMAND_STRING(can);
+DEFINE_COMMAND_STRING(ping);
 
 DEFINE_COMMAND_STRING(generateI2CTurnoutResponse);
 
@@ -74,6 +76,7 @@ int run_ln_slot_server_dump(int, const char* const*, int);
 
 int run_app_download_enginedb_can(int, const char* const*, int);
 int run_app_dump_enginedb_can(int, const char* const*, int);
+int run_app_can_ping(int, const char* const*, int);
 
 int run_get_generateI2CTurnoutResponse(int, const char* const*, int);
 int run_set_generateI2CTurnoutResponse_enable(int, const char* const*, int);
@@ -127,6 +130,9 @@ static const cliSupport::Argument COMMAND_ARGS(canEngineDB)[] = {
     {COMMAND(downloadEngines), nullptr, run_app_download_enginedb_can, "Fetch CAN EngineDB."},
     {}};
 
+static const cliSupport::Argument COMMAND_ARGS(can)[] = {
+    {COMMAND(ping), nullptr, run_app_can_ping, "Send a CAN ping."}, {}};
+
 // Arguments for flash
 static const cliSupport::Argument COMMAND_ARGS(flash)[] = {
     {COMMAND(dump), nullptr, run_app_dump_flash, "Show contents of EEPROM Emulation Flash."},
@@ -141,6 +147,7 @@ static const cliSupport::Argument argtable[] = {
     {COMMAND(lnSlotServer), COMMAND_ARGS(lnSlotServer), nullptr,
      "Control the LocoNet Refresh Slot server."},
     {COMMAND(canEngineDB), COMMAND_ARGS(canEngineDB), nullptr, "Control the Can Engine DB."},
+    {COMMAND(can), COMMAND_ARGS(can), nullptr, "Send CAN protocol messages."},
     {COMMAND(help), nullptr, run_app_help, "Display this help message."},
     {}};
 }  // namespace
