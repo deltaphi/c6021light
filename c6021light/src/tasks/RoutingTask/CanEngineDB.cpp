@@ -113,6 +113,21 @@ void CanEngineDB::HandlePingResponse(const RR32Can::PingResponsePacket& packet) 
   }
 }
 
+bool CanEngineDB::setDownloadProtocol(const char* downloadProtocolAsText) {
+  if (strcasecmp(downloadProtocolAsText, "UNKNOWN") == 0) {
+    setDownloadProtocol(tasks::RoutingTask::EngineDownloadProtocol::UNKNOWN);
+    return true;
+  } else if (strcasecmp(downloadProtocolAsText, "LOKNAMEN") == 0) {
+    setDownloadProtocol(tasks::RoutingTask::EngineDownloadProtocol::LOKNAMEN);
+    return true;
+  } else if (strcasecmp(downloadProtocolAsText, "LOKLISTE") == 0) {
+    setDownloadProtocol(tasks::RoutingTask::EngineDownloadProtocol::LOKLISTE);
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void CanEngineDB::fetchLokliste() {
   dbState_ = DBState::DOWNLOADING;
   streamParser_.reset();
