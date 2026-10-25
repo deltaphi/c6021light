@@ -6,7 +6,13 @@
 #include "mocks/RoutingTaskFixture.h"
 #include "mocks/SequenceMaker.h"
 
-class CanEngineDBLoklisteDownload : public mocks::RoutingTaskFixture {};
+class CanEngineDBLoklisteDownload : public mocks::RoutingTaskFixture {
+  void SetUp() {
+    mocks::RoutingTaskFixture::SetUp();
+    routingTask.getCANEngineDB().setDownloadProtocol(
+        tasks::RoutingTask::EngineDownloadProtocol::LOKLISTE);
+  }
+};
 
 TEST_F(CanEngineDBLoklisteDownload, Started_SendsLoklisteRequest) {
   mocks::makeSequence(i2cHal);

@@ -4,6 +4,7 @@
 #include <array>
 #include "RR32Can/Locomotive.h"
 #include "RR32Can/callback/EngineCbk.h"
+#include "RR32Can/callback/PingCbk.h"
 #include "RR32CanEngineDb/LocoConsumer.h"
 #include "RR32CanEngineDb/LocoListConsumer.h"
 #include "RR32CanEngineDb/LoklisteConsumer.h"
@@ -12,6 +13,7 @@
 #include "RR32CanEngineDb/util/ConfigDataEndStreamCallback.h"
 #include "RR32CanEngineDb/util/ConfigDataStreamParser.h"
 
+#include "EngineDownloadProtocol.h"
 #include "IStatusIndicator.h"
 #include "RoutingForwarder.h"
 
@@ -23,6 +25,7 @@ namespace RoutingTask {
  */
 class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
                     public RR32Can::callback::EngineCbk,
+                    public RR32Can::callback::PingCbk,
                     public RR32Can::LokListeConsumerCallback {
  public:
   constexpr static const uint8_t kMaxNumDbEntries = 40;
@@ -46,6 +49,12 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
   enum class DBState { EMPTY, DOWNLOADING, COMPLETE };
 
   void fetchEngineDB();
+
+  void HandlePingResponse(const RR32Can::PingResponsePacket& packet) override;
+  void HandlePing(const RR32Can::CanFrame&) override {}
+  void setDownloadProtocol(EngineDownloadProtocol downloadProtocol) {
+    this->downloadProtocol_ = downloadProtocol;
+  }
 
   void streamComplete(RR32Can::ConfigDataConsumer*) override;
   void streamAborted(RR32Can::ConfigDataConsumer*) override {}
@@ -98,6 +107,7 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
   RR32Can::LocoConsumer locoConsumer_;
   DB_t db_;
   DBState dbState_{DBState::EMPTY};
+  EngineDownloadProtocol downloadProtocol_{EngineDownloadProtocol::UNKNOWN};
   IStatusIndicator* statusIndicator{nullptr};
 
   DB_t::iterator getEntry(const RR32Can::Locomotive::Uid_t uid);

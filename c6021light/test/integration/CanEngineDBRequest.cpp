@@ -7,6 +7,12 @@
 #include "mocks/SequenceMaker.h"
 
 class CanEngineDBStateMachine : public mocks::RoutingTaskFixture {
+  void SetUp() {
+    mocks::RoutingTaskFixture::SetUp();
+    routingTask.getCANEngineDB().setDownloadProtocol(
+        tasks::RoutingTask::EngineDownloadProtocol::LOKNAMEN);
+  }
+
   void TearDown() {
     mocks::RoutingTaskFixture::TearDown();
     std::cout << std::endl;  // Workaround for Eclipse having trouble parsing STDOUT.

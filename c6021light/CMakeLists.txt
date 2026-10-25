@@ -94,6 +94,7 @@ add_executable(c6021lightTest
     "test/integration/LnSwitchRequest.cpp"
     "test/integration/StopGoRequest.cpp"
     "test/integration/CanEngineDBRequest.cpp"
+    "test/integration/CanEngineDBLoklisteRequest.cpp"
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     "test/integration/SlotServerProcessing.cpp"

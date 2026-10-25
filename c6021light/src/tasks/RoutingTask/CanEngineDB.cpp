@@ -86,8 +86,31 @@ void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
 
 void CanEngineDB::fetchEngineDB() {
   clear();
-  // fetchEnginesFromOffset(0);
-  fetchLokliste();
+  switch (downloadProtocol_) {
+    case EngineDownloadProtocol::UNKNOWN:
+      break;
+    case EngineDownloadProtocol::LOKNAMEN:
+      fetchEnginesFromOffset(0);
+      break;
+    case EngineDownloadProtocol::LOKLISTE:
+      fetchLokliste();
+      break;
+  }
+}
+
+void CanEngineDB::HandlePingResponse(const RR32Can::PingResponsePacket& packet) {
+  // MS2 devices report device information 0x0032.
+  if (packet.getDeviceInformation() != 0x0032) {
+    return;
+  }
+
+  const auto major = packet.getSoftwareVersionMajor();
+  const auto minor = packet.getSoftwareVersionMinor();
+  if (major < 3 || (major == 3 && minor < 55)) {
+    downloadProtocol_ = EngineDownloadProtocol::LOKNAMEN;
+  } else {
+    downloadProtocol_ = EngineDownloadProtocol::LOKLISTE;
+  }
 }
 
 void CanEngineDB::fetchLokliste() {
