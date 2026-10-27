@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Usage: scripts/remote-debug-upload.sh [user@]openocd-host
 # Override the SSH destination with PIO_REMOTE_HOST if preferred.
-REMOTE_HOST="${1:-${PIO_REMOTE_HOST:-root@modellbahn-bpi.fritz.box}}"
+REMOTE_HOST="${1:-${PIO_REMOTE_HOST:-}}"
 REMOTE_ELF="${PIO_REMOTE_ELF:-/tmp/c6021light-firmware.elf}"
 GDB_PORT="${PIO_REMOTE_GDB_PORT:-3333}"
 TCL_PORT="${PIO_REMOTE_TCL_PORT:-6666}"
