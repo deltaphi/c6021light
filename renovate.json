@@ -15,6 +15,17 @@
   "customManagers": [
     {
       "customType": "regex",
+      "description": "Update the clang-format version shared by local formatting and CI.",
+      "managerFilePatterns": ["/^c6021light/apply-clang\\.sh$/"],
+      "matchStrings": [
+        "uvx\\s+--from\\s+clang-format==(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "depNameTemplate": "clang-format",
+      "datasourceTemplate": "pypi",
+      "versioningTemplate": "pep440"
+    },
+    {
+      "customType": "regex",
       "description": "Update library commit pins from master.",
       "managerFilePatterns": ["/^c6021light/platformio\\.ini$/"],
       "matchStrings": [

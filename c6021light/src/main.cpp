@@ -199,4 +199,9 @@ int run_app_dump_enginedb_can(int, const char* const*, int) {
   return 0;
 }
 
+int run_app_can_ping(int, const char* const*, int) {
+  RR32Can::RR32Can.SendPing();
+  return 0;
+}
+
 }  // namespace ConsoleManager

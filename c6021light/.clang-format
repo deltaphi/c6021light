@@ -163,5 +163,6 @@ StatementMacros:
 TabWidth:        8
 UseCRLF:         false
 UseTab:          Never
+WhitespaceSensitiveMacros:
+  - xTaskCreateStatic
 ...
-
