@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Usage: scripts/remote-debug-upload.sh [user@]openocd-host
 # Override the SSH destination with PIO_REMOTE_HOST if preferred.
-REMOTE_HOST="${1:-${PIO_REMOTE_HOST:-}}"
+REMOTE_HOST="${1:-${PIO_REMOTE_HOST:-root@modellbahn-bpi.fritz.box}}"
 REMOTE_ELF="${PIO_REMOTE_ELF:-/tmp/c6021light-firmware.elf}"
 GDB_PORT="${PIO_REMOTE_GDB_PORT:-3333}"
 TCL_PORT="${PIO_REMOTE_TCL_PORT:-6666}"
@@ -12,7 +12,7 @@ OPENOCD_TARGET="${PIO_OPENOCD_TARGET:-target/stm32f1x.cfg}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-ELF="$PROJECT_DIR/.pio/build/bluepill_debug/firmware.elf"
+ELF="$PROJECT_DIR/.pio/build/bluepill/firmware.elf"
 
 command -v pio >/dev/null || { echo "pio is required" >&2; exit 1; }
 command -v ssh >/dev/null || { echo "ssh is required" >&2; exit 1; }
@@ -22,7 +22,7 @@ command -v scp >/dev/null || { echo "scp is required" >&2; exit 1; }
     exit 1
 }
 
-pio run -d "$PROJECT_DIR" -e bluepill_debug
+pio run -d "$PROJECT_DIR" -e bluepill
 [[ -f "$ELF" ]] || { echo "Debug ELF not found: $ELF" >&2; exit 1; }
 
 scp "$ELF" "$REMOTE_HOST:$REMOTE_ELF"
