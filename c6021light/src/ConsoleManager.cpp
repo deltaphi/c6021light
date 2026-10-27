@@ -249,9 +249,7 @@ void display_help(int argc, const char* const* argv) {
 }
 
 void display_version(int, const char* const*) {
-  puts("Current Version:");
-  puts(BUILD_GIT_REVISION);
-  printf("\n");
+  printf("Current Version: " BUILD_GIT_REVISION "\n");
 }
 
 
