@@ -13,6 +13,7 @@ Available commands:
   flash ... - Operations on persistent storage.
   lnSlotServer ... - Control the LocoNet Refresh Slot server.
   canEngineDB ... - Control the Can Engine DB.
+  cansend ... - Send CAN protocol messages.
   help - Display this help message.
 c6021light >
 ```
@@ -59,7 +60,7 @@ The serial console of the c6021light offers two convenience features: Tab-comple
 
 ## Tab Completion
 
-When you enter a prefix command of a command known to the c6021light, press the `Tab` key to trigger the tab completion. If the prefix you entered matches exactly one command, the c6021light will auto-complete the remainder of the current command word for you. For example: ```c6021light > h<Tab>``` will complete to ```c6021light > help```. In contrast, ```c6021light > c<Tab>``` will not auto-complete, as the 'c' could match either `config` or `canEngineDB`. If you extend the command line to ```c6021light > co<Tab>```, the command will complete to ```c6021light > config```.
+When you enter a prefix command of a command known to the c6021light, press the `Tab` key to trigger the tab completion. If the prefix you entered matches exactly one command, the c6021light will auto-complete the remainder of the current command word for you. For example: ```c6021light > h<Tab>``` will complete to ```c6021light > help```. In contrast, ```c6021light > c<Tab>``` will not auto-complete, as the 'c' could match `config`, `canEngineDB`, or `cansend`. If you extend the command line to ```c6021light > co<Tab>```, the command will complete to ```c6021light > config```.
 
 ## Command History
 

@@ -38,7 +38,7 @@ DEFINE_COMMAND_STRING(turnoutProtocol);
 
 DEFINE_COMMAND_STRING(lnSlotServer);
 DEFINE_COMMAND_STRING(canEngineDB);
-DEFINE_COMMAND_STRING(can);
+DEFINE_COMMAND_STRING(cansend);
 DEFINE_COMMAND_STRING(ping);
 
 DEFINE_COMMAND_STRING(generateI2CTurnoutResponse);
@@ -130,7 +130,7 @@ static const cliSupport::Argument COMMAND_ARGS(canEngineDB)[] = {
     {COMMAND(downloadEngines), nullptr, run_app_download_enginedb_can, "Fetch CAN EngineDB."},
     {}};
 
-static const cliSupport::Argument COMMAND_ARGS(can)[] = {
+static const cliSupport::Argument COMMAND_ARGS(cansend)[] = {
     {COMMAND(ping), nullptr, run_app_can_ping, "Send a CAN ping."}, {}};
 
 // Arguments for flash
@@ -147,7 +147,7 @@ static const cliSupport::Argument argtable[] = {
     {COMMAND(lnSlotServer), COMMAND_ARGS(lnSlotServer), nullptr,
      "Control the LocoNet Refresh Slot server."},
     {COMMAND(canEngineDB), COMMAND_ARGS(canEngineDB), nullptr, "Control the Can Engine DB."},
-    {COMMAND(can), COMMAND_ARGS(can), nullptr, "Send CAN protocol messages."},
+    {COMMAND(cansend), COMMAND_ARGS(cansend), nullptr, "Send CAN protocol messages."},
     {COMMAND(help), nullptr, run_app_help, "Display this help message."},
     {}};
 }  // namespace
