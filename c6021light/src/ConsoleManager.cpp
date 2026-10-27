@@ -252,7 +252,6 @@ void display_version(int, const char* const*) {
   printf("Current Version: " BUILD_GIT_REVISION "\n");
 }
 
-
 void begin(DataModel* dataModel) {
   dataModel_ = dataModel;
 

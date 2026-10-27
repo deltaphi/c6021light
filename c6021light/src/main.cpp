@@ -101,8 +101,8 @@ void setup() {
   hal::beginCan(routingTask);
 
   // Setup Serial
-  printf("Connect6021Light %.*s Initializing...\n",
-         BUILD_GIT_REVISION_SHORT_LENGTH, BUILD_GIT_REVISION);
+  printf("Connect6021Light %.*s Initializing...\n", BUILD_GIT_REVISION_SHORT_LENGTH,
+         BUILD_GIT_REVISION);
 
   // Load Configuration
   printf("Reading Configuration.\n");
