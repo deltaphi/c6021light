@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "RR32Can/Constants.h"
+#include "build_version.h"
 #include "cliSupport.h"
 
 #include "hal/stm32eepromEmulation.h"
@@ -49,6 +50,8 @@ DEFINE_COMMAND_STRING(flash);
 DEFINE_COMMAND_STRING(dump);
 DEFINE_COMMAND_STRING(save);
 DEFINE_COMMAND_STRING(format);
+
+DEFINE_COMMAND_STRING(version);
 DEFINE_COMMAND_STRING(help);
 
 static constexpr const char* turnoutProtocolHelp{
@@ -62,6 +65,7 @@ int run_app_set_turnout_protocol(int argc, const char* const* argv, int argcMatc
 int run_app_get_turnout_protocol(int argc, const char* const* argv, int argcMatched);
 int run_app_save(int argc, const char* const* argv, int argcMatched);
 int run_app_help(int argc, const char* const* argv, int argcMatched);
+int run_app_version(int argc, const char* const* argv, int argcMatched);
 int run_app_dump_flash(int argc, const char* const* argv,
                        int argcMatched);  // implemented in eeprom emulation
 int run_app_format_flash(int argc, const char* const* argv,
@@ -149,6 +153,7 @@ static const cliSupport::Argument argtable[] = {
     {COMMAND(canEngineDB), COMMAND_ARGS(canEngineDB), nullptr, "Control the Can Engine DB."},
     {COMMAND(cansend), COMMAND_ARGS(cansend), nullptr, "Send CAN protocol messages."},
     {COMMAND(help), nullptr, run_app_help, "Display this help message."},
+    {COMMAND(version), nullptr, run_app_version, "Display version information."},
     {}};
 }  // namespace
 
@@ -196,6 +201,11 @@ int run_app_help(int, const char* const*, int) {
   return 0;
 }
 
+int run_app_version(int, const char* const*, int) {
+  display_version(0, nullptr);
+  return 0;
+}
+
 namespace {
 void printArguments(int argc, const char* const* argv) {
   for (int i = 0; i < argc; ++i) {
@@ -236,6 +246,10 @@ void display_help(int argc, const char* const* argv) {
     printf("\n");
     ++argumentIt;
   }
+}
+
+void display_version(int, const char* const*) {
+  printf("Current Version: " BUILD_GIT_REVISION "\n");
 }
 
 void begin(DataModel* dataModel) {
