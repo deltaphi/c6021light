@@ -8,13 +8,13 @@ project_dir = Path(env.subst("$PROJECT_DIR"))
 
 try:
     revision = subprocess.check_output(
-        ["git", "rev-parse", "--short", "--verify", "HEAD"],
+        ["git", "rev-parse", "--verify", "HEAD"],
         cwd=str(project_dir),
         stderr=subprocess.PIPE,
         text=True,
     ).strip()
-    full_revision = subprocess.check_output(
-        ["git", "rev-parse", "--verify", "HEAD"],
+    short_revision = subprocess.check_output(
+        ["git", "rev-parse", "--short", "--verify", "HEAD"],
         cwd=str(project_dir),
         stderr=subprocess.PIPE,
         text=True,
@@ -31,8 +31,8 @@ generated_dir.mkdir(parents=True, exist_ok=True)
 header = generated_dir / "build_version.h"
 content = (
     "#pragma once\n"
-    f"#define BUILD_GIT_REVISION {json.dumps(full_revision)}\n"
-    f"#define BUILD_GIT_REVISION_SHORT {json.dumps(revision)}\n"
+    f"#define BUILD_GIT_REVISION {json.dumps(revision)}\n"
+    f"#define BUILD_GIT_REVISION_SHORT_LENGTH {len(short_revision)}\n"
 )
 
 # Preserve the timestamp when unchanged, avoiding needless recompilation.
