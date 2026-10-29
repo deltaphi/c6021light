@@ -115,6 +115,7 @@ void setup() {
   RR32Can::Station::CallbackStruct callbacks;
   callbacks.tx = &canTxCbk;
   callbacks.system = &startStopIndicator;
+  callbacks.ping = &routingTask.getCANEngineDB();
   callbacks.engine = &routingTask.getCANEngineDB();
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
@@ -190,14 +191,32 @@ int run_ln_slot_server_dispatch(int argc, const char* const* argv, int argcMatch
 }
 
 int run_app_download_enginedb_can(int, const char* const*, int) {
-  statusIndicator.setCanDbDownload();
-  routingTask.getCANEngineDB().fetchEngineDB();
+  routingTask.canEngineDBStateM_.startRequesting();
   return 0;
 }
 
 int run_app_dump_enginedb_can(int, const char* const*, int) {
   routingTask.getCANEngineDB().dump();
   return 0;
+}
+
+int run_app_set_enginedb_protocol(int argc, const char* const* argv, int argcMatched) {
+  static constexpr const char* appName{"SetEngineDBDownloadProtocol"};
+  if (!checkNumArgs(argc - argcMatched, 1, 1, appName)) {
+    display_help(argc, argv);
+    return -2;
+  }
+
+  const char* protocol = argv[argcMatched];
+  const bool success = routingTask.getCANEngineDB().setDownloadProtocol(protocol);
+
+  if (success) {
+    printf("%s: Download protocol set to '%s' (runtime only).\\n", appName, protocol);
+    return 0;
+  } else {
+    printf("%s: Unknown download protocol '%s'.\\n", appName, protocol);
+    return -3;
+  }
 }
 
 int run_app_can_ping(int, const char* const*, int) {

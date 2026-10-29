@@ -15,72 +15,40 @@ namespace RoutingTask {
 class CanEngineDBStateMachine : public StateMachineBase {
  public:
   constexpr static const uint8_t kMaxDownloadTries = 10;
+  // The request timer runs once per second. Allow five ticks without stream data.
+  constexpr static const uint8_t kDownloadTimeoutTicks = 5;
 
-  enum class RequestState { IDLE, REQUESTING, DOWNLOADING };
+  enum class RequestState { IDLE, REQUESTING, DOWNLOADING, REQUESTING_PROTOCOL };
 
   CanEngineDBStateMachine(CanEngineDB& engineDb, freertossupport::OsTask& parentTask)
       : StateMachineBase(parentTask), engineDb_(engineDb) {}
 
-  void startRequesting() {
-    requestState_ = RequestState::REQUESTING;
-    if (statusIndicator != nullptr) {
-      statusIndicator->setCanDbDownload();
-    }
-    tries = 0;
-    startTimerImmediate();
-  }
+  void startRequesting();
 
-  void loop() {
-    if (timerExpired_) {
-      if (requestState_ == RequestState::REQUESTING) {
-        if (tries < kMaxDownloadTries) {
-          RR32Can::RR32Can.AbortCurrentConfigRequest();
-          engineDb_.fetchEngineDB();
-          ++tries;
-        } else {
-          stopRequesting();
-        }
-      }
-      timerExpired_ = false;
-    }
-  }
+  void loop();
 
   bool isIdle() { return requestState_ == RequestState::IDLE; }
 
   RequestState GetState() const { return requestState_; }
 
-  void handlePacket(RR32Can::CanFrame& frame) {
-    if (!isIdle() && isFirstPacketInConfigDataStream(frame)) {
-      requestState_ = RequestState::DOWNLOADING;
-    }
-  }
+  void handlePacket(RR32Can::CanFrame& frame);
 
-  void notifyEngineDBComplete() {
-    if (!isIdle()) {
-      stopRequesting();
-    }
-  }
+  void notifyEngineDBComplete();
 
   void setStatusIndicator(IStatusIndicator& si) { this->statusIndicator = &si; }
 
  private:
   RequestState requestState_{RequestState::IDLE};
   uint8_t tries = 0;
+  uint8_t inactiveTicks_ = 0;
   CanEngineDB& engineDb_;
   IStatusIndicator* statusIndicator{nullptr};
 
-  void stopRequesting() {
-    requestState_ = RequestState::IDLE;
-    stopTimer();
-    if (statusIndicator != nullptr) {
-      statusIndicator->clearCanDbDownload();
-    }
-  }
+  void startRequestingProtocol();
+  void startRequestingEngineDB();
+  void stopRequesting();
 
-  bool isFirstPacketInConfigDataStream(RR32Can::CanFrame& frame) {
-    return (frame.id.getCommand() == RR32Can::Command::CONFIG_DATA_STREAM) &&
-           (frame.data.dlc == 6 || frame.data.dlc == 7);
-  }
+  bool isFirstPacketInConfigDataStream(RR32Can::CanFrame& frame);
 };
 
 }  // namespace RoutingTask

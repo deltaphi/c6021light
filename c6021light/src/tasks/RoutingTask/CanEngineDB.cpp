@@ -84,10 +84,64 @@ void CanEngineDB::fetchEnginesFromOffset(uint8_t offset) {
   RR32Can::RR32Can.RequestEngineList(offset, &streamParser_);
 }
 
-void CanEngineDB::fetchEngineDB() { fetchEnginesFromOffset(0); }
+void CanEngineDB::fetchEngineDB() {
+  clear();
+  switch (downloadProtocol_) {
+    case EngineDownloadProtocol::UNKNOWN:
+      break;
+    case EngineDownloadProtocol::LOKNAMEN:
+      fetchEnginesFromOffset(0);
+      break;
+    case EngineDownloadProtocol::LOKLISTE:
+      fetchLokliste();
+      break;
+  }
+}
+
+void CanEngineDB::HandlePingResponse(const RR32Can::PingResponsePacket& packet) {
+  // MS2 devices report device information 0x0032.
+  if (packet.getDeviceInformation() != 0x0032) {
+    return;
+  }
+
+  const auto major = packet.getSoftwareVersionMajor();
+  const auto minor = packet.getSoftwareVersionMinor();
+  printf("MS2 Version %d.%d detected.\n", major, minor);
+
+  if (major < 3 || (major == 3 && minor < 55)) {
+    printf("Using Engine Protocol \"Loknamen\".");
+    downloadProtocol_ = EngineDownloadProtocol::LOKNAMEN;
+  } else {
+    printf("Using Engine Protocol \"Lokliste\".");
+    downloadProtocol_ = EngineDownloadProtocol::LOKLISTE;
+  }
+}
+
+bool CanEngineDB::setDownloadProtocol(const char* downloadProtocolAsText) {
+  if (strcasecmp(downloadProtocolAsText, "UNKNOWN") == 0) {
+    setDownloadProtocol(tasks::RoutingTask::EngineDownloadProtocol::UNKNOWN);
+    return true;
+  } else if (strcasecmp(downloadProtocolAsText, "LOKNAMEN") == 0) {
+    setDownloadProtocol(tasks::RoutingTask::EngineDownloadProtocol::LOKNAMEN);
+    return true;
+  } else if (strcasecmp(downloadProtocolAsText, "LOKLISTE") == 0) {
+    setDownloadProtocol(tasks::RoutingTask::EngineDownloadProtocol::LOKLISTE);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void CanEngineDB::fetchLokliste() {
+  dbState_ = DBState::DOWNLOADING;
+  streamParser_.reset();
+  loklisteConsumer_.setStreamEndCallback(this);
+  streamParser_.startStream(&loklisteConsumer_);
+  RR32Can::RR32Can.RequestLokliste(&streamParser_);
+}
 
 RR32Can::Locomotive* CanEngineDB::findFirstIncompleteEngine() {
-  const auto db_end = std::next(db_.begin(), listConsumer_.getNumEnginesKnownByMaster());
+  const auto db_end = db_.end();
   const auto incompleteEntry = std::find_if(
       db_.begin(), db_end, [](const auto& entry) { return entry.loco.isNameOnlyKnown(); });
   if (incompleteEntry != db_end) {
@@ -129,7 +183,7 @@ void CanEngineDB::streamComplete(RR32Can::ConfigDataConsumer* consumer) {
     const auto nextRequestedStreamOffset = engineOffset + RR32Can::kEngineBrowserEntries;
 
     for (const auto& engineShortInfo : engineShortInfos) {
-      if (!hasEngine(engineShortInfo.getName())) {
+      if (!engineShortInfo.isFree() && !hasEngine(engineShortInfo.getName())) {
         db_[engineOffset].reset();
         db_[engineOffset].loco.setName(engineShortInfo.getName());
         ++engineOffset;
@@ -143,7 +197,7 @@ void CanEngineDB::streamComplete(RR32Can::ConfigDataConsumer* consumer) {
     } else {
       fetchEnginesFromOffset(nextRequestedStreamOffset);
     }
-  } else if (consumer == &locoConsumer_) {
+  } else if (consumer == &locoConsumer_ || consumer == &loklisteConsumer_) {
     fetchNextEngine();
   }
 }
