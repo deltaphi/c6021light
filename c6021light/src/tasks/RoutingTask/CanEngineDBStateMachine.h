@@ -29,25 +29,6 @@ class CanEngineDBStateMachine : public StateMachineBase {
     }
   }
 
-  void startRequestingProtocol() {
-    requestState_ = RequestState::REQUESTING_PROTOCOL;
-    RR32Can::RR32Can.SendPing();
-    if (statusIndicator != nullptr) {
-      statusIndicator->setCanDbDownload();
-    }
-    tries = 0;
-    startTimerImmediate();
-  }
-
-  void startRequestingEngineDB() {
-    requestState_ = RequestState::REQUESTING;
-    if (statusIndicator != nullptr) {
-      statusIndicator->setCanDbDownload();
-    }
-    tries = 0;
-    startTimerImmediate();
-  }
-
   void loop() {
     if (timerExpired_) {
       if (requestState_ == RequestState::REQUESTING_PROTOCOL) {
@@ -96,6 +77,25 @@ class CanEngineDBStateMachine : public StateMachineBase {
   uint8_t tries = 0;
   CanEngineDB& engineDb_;
   IStatusIndicator* statusIndicator{nullptr};
+
+  void startRequestingProtocol() {
+    requestState_ = RequestState::REQUESTING_PROTOCOL;
+    RR32Can::RR32Can.SendPing();
+    if (statusIndicator != nullptr) {
+      statusIndicator->setCanDbDownload();
+    }
+    tries = 0;
+    startTimerImmediate();
+  }
+
+  void startRequestingEngineDB() {
+    requestState_ = RequestState::REQUESTING;
+    if (statusIndicator != nullptr) {
+      statusIndicator->setCanDbDownload();
+    }
+    tries = 0;
+    startTimerImmediate();
+  }
 
   void stopRequesting() {
     requestState_ = RequestState::IDLE;
