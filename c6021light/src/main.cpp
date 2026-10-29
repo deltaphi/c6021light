@@ -10,6 +10,8 @@ extern "C" {
 #include <string.h>
 }
 
+#include <strings.h>
+
 #include <hal/LibOpencm3Hal.h>
 #include "hal/stm32I2C.h"
 #include "hal/stm32can.h"
@@ -115,6 +117,7 @@ void setup() {
   RR32Can::Station::CallbackStruct callbacks;
   callbacks.tx = &canTxCbk;
   callbacks.system = &startStopIndicator;
+  callbacks.ping = &routingTask.getCANEngineDB();
   callbacks.engine = &routingTask.getCANEngineDB();
   RR32Can::RR32Can.begin(RR32CanUUID, callbacks);
 
@@ -197,6 +200,32 @@ int run_app_download_enginedb_can(int, const char* const*, int) {
 
 int run_app_dump_enginedb_can(int, const char* const*, int) {
   routingTask.getCANEngineDB().dump();
+  return 0;
+}
+
+int run_app_set_enginedb_protocol(int argc, const char* const* argv, int argcMatched) {
+  static constexpr const char* appName{"SetEngineDBDownloadProtocol"};
+  if (!checkNumArgs(argc - argcMatched, 1, 1, appName)) {
+    display_help(argc, argv);
+    return -2;
+  }
+
+  const char* protocol = argv[argcMatched];
+  using tasks::RoutingTask::EngineDownloadProtocol;
+  EngineDownloadProtocol selectedProtocol;
+  if (strcasecmp(protocol, "UNKNOWN") == 0) {
+    selectedProtocol = EngineDownloadProtocol::UNKNOWN;
+  } else if (strcasecmp(protocol, "LOKNAMEN") == 0) {
+    selectedProtocol = EngineDownloadProtocol::LOKNAMEN;
+  } else if (strcasecmp(protocol, "LOKLISTE") == 0) {
+    selectedProtocol = EngineDownloadProtocol::LOKLISTE;
+  } else {
+    printf("%s: Unknown download protocol '%s'.\n", appName, protocol);
+    return -3;
+  }
+  routingTask.getCANEngineDB().setDownloadProtocol(selectedProtocol);
+
+  printf("%s: Download protocol set to '%s' (runtime only).\\n", appName, protocol);
   return 0;
 }
 

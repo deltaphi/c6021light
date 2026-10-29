@@ -16,23 +16,32 @@ class CanEngineDBStateMachine : public StateMachineBase {
  public:
   constexpr static const uint8_t kMaxDownloadTries = 10;
 
-  enum class RequestState { IDLE, REQUESTING, DOWNLOADING };
+  enum class RequestState { IDLE, REQUESTING, DOWNLOADING, REQUESTING_PROTOCOL };
 
   CanEngineDBStateMachine(CanEngineDB& engineDb, freertossupport::OsTask& parentTask)
       : StateMachineBase(parentTask), engineDb_(engineDb) {}
 
   void startRequesting() {
-    requestState_ = RequestState::REQUESTING;
-    if (statusIndicator != nullptr) {
-      statusIndicator->setCanDbDownload();
+    if (engineDb_.getDownloadProtocol() == EngineDownloadProtocol::UNKNOWN) {
+      startRequestingProtocol();
+    } else {
+      startRequestingEngineDB();
     }
-    tries = 0;
-    startTimerImmediate();
   }
 
   void loop() {
     if (timerExpired_) {
-      if (requestState_ == RequestState::REQUESTING) {
+      if (requestState_ == RequestState::REQUESTING_PROTOCOL) {
+        if (engineDb_.getDownloadProtocol() != EngineDownloadProtocol::UNKNOWN) {
+          startRequesting();
+        } else {
+          if (tries < kMaxDownloadTries) {
+            ++tries;
+          } else {
+            stopRequesting();
+          }
+        }
+      } else if (requestState_ == RequestState::REQUESTING) {
         if (tries < kMaxDownloadTries) {
           RR32Can::RR32Can.AbortCurrentConfigRequest();
           engineDb_.fetchEngineDB();
@@ -68,6 +77,25 @@ class CanEngineDBStateMachine : public StateMachineBase {
   uint8_t tries = 0;
   CanEngineDB& engineDb_;
   IStatusIndicator* statusIndicator{nullptr};
+
+  void startRequestingProtocol() {
+    requestState_ = RequestState::REQUESTING_PROTOCOL;
+    RR32Can::RR32Can.SendPing();
+    if (statusIndicator != nullptr) {
+      statusIndicator->setCanDbDownload();
+    }
+    tries = 0;
+    startTimerImmediate();
+  }
+
+  void startRequestingEngineDB() {
+    requestState_ = RequestState::REQUESTING;
+    if (statusIndicator != nullptr) {
+      statusIndicator->setCanDbDownload();
+    }
+    tries = 0;
+    startTimerImmediate();
+  }
 
   void stopRequesting() {
     requestState_ = RequestState::IDLE;
