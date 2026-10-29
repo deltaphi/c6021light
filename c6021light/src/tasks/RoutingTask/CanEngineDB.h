@@ -55,7 +55,6 @@ class CanEngineDB : public RR32Can::ConfigDataEndStreamCallback,
   void setDownloadProtocol(EngineDownloadProtocol downloadProtocol) {
     this->downloadProtocol_ = downloadProtocol;
   }
-  bool setDownloadProtocol(const char* downloadProtocolAsText);
   EngineDownloadProtocol getDownloadProtocol() const { return downloadProtocol_; };
 
   void streamComplete(RR32Can::ConfigDataConsumer*) override;

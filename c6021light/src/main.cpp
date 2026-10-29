@@ -10,6 +10,8 @@ extern "C" {
 #include <string.h>
 }
 
+#include <strings.h>
+
 #include <hal/LibOpencm3Hal.h>
 #include "hal/stm32I2C.h"
 #include "hal/stm32can.h"
@@ -209,15 +211,22 @@ int run_app_set_enginedb_protocol(int argc, const char* const* argv, int argcMat
   }
 
   const char* protocol = argv[argcMatched];
-  const bool success = routingTask.getCANEngineDB().setDownloadProtocol(protocol);
-
-  if (success) {
-    printf("%s: Download protocol set to '%s' (runtime only).\\n", appName, protocol);
-    return 0;
+  using tasks::RoutingTask::EngineDownloadProtocol;
+  EngineDownloadProtocol selectedProtocol;
+  if (strcasecmp(protocol, "UNKNOWN") == 0) {
+    selectedProtocol = EngineDownloadProtocol::UNKNOWN;
+  } else if (strcasecmp(protocol, "LOKNAMEN") == 0) {
+    selectedProtocol = EngineDownloadProtocol::LOKNAMEN;
+  } else if (strcasecmp(protocol, "LOKLISTE") == 0) {
+    selectedProtocol = EngineDownloadProtocol::LOKLISTE;
   } else {
-    printf("%s: Unknown download protocol '%s'.\\n", appName, protocol);
+    printf("%s: Unknown download protocol '%s'.\n", appName, protocol);
     return -3;
   }
+  routingTask.getCANEngineDB().setDownloadProtocol(selectedProtocol);
+
+  printf("%s: Download protocol set to '%s' (runtime only).\\n", appName, protocol);
+  return 0;
 }
 
 int run_app_can_ping(int, const char* const*, int) {
