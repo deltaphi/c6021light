@@ -183,7 +183,7 @@ void CanEngineDB::streamComplete(RR32Can::ConfigDataConsumer* consumer) {
     const auto nextRequestedStreamOffset = engineOffset + RR32Can::kEngineBrowserEntries;
 
     for (const auto& engineShortInfo : engineShortInfos) {
-      if (!hasEngine(engineShortInfo.getName())) {
+      if (!engineShortInfo.isFree() && !hasEngine(engineShortInfo.getName())) {
         db_[engineOffset].reset();
         db_[engineOffset].loco.setName(engineShortInfo.getName());
         ++engineOffset;
