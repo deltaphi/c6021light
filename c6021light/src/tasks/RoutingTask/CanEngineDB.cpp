@@ -106,9 +106,13 @@ void CanEngineDB::HandlePingResponse(const RR32Can::PingResponsePacket& packet) 
 
   const auto major = packet.getSoftwareVersionMajor();
   const auto minor = packet.getSoftwareVersionMinor();
+  printf("MS2 Version %d.%d detected.\n", major, minor);
+
   if (major < 3 || (major == 3 && minor < 55)) {
+    printf("Using Engine Protocol \"Loknamen\".");
     downloadProtocol_ = EngineDownloadProtocol::LOKNAMEN;
   } else {
+    printf("Using Engine Protocol \"Lokliste\".");
     downloadProtocol_ = EngineDownloadProtocol::LOKLISTE;
   }
 }
