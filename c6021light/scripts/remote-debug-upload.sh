@@ -44,12 +44,11 @@ if ! nc -w 1 127.0.0.1 "$gdb_port" </dev/null >/dev/null 2>&1; then
         exit 1
     }
     log_file="${HOME}/openocd-remote.log"
-    # Manual equivalent (run on the remote host):
-    # openocd -f interface/stlink.cfg -f target/stm32f1x.cfg -c "bindto 0.0.0.0" -c "gdb_port 3333" -c "tcl_port 6666"
+    # Keep OpenOCD private; the local debugger reaches it through SSH forwarding.
     nohup openocd \
         -f "$interface_cfg" \
         -f "$target_cfg" \
-        -c "bindto 0.0.0.0" \
+        -c "bindto 127.0.0.1" \
         -c "gdb_port $gdb_port" \
         -c "tcl_port $tcl_port" \
         >"$log_file" 2>&1 </dev/null &
