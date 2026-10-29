@@ -12,7 +12,7 @@ remote_host = env.GetProjectOption(
     "custom_remote_host", "root@modellbahn-bpi.fritz.box"
 )
 env.Replace(
-    UPLOADCMD="{} {} $SOURCE {}".format(
+    UPLOADCMD="{} {} $BUILD_DIR/${{PROGNAME}}.elf {}".format(
         shlex.quote(sys.executable),
         shlex.quote(uploader),
         shlex.quote(remote_host),
