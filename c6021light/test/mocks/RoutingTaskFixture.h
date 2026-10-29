@@ -33,10 +33,13 @@ class RoutingTaskFixture : public Test {
     RR32Can::Station::CallbackStruct callbacks;
     callbacks.tx = &canTx;
     callbacks.engine = &routingTask.getCANEngineDB();
+    callbacks.ping = &routingTask.getCANEngineDB();
     RR32Can::RR32Can.begin(0, callbacks);
   }
 
   void TearDown() {
+    // The station is global; release its parser callback before this fixture is destroyed.
+    RR32Can::RR32Can.AbortCurrentConfigRequest();
     hal::canMock = nullptr;
     hal::i2cMock = nullptr;
     mocks::LocoNetInstance = nullptr;

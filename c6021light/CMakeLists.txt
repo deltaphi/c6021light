@@ -95,6 +95,7 @@ add_executable(c6021lightTest
     "test/integration/StopGoRequest.cpp"
     "test/integration/CanEngineDBRequest.cpp"
     "test/integration/CanEngineDBLoklisteRequest.cpp"
+    "test/integration/CanEngineDBDiscovery.cpp"
     "test/mocks/LocoNet.cpp"
     "test/mocks/RoutingForwarderMock.cpp"
     "test/integration/SlotServerProcessing.cpp"
@@ -107,6 +108,7 @@ add_executable(c6021lightTest
     "src/tasks/RoutingTask/LocoNetPrinter.cpp"
     "src/tasks/RoutingTask/LocoNetSlotServer.cpp"
     "src/tasks/RoutingTask/CanEngineDB.cpp"
+    "src/tasks/RoutingTask/CanEngineDBStateMachine.cpp"
     "src/tasks/RoutingTask/RoutingTask.cpp"
 
     "src/MarklinI2C/Messages/AccessoryMsg.cpp"
